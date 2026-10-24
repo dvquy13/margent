@@ -44,7 +44,7 @@ export interface RenderedDoc {
   policy: string; // the Content-Security-Policy of this page: `serve` sends it as a header (M5 R2.4)
 }
 
-const SLOTS = ['title', 'policy', 'head', 'project', 'meta', 'hero', 'toc', 'main', 'source', 'scripts'] as const;
+const SLOTS = ['title', 'policy', 'head', 'wordmark', 'meta', 'hero', 'toc', 'main', 'source', 'scripts'] as const;
 type Slot = (typeof SLOTS)[number];
 
 // Records the text of an executable inline script in `texts`, the list the policy hashes, and returns its element.
@@ -133,6 +133,9 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
 
   const meta = [body.meta.status, body.meta.version, body.meta.updated].filter((v): v is string => v !== undefined);
   if (hasComments) meta.push(`${body.comments.length} open`);
+  // Under `serve` the docs root is `/`, so the wordmark links to the doc index. A static file has no index to go to.
+  const project = escapeText(projectName(root));
+  const wordmark = edit ? `<a class="wordmark" href="/">${project}</a>` : `<span class="wordmark">${project}</span>`;
   const source_ = relative(root, file).split(sep).join('/');
 
   // Every executable inline script, and every script text a guest runs, in document order: the policy lists their hashes.
@@ -146,7 +149,7 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
     title: escapeText(body.title),
     policy: escapeText(policy),
     head: `<meta name="generator" content="margent ${VERSION}">\n<style>\n${styles}\n</style>`,
-    project: escapeText(projectName(root)),
+    wordmark,
     meta: escapeText(meta.join(' · ')),
     hero: body.hero,
     toc: body.toc,
