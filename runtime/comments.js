@@ -190,15 +190,16 @@
 
   // Finds the text in one root (a block) and returns a Range over it, or null. The phrase may run across text nodes
   // (two list items, or text around bold), and whitespace is ignored on both sides: a quote is stored with its whitespace
-  // collapsed, and one taken from an island before 2026-10-24 has none at block boundaries ("gate.Spread").
+  // collapsed, and one taken from an island before 2026-10-24 has none at block boundaries ("gate.Spread"). A quote
+  // stores ' for each " of the page (quoteOf in runtime/edit/comments.js), so " is read as ' on both sides.
   function findText(root, text) {
-    const wanted = text.replace(/\s+/g, '');
+    const wanted = text.replace(/\s+/g, '').replaceAll('"', "'");
     if (wanted === '') return null;
     const chars = []; // each non-space character of the root's text, with its text node and offset
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const value = node.nodeValue;
-      for (let i = 0; i < value.length; i++) if (!/\s/.test(value[i])) chars.push({ node, i, c: value[i] });
+      for (let i = 0; i < value.length; i++) if (!/\s/.test(value[i])) chars.push({ node, i, c: value[i].replace('"', "'") });
     }
     const at = chars.map((x) => x.c).join('').indexOf(wanted);
     if (at < 0) return null;
