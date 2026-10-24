@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/dvquy13/margent/compare/margent-v0.1.0...margent-v0.1.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* a release bumps every version pin ([23e47b0](https://github.com/dvquy13/margent/commit/23e47b0f346c1c984433b18e58b7cf090ee1683c))
+* **serve:** live reload keeps working after a save on Linux ([39805a7](https://github.com/dvquy13/margent/commit/39805a7c88b6a2ec8efd1b7b4ac12e12c42bf8bb))
+
 ## 0.1.0 (2026-10-25)
 
 ### Features
