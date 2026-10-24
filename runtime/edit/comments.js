@@ -543,8 +543,8 @@ export function initComments(margent) {
     });
   }
 
-  // The owner's notes get an Edit control, right after the note in its card. A note is the owner's when its author is
-  // state.author exactly. The thread's data-md holds the exact source of its notes, in source order, so index and the
+  // The owner's notes get an Edit control, right after the note in its card; a thread that is one owner's note gets it in
+  // the card's action row instead, next to Reply and Resolve. A note is the owner's when its author is state.author exactly. The thread's data-md holds the exact source of its notes, in source order, so index and the
   // body come from it; the card's p.c-note elements must match them one for one.
   function addEditControls(id, card) {
     if (state.author === null) return;
@@ -563,7 +563,8 @@ export function initComments(margent) {
       button.type = 'button';
       button.addEventListener('mousedown', keepPress);
       button.addEventListener('click', () => onEdit(id, index, body));
-      cardNotes[index].after(button);
+      if (notes.length === 1) card.querySelector('.comment-actions').append(button);
+      else cardNotes[index].after(button);
     });
   }
 

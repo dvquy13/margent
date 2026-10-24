@@ -302,10 +302,10 @@ agent-island.edit-block > .comment-control {
 }
 .comment-reply:hover, .comment-resolve:hover { color: var(--accent); }
 
-/* Edit sits under the owner's own note in its card: a small text link, right-aligned, quiet until the card is hovered,
+/* Edit sits under the owner's own note in its card: a small text link, left-aligned with Reply, quiet until the card is hovered,
    focused or linked, like Reply and Resolve. */
 .comment-edit {
-  display: block; margin: 0.2em 0 0 auto;
+  display: block; margin: 0.2em 0 0.5em;
   font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
   padding: 0; border: 0; background: none;
   color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
@@ -321,6 +321,8 @@ agent-island.edit-block > .comment-control {
   .comment-edit { opacity: 1; }
 }
 .comment-edit:hover { color: var(--accent); }
+/* In the action row (a thread of one owner's note) it is one more link like Reply and Resolve; the row fades it. */
+.comment-actions .comment-edit { display: inline; margin: 0; font: inherit; opacity: 1; }
 .comment-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media print {

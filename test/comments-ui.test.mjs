@@ -462,6 +462,16 @@ test(
     }));
     assert.equal(all.edits, all.quy, 'one Edit per note by Quy');
     assert.ok(all.notes > all.quy, 'the page has a note by another author');
+    // A thread that is one note by the owner has its Edit in the action row, after Reply and Resolve.
+    const rows = await page.evaluate(() =>
+      ['c2', 'c3'].map((id) =>
+        [...document.querySelectorAll(`.c-card[data-c="${id}"] .comment-actions button`)].map((b) => b.textContent)
+      )
+    );
+    assert.deepEqual(rows, [
+      ['Reply', 'Resolve', 'Edit'],
+      ['Reply', 'Resolve', 'Edit'],
+    ]);
   })
 );
 
