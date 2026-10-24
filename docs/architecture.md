@@ -52,7 +52,7 @@ This file describes only what exists in code. For the intended system, see [desi
 | `{{title}}` | text | page `<title>` |
 | `{{policy}}` | text | the page's policy, in a `<meta http-equiv="Content-Security-Policy">` after the charset meta (see [Script policy](#script-policy)) |
 | `{{head}}` | html | generator meta, then one `<style>` with `shell.css` and `runtime/island.css`, plus `shell/comments.css` when the doc has threads and `runtime/edit/edit.css` under `serve` |
-| `{{project}}` | text | header wordmark: the parent folder's name if the docs root is called `docs`, else the docs root's name |
+| `{{wordmark}}` | html | header wordmark, named by the parent folder if the docs root is called `docs`, else by the docs root. Under `serve` it is a link to `/`, the doc index; in a static render it is plain text |
 | `{{meta}}` | text | status, version and updated, then `{n} open` when the doc has threads, joined with ` · `, skipping missing ones |
 | `{{hero}}` | html | the `<h1>` plus every block before the first `##` |
 | `{{toc}}` | html | `<nav class="toc">` with one link per `##`, or empty when there is none |

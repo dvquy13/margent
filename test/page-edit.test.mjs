@@ -70,8 +70,17 @@ test('edit adds exactly the comment rail (CSS and script), the CSS, the state sc
     .replace(bundle, '')
     .replace(railCss, '')
     .replace(railJs, '')
-    .replace(policyMeta(edited), policyMeta(plain));
+    .replace(policyMeta(edited), policyMeta(plain))
+    .replace(/<a class="wordmark" href="\/">([^<]*)<\/a>/, '<span class="wordmark">$1</span>');
   assert.equal(stripped, plain);
+});
+
+test('the wordmark links to the doc index under serve and is plain text in a static render', () => {
+  const plain = renderDoc(input()).html;
+  const edited = renderDoc(input({ edit: { state, js: '', css: '' } })).html;
+  assert.match(plain, /<span class="wordmark">[^<]+<\/span>/);
+  assert.ok(!plain.includes('class="wordmark" href'), 'a static page has no index to link to');
+  assert.match(edited, /<a class="wordmark" href="\/">[^<]+<\/a>/);
 });
 
 test('a </script> in the state source cannot close the state element, and the state round-trips', () => {

@@ -147,7 +147,7 @@ ${shellCss}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><span class="wordmark">margent</span><span class="top-meta">render error</span></div></header>
+<header class="top"><div class="wrap"><a class="wordmark" href="/">margent</a><span class="top-meta">render error</span></div></header>
 <main class="wrap">
 <h1>${escapeHtml(path)} did not render</h1>
 <p>Fix the file and this page comes back. It reloads when the file changes.</p>
