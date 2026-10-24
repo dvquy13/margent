@@ -15,7 +15,7 @@ Address the review comments in `$ARGUMENTS`. First load the margent skill with t
 
 1. Run `margent comments $ARGUMENTS` with the Bash tool. Work only on threads marked `needs agent`. Leave `needs you` threads alone.
 2. For each thread, read the `.md` again before editing it: the user may have added a comment in the served page since you last read it.
-3. If the comment asks for a change you can make exactly as asked, make it and delete the whole thread. If it asks a question, needs a judgment call, or you disagree, append a `Claude` note after the thread's last note with the same ID, and leave the thread open.
+3. If the comment asks for a change you can make exactly as asked, make it. Either way, append a `Claude` note after the thread's last note with the same ID and leave the thread open: for a change, one line saying what you changed and where; otherwise your answer, question or disagreement. Never delete a thread: the user resolves it.
 4. Run `margent check` on each file you changed. Fix what you broke; do not leave a failing check.
 5. Run `margent comments $ARGUMENTS` again. Report in two lines how many threads still need the agent and how many need the user, and list the files you changed.
 

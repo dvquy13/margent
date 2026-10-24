@@ -215,7 +215,7 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 - **Saving:** every comment operation is an ordinary block save through the M2 save path, with the author taken from git ([0021](../decisions/0021-comment-operations-are-block-saves.md)).
 - **Display:** highlights in the text, notes in the margin or under their block where there is no room, and an open-comment count in the header.
 - **Threads:** replies are further comments with the same ID.
-- **Agent contract:** `margent comments {path}` lists the threads. For each one that needs the agent, make the change and delete the thread when the comment asks for exactly that change, or reply and leave it open for a question, a judgment call, a disagreement or anything that needs you. Finish by reporting how many threads still need the agent and how many need you.
+- **Agent contract:** `margent comments {path}` lists the threads. For each one that needs the agent, make the change when the comment asks for exactly that change, then reply with one line saying what changed and where. Reply too for a question, a judgment call or a disagreement. The thread stays open either way, because only the user resolves it, and the reply is how they see what the agent did (decision 0035). Finish by reporting how many threads still need the agent and how many need you.
 - **Sharing:** `margent export {path} --md --clean` writes a markdown copy with comments and island markers stripped, for sending markdown to someone else.
 
 For detail, see the [M3 spec](../specs/m3-comments.md).
