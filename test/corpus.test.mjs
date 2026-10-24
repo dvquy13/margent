@@ -76,10 +76,11 @@ export function outsideRangeProblem(original, actual, start, end, text) {
 // Serves the docs with no author: the config reads no user name and no global file while the server starts.
 async function serveWithoutAuthor() {
   const home = mkdtempSync(join(tmpdir(), 'corpus-home-'));
-  const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM };
+  const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM, USER: process.env.USER, USERNAME: process.env.USERNAME, LOGNAME: process.env.LOGNAME };
   process.env.HOME = home;
   process.env.GIT_CONFIG_GLOBAL = '/dev/null';
   process.env.GIT_CONFIG_NOSYSTEM = '1';
+  for (const key of ['USER', 'USERNAME', 'LOGNAME']) delete process.env[key];
   try {
     return await serveCopy(DOCS);
   } finally {

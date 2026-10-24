@@ -70,13 +70,15 @@ function git(root, args, env = process.env) {
   return execFileSync('git', args, { cwd: root, env, stdio: 'ignore' });
 }
 
-// Sets env vars for the test and restores them after it, so git reads no user, global or system config.
+// Sets env vars for the test and restores them after it, so git reads no user, global or system config and there is
+// no OS user name. A test that wants the OS fallback sets USER itself.
 function isolateGit(t) {
   const home = mkdtempSync(join(workdir, 'home-'));
-  const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM };
+  const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM, USER: process.env.USER, USERNAME: process.env.USERNAME, LOGNAME: process.env.LOGNAME };
   process.env.HOME = home;
   process.env.GIT_CONFIG_GLOBAL = '/dev/null';
   process.env.GIT_CONFIG_NOSYSTEM = '1';
+  for (const key of ['USER', 'USERNAME', 'LOGNAME']) delete process.env[key];
   t.after(() => {
     for (const [key, value] of Object.entries(saved)) {
       if (value === undefined) delete process.env[key];
@@ -101,7 +103,7 @@ test('A10: with no --author, the author is git config user.name in the served ro
   assert.equal((await pageState(s, 'doc.html')).author, 'Temp User');
 });
 
-test('A10: with no --author and no git user.name, the author is null and the log says how to set one', async (t) => {
+test('A10: with no --author, no git user.name and no OS user name, the author is null and the log says how to set one', async (t) => {
   isolateGit(t);
   const root = makeRoot({ 'doc.md': DOC });
   git(root, ['init', '-q']);
@@ -120,9 +122,44 @@ test('A10: with no --author and no git user.name, the author is null and the log
   assert.equal(s.h.author, null);
   assert.equal((await pageState(s, 'doc.html')).author, null);
   const log = written.join('');
-  assert.match(log, /no author is configured \(git config user\.name is not set\)/);
+  assert.match(log, /no author is configured \(git config user\.name is not set, and no usable USER, USERNAME or LOGNAME is set\)/);
   assert.match(log, /serve --author \{name\}/);
   assert.match(log, /git config user\.name \{name\}/);
+});
+
+test('A10: with no --author and no git user.name, the OS user name signs notes and the log says so', async (t) => {
+  isolateGit(t);
+  process.env.USER = 'Jane Doe';
+  const root = makeRoot({ 'doc.md': DOC });
+  git(root, ['init', '-q']);
+  const written = [];
+  const writeOrig = process.stdout.write;
+  process.stdout.write = (chunk, ...rest) => {
+    written.push(String(chunk));
+    return writeOrig.call(process.stdout, chunk, ...rest);
+  };
+  let s;
+  try {
+    s = await serve(t, root);
+  } finally {
+    process.stdout.write = writeOrig;
+  }
+  assert.equal(s.h.author, 'Jane Doe');
+  assert.equal((await pageState(s, 'doc.html')).author, 'Jane Doe');
+  assert.match(written.join(''), /notes are signed "Jane Doe", the OS user name \(git config user\.name is not set\); to change it: serve --author \{name\}/);
+});
+
+test('A10: git user.name wins over the OS user name, and an unusable OS name is skipped', async (t) => {
+  isolateGit(t);
+  process.env.USER = 'os:user';
+  process.env.LOGNAME = 'Login Name';
+  const bare = makeRoot({ 'doc.md': DOC });
+  git(bare, ['init', '-q']);
+  assert.equal((await serve(t, bare)).h.author, 'Login Name', 'USER has a ":", so LOGNAME signs');
+  const root = makeRoot({ 'doc.md': DOC });
+  git(root, ['init', '-q']);
+  git(root, ['config', 'user.name', 'Git Name']);
+  assert.equal((await serve(t, root)).h.author, 'Git Name');
 });
 
 test('A10: an unusable --author is a startup error that names the problem', async () => {

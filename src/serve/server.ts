@@ -3,7 +3,6 @@
 import editJs from '../../.build/runtime/edit.js?raw';
 import editCss from '../../runtime/edit/edit.css?raw';
 import shellCss from '../../shell/shell.css?raw';
-import { execFileSync } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readFileSync, realpathSync, statSync } from 'node:fs';
@@ -14,6 +13,7 @@ import { pagePolicy } from '../render/policy.js';
 import { findDocsRoot } from '../render/root.js';
 import { indexPage } from './index-page.js';
 import { hash, splice, validate, writeAtomic } from './splice.js';
+import { resolveAuthor } from './author.js';
 import { watchTree } from './watch.js';
 
 // The edit runtime, inlined into every page the server renders. Imported here so the bundle is wired end to end.
@@ -22,7 +22,7 @@ export const EDIT_RUNTIME = { js: editJs, css: editCss };
 export interface ServeOptions {
   root: string; // absolute docs root
   port?: number; // 0 or undefined picks a free port
-  // `serve --author`. Absent, the author comes from `git config user.name` in root (see resolveAuthor).
+  // `serve --author`. Absent, the author comes from `git config user.name` in root, else the OS user (see resolveAuthor).
   author?: string;
 }
 
@@ -58,37 +58,6 @@ interface SaveBody {
 }
 
 class BodyTooLarge extends Error {}
-
-// Why a name cannot sign a note (the note grammar, spec R2), or null when it can. A note is `[c{n}] {author}: {text}`.
-function authorProblem(name: string): string | null {
-  if (name.trim() === '') return 'the name is empty';
-  if (/[:\]\r\n]/.test(name)) return 'the name has ":", "]" or a line break';
-  return null;
-}
-
-// The name new notes are signed with (decision 0021). The option wins and must be usable, else `git config user.name`
-// in the served root. A git name that is missing or unusable gives null and the reason, which the server logs.
-function resolveAuthor(configured: string | undefined, root: string): { author: string | null; reason: string } {
-  if (configured !== undefined) {
-    const problem = authorProblem(configured);
-    if (problem !== null) throw new Error(`--author ${JSON.stringify(configured)} is not usable: ${problem}`);
-    return { author: configured, reason: '' };
-  }
-  let name: string;
-  try {
-    name = execFileSync('git', ['config', 'user.name'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch (err) {
-    // git config exits 1 when the name is unset. Anything else means git itself could not run.
-    if ((err as { status?: number }).status === 1) return { author: null, reason: 'git config user.name is not set' };
-    return { author: null, reason: `git could not be run: ${(err as Error).message}` };
-  }
-  if (name === '') return { author: null, reason: 'git config user.name is empty' };
-  const problem = authorProblem(name);
-  if (problem !== null) {
-    return { author: null, reason: `git config user.name ${JSON.stringify(name)} is not usable: ${problem}` };
-  }
-  return { author: name, reason: '' };
-}
 
 // True when `target` is `dir` or inside it. Both are absolute paths, compared lexically.
 function within(dir: string, target: string): boolean {
@@ -237,7 +206,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   const rootReal = realpathSync(root);
   const requestedPort = opts.port ?? 0;
   const token = randomBytes(16).toString('hex');
-  const { author, reason: authorReason } = resolveAuthor(opts.author, root);
+  const { author, source: authorSource, reason: authorReason } = resolveAuthor(opts.author, root);
 
   // Per page path (posix, relative to the root): the files it depends on, and its open SSE clients, each with the hash
   // of the .md its page was rendered from.
@@ -259,6 +228,8 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     logError(
       `no author is configured (${authorReason}); the page refuses notes until one is set: serve --author {name}, or git config user.name {name}`
     );
+  } else if (authorSource === 'os') {
+    log(`notes are signed "${author}", the OS user name (${authorReason}); to change it: serve --author {name}, or git config user.name {name}`);
   }
   // Every refused request is logged and answered, so a 403 never happens silently.
   const deny = (req: IncomingMessage, res: ServerResponse, reason: string): void => {

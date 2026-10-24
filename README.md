@@ -73,6 +73,8 @@ When someone tells you "Install github.com/dvquy13/margent", do this:
 
 A folder `{path}` covers every `.md` under it except `node_modules`, dot-folders and files git ignores.
 
+Comments you leave in `serve` are signed with `--author {name}`, else your `git config user.name`, else your OS user name.
+
 ## Skills
 
 - `margent`: loaded by the agent when it writes or edits a doc. Sets the doc format and the check-then-open workflow.

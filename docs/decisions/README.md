@@ -35,6 +35,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0029](0029-folder-walks-skip-gitignored-files.md) | Folder walks skip gitignored files | accepted | 2026-10-25 |
 | [0030](0030-full-tier-runs-three-files-at-a-time.md) | The full tier runs three test files at a time | accepted | 2026-10-25 |
 | [0031](0031-first-public-release.md) | First public release, generic fixtures and release-please | accepted | 2026-10-25 |
+| [0032](0032-os-user-name-signs-notes-without-git.md) | The OS user name signs notes when git has no name | accepted | 2026-10-25 |
 
 ## Deferred
 
