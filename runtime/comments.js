@@ -76,11 +76,17 @@
       card.append(el('q', 'c-quote', quote));
       quotes.set(id, quote);
     }
+    // A note is a header row (its author; the edit runtime adds Edit to an owner's) and its text below it.
     for (const note of thread.querySelectorAll('.c-note')) {
       const copy = note.cloneNode(true);
       for (const q of copy.querySelectorAll('q.c-quote')) q.remove();
+      const author = copy.querySelector('.c-author');
+      if (author === null) throw new Error(`comment ${id}: a note has no author element`);
+      author.remove();
+      const head = el('div', 'c-note-head');
+      head.append(author);
       const p = el('p', 'c-note');
-      p.append(...copy.childNodes);
+      p.append(head, el('div', 'c-text', copy.textContent.trim()));
       card.append(p);
     }
     card.append(el('div', 'c-actions'));
@@ -98,9 +104,10 @@
   const railOn = (on) => document.documentElement.classList.toggle('c-rail-on', on);
   railOn(cards.size > 0);
 
-  // The draft: the edit runtime's note box, placed in the rail like a card (decision 0023). place is { top() } for a
-  // new comment (the viewport top of what it is about) or { after: id } for a reply, which sits right under that card.
-  // Below 1100px the box stays docked at the bottom of the window, so the selection it is about stays in view.
+  // The draft: the edit runtime's new-comment card, placed in the rail like a card (decision 0023). place is { top() }
+  // for a new comment (the viewport top of what it is about), or { after: id } for a message about a thread, which sits
+  // right under that card. Below 1100px the card stays docked at the bottom of the window, so the selection it is about
+  // stays in view.
   let draft = null;
   function showDraft(box, place) {
     draft = { box, place };
@@ -137,12 +144,12 @@
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
       return;
     }
-    if (draft !== null && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
+    if (draft !== null && draft.place.note === undefined && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
     // The rail is positioned against main, so anchors are measured from main's top edge. The draft joins the cards in
     // order: right after its thread's card for a reply, else before the first card whose anchor is further down.
     const origin = main.getBoundingClientRect().top;
     const entries = [...cards].map(([id, card]) => ({ id, el: card, wanted: anchors.get(id).getBoundingClientRect().top - origin }));
-    if (draft !== null) {
+    if (draft !== null && draft.place.note === undefined) {
       const { place } = draft;
       if (place.after !== undefined) {
         const at = entries.findIndex((e) => e.id === place.after);
@@ -190,15 +197,16 @@
 
   // Finds the text in one root (a block) and returns a Range over it, or null. The phrase may run across text nodes
   // (two list items, or text around bold), and whitespace is ignored on both sides: a quote is stored with its whitespace
-  // collapsed, and one taken from an island before 2026-10-24 has none at block boundaries ("gate.Spread").
+  // collapsed, and one taken from an island before 2026-10-24 has none at block boundaries ("gate.Spread"). A quote
+  // stores ' for each " of the page (quoteOf in runtime/edit/comments.js), so " is read as ' on both sides.
   function findText(root, text) {
-    const wanted = text.replace(/\s+/g, '');
+    const wanted = text.replace(/\s+/g, '').replaceAll('"', "'");
     if (wanted === '') return null;
     const chars = []; // each non-space character of the root's text, with its text node and offset
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const value = node.nodeValue;
-      for (let i = 0; i < value.length; i++) if (!/\s/.test(value[i])) chars.push({ node, i, c: value[i] });
+      for (let i = 0; i < value.length; i++) if (!/\s/.test(value[i])) chars.push({ node, i, c: value[i].replace('"', "'") });
     }
     const at = chars.map((x) => x.c).join('').indexOf(wanted);
     if (at < 0) return null;
@@ -348,7 +356,8 @@
   }
   for (const [id, card] of cards) {
     card.addEventListener('click', (e) => {
-      if (wide.matches || e.target.closest('button')) return;
+      // A press in a button or the field of a draft is not a click on the card (below 1100px it would close the drawer).
+      if (wide.matches || e.target.closest('button, textarea')) return;
       card.blur();
       anchors.get(id).scrollIntoView({ block: 'center' });
       setOpen(false);

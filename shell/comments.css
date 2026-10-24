@@ -31,6 +31,9 @@ mark.c-hl.is-linked { background: var(--accent-border); }
 .c-thread.is-linked { border-left-color: var(--accent); }
 .c-note { display: block; }
 .c-note + .c-note { margin-top: 0.4em; }
+/* A note in a rail card, finished or a draft, at one size: a finished note is a <p>, which the page's paragraph rule
+   would otherwise set larger than a draft's <div>. */
+.c-card .c-note { font-size: var(--font-md); line-height: 1.45; }
 .c-author { color: var(--text); font-weight: 600; margin-right: 0.3em; }
 
 /* A block comment line holds only its thread, under the block it follows. */

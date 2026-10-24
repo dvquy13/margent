@@ -116,7 +116,7 @@ Only in pages that `serve` produces, like the rest of the edit runtime.
 ### R7 Editing blocks that hold comments
 
 1. **Gate:** a house turndown rule writes a `<mark>` back as `{==…==}` around its content, and a thread as its stored note source. A block with comments then passes the gate like any other.
-2. **In place:** notes are not editable, and highlighted text is. Deleting all of a highlight's text leaves its notes as a point comment.
+2. **In place:** notes are not editable, and highlighted text is. Amended by [0033](../decisions/0033-owner-edits-their-own-notes.md): the owner's own notes are editable through an Edit control in the rail. Deleting all of a highlight's text leaves its notes as a point comment.
 3. **Fallback:** a block with comments that fails the gate edits in the panel, which shows the raw markup ([0005](../decisions/0005-comments-as-inline-criticmarkup.md)).
 
 ### R8 `agent-docs comments`

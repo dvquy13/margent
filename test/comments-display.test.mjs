@@ -30,7 +30,7 @@ function pageFile(name, source) {
   return { html, url: pathToFileURL(path).href };
 }
 
-const FIXTURES = ['all-kinds.md', 'quoted.md', 'tall-table.md'];
+const FIXTURES = ['all-kinds.md', 'quoted.md', 'quoted-table.md', 'tall-table.md'];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
 let browser;
@@ -314,6 +314,41 @@ test('R4.3: a quoted phrase that is not in its block marks only the block', full
     const blocks = await page.evaluate(() => document.querySelectorAll('[data-src].is-linked').length);
     assert.equal(blocks, 1, 'the quoted block is linked');
     assert.equal(await page.evaluate(() => CSS.highlights.has('margent-quote')), false, 'no phrase is marked');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+// The UI stores a quote with ' for each " (quoteOf), so a phrase taken from text that has " in it must still be found.
+test('0023: a phrase taken from a table cell with " in it is marked, though its quote stores \' for "', async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-table.md']);
+  try {
+    const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
+    assert.deepEqual(always, ['"alpha beta", "gamma", delta'], 'the quoted phrase is marked with its page quotes');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('0023: a phrase drawn by an island with " in it is marked in its frame, though its quote stores \' for "', full, async () => {
+  const file = join(FIX, 'ui-island', 'docs', 'island.md');
+  const root = join(FIX, 'ui-island', 'docs');
+  // The island line gets a " (a plain YAML scalar may hold one); the quote is what a selection there stores.
+  const source = readFileSync(file, 'utf8')
+    .replace('  - Blog and Docs stay in', '  - Blog "and" Docs stay in')
+    .replace('A paragraph after the island.', `{>>[c1] Quy: "Blog 'and' Docs" → quoted from the island<<}\n\nA paragraph after the island.`);
+  const path = join(workdir, 'island-quotes.html');
+  writeFileSync(path, renderDoc({ file, source, root, outFile: path }).html);
+  const { page, errors, close } = await open(1280, 'light', pathToFileURL(path).href);
+  try {
+    await page.waitForFunction(() => document.querySelector('agent-island')?.getAttribute('data-state') === 'rendered');
+    await page.locator('.c-card[data-c="c1"]').hover();
+    const frame = islandFrame(page);
+    await frame.waitForFunction(() => CSS.highlights.has('margent-quote'));
+    const marked = await frame.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
+    assert.deepEqual(marked, ['Blog "and" Docs'], 'the phrase is marked with its frame quotes');
     assert.deepEqual(errors, []);
   } finally {
     await close();

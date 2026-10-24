@@ -1,0 +1,16 @@
+{
+  "doc": "reviewed.md",
+  "expect": "no-save",
+  "steps": [
+    {
+      "control": {
+        "label": "Edit",
+        "near": "here is marked",
+        "nth": 1
+      }
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

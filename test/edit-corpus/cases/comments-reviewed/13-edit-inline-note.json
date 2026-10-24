@@ -1,0 +1,21 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Edit",
+        "near": "here is marked",
+        "nth": 1
+      }
+    },
+    {
+      "press": "End"
+    },
+    {
+      "type": " Check v2 too."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

@@ -146,6 +146,22 @@ export function appendNote(block: string, id: string, n: NoteParts): string {
   return block.slice(0, last.end) + noteSource({ ...n, id }) + block.slice(last.end);
 }
 
+// The block with the index-th note of thread `id` (0-based, source order among that id's notes) rewritten to `text`.
+// The note keeps its author, and a quoted first note of a block comment line keeps its `"phrase" → ` prefix.
+export function replaceNote(block: string, id: string, index: number, text: string): string {
+  const notes = findNotes(block).filter((note) => note.id === id);
+  if (!Number.isInteger(index) || index < 0 || index >= notes.length) {
+    throw new Error(`replaceNote: no note ${index} in thread ${id}`);
+  }
+  const note = notes[index];
+  // A block comment line holds one thread and nothing else; the renderer reads its quote from notes[0].
+  const lineStart = block.lastIndexOf('\n', note.start - 1) + 1;
+  const onBlockLine = index === 0 && block.slice(lineStart, note.start) === '';
+  const quote = onBlockLine ? splitQuote(note.text).quote : undefined;
+  const body = quote === undefined ? text : quotedText(quote, text);
+  return block.slice(0, note.start) + noteSource({ id, author: note.author, text: body }) + block.slice(note.end);
+}
+
 // Removes every note with this ID. When the thread's first note sits directly after a highlight, the highlight's
 // markers go too, and its text stays as it was.
 export function stripThread(block: string, id: string): string {

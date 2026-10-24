@@ -191,14 +191,15 @@
     var ranges = [];
     // Whitespace is ignored: a quote taken from a selection across elements has a space or line break where the text
     // nodes have none ("are out HN" against "are out" + "HN"). `at[i]` is the offset in `text` of squeezed character i.
+    // A quote stores ' for each " of the page (quoteOf in runtime/edit/comments.js), so " is read as ' on both sides.
     var squeezed = '';
     var at = [];
     for (var k = 0; k < text.length; k++) {
       if (/\s/.test(text[k])) continue;
-      squeezed += text[k];
+      squeezed += text[k] === '"' ? "'" : text[k];
       at.push(k);
     }
-    var needle = String(phrase || '').replace(/\s+/g, '');
+    var needle = String(phrase || '').replace(/\s+/g, '').replaceAll('"', "'");
     if (!needle) return ranges;
     for (var i = squeezed.indexOf(needle); i >= 0; i = squeezed.indexOf(needle, i + needle.length)) {
       var a = locate(at[i], false);

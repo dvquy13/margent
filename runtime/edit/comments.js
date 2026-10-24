@@ -1,12 +1,23 @@
 // The comment UI (M3 spec R5, R6; plan T8). Runs only in a page that `margent serve` produced. It adds a Comment
-// control at a selection inside one top-level block, a comment control on every block, and Reply and Resolve on every
-// thread. Each action is one margent.save of one block (decision 0021): the block's new source is built here from its
-// markdown with the syntax module, and the save goes through the same path as an edit.
-import { appendNote, nextId, noteSource, quotedText, stripThread } from '../../src/comments/syntax.ts';
+// control at a selection inside one top-level block, a comment control on every block, and Reply, Resolve and Edit on
+// the thread's card. A new comment is a draft card; a reply is a field at the foot of its thread's card; an owner's edit
+// replaces its note's text with the field. Every save is one margent.save of one block (decision 0021): the block's new
+// source is built here from its markdown with the syntax module.
+import {
+  appendNote,
+  NOTE,
+  nextId,
+  noteSource,
+  quotedText,
+  replaceNote,
+  splitQuote,
+  stripThread,
+} from '../../src/comments/syntax.ts';
 
 const PENDING = 'margent-pending';
 const AUTHOR_MESSAGE =
   'No author is set, so notes cannot be saved. Start margent serve with --author {name}, or set git config user.name {name}, then reload this page.';
+const EMPTY_EDIT_MESSAGE = "A note can't be empty. Resolve removes the thread.";
 
 function make(tag, className, text) {
   const el = document.createElement(tag);
@@ -47,14 +58,12 @@ function topBlockOf(node) {
 const slotOf = (el) => (el.tagName === 'HR' ? el.parentElement : el);
 
 // A press on one of our controls must not reach inline.js (which would start editing the block under it) or move the
-// caret and blur the block being edited.
+// focus out of a field being typed in.
 function keepPress(e) {
   if (e.button !== 0) return;
   e.preventDefault();
   e.stopPropagation();
 }
-
-const excerpt = (s) => (s.length > 60 ? `${s.slice(0, 59)}…` : s);
 
 // The page's own selection as a range. A selection inside an island is in its frame, which the page cannot read: it
 // comes as the island's selection event instead (islandSel in initComments, M5 R6.1).
@@ -85,59 +94,92 @@ function quoteOf(text) {
   return text.replace(/\s+/g, ' ').trim().replaceAll('"', "'");
 }
 
+// The field: a quiet textarea in the card's type. It holds one line (R1.2): a pasted line break becomes a space, and it
+// grows with its text up to about eight lines, then scrolls (edit.css).
+// A field that is not rendered (detached, or in a hidden draft) measures 0, so it keeps its natural one-line height
+// until it is shown; every caller that shows a field fits it then.
+function fitField(field) {
+  field.style.height = '';
+  if (field.getClientRects().length === 0) return;
+  field.style.height = 'auto';
+  field.style.height = `${field.scrollHeight + field.offsetHeight - field.clientHeight}px`; // + the borders
+}
+
+// A composer: the field, its message line, and the row of Cancel and Save under it. The caller places body.
+function makeCompose(placeholder) {
+  const field = make('textarea', 'comment-input');
+  field.rows = 1;
+  field.autocomplete = 'off';
+  field.spellcheck = true;
+  field.placeholder = placeholder;
+  field.setAttribute('aria-label', placeholder || 'Note text');
+  field.addEventListener('input', () => {
+    if (/[\r\n]/.test(field.value)) {
+      const at = field.selectionStart;
+      field.value = field.value.replace(/\r\n?|\n/g, ' ');
+      field.setSelectionRange(at, at);
+    }
+    fitField(field);
+  });
+  const view = msgView();
+  const cancel = make('button', 'comment-cancel', 'Cancel');
+  cancel.type = 'button';
+  const save = make('button', 'comment-save', 'Save');
+  save.type = 'button';
+  save.addEventListener('mousedown', keepPress);
+  cancel.addEventListener('mousedown', keepPress);
+  const row = make('div', 'comment-row');
+  row.append(cancel, save);
+  const body = make('div', 'comment-compose');
+  body.append(field, view.el, row);
+  return { field, view, save, cancel, body };
+}
+
+// One message line under a field: UI type, an error in red, and an optional action link.
+function msgView() {
+  const el = make('p', 'comment-msg');
+  el.setAttribute('role', 'alert');
+  el.hidden = true;
+  const text = make('span');
+  const action = make('button', 'comment-action');
+  action.type = 'button';
+  action.hidden = true;
+  el.append(text, action);
+  const view = {
+    el,
+    run: null,
+    set(message, { error = false, action: act = null } = {}) {
+      text.textContent = message ?? '';
+      el.hidden = !message;
+      el.classList.toggle('comment-msg--error', error && Boolean(message));
+      view.run = act ? act.run : null;
+      action.hidden = !act;
+      action.textContent = act ? act.label : '';
+    },
+  };
+  action.addEventListener('click', () => view.run?.());
+  return view;
+}
+
 export function initComments(margent) {
   const { state, blocks, sourceOf, toMarkdown, save, anchor } = margent;
 
-  // ---- the note box: one line of text, or one message, at the foot of the page -----------------------------------
-  const box = make('section', 'comment-box');
+  // ---- the new-comment card: a draft that looks like the card it becomes -----------------------------------------
+  // A quote (when there is one), the author's header, the field, the message line and Cancel · Save.
+  const box = make('article', 'comment-box');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Comment');
   box.hidden = true;
-  const what = make('p', 'comment-what');
-  const form = make('form', 'comment-form');
-  // A text area, so a long note wraps and stays readable in a narrow rail card. A note is still one line of text (R1.2):
-  // Enter saves instead of breaking the line, and a pasted line break becomes a space. It grows with its text up to a
-  // limit (edit.css), then scrolls.
-  const input = make('textarea', 'comment-input');
-  input.rows = 2;
-  input.autocomplete = 'off';
-  input.spellcheck = true;
-  input.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' || e.isComposing) return;
-    e.preventDefault();
-    form.requestSubmit();
-  });
-  input.addEventListener('input', () => {
-    if (/[\r\n]/.test(input.value)) {
-      const at = input.selectionStart;
-      input.value = input.value.replace(/\r\n?|\n/g, ' ');
-      input.setSelectionRange(at, at);
-    }
-    fitInput();
-  });
-  function fitInput() {
-    input.style.height = 'auto';
-    input.style.height = `${input.scrollHeight + 2}px`; // + the top and bottom border
-  }
-  input.placeholder = 'Type a note. Enter saves, Esc cancels.';
-  input.setAttribute('aria-label', 'Note text');
-  const cancelBtn = make('button', 'comment-cancel', 'Cancel');
-  cancelBtn.type = 'button';
-  const saveBtn = make('button', 'comment-save', 'Save');
-  saveBtn.type = 'submit';
-  form.append(input, cancelBtn, saveBtn);
-  const msg = make('p', 'comment-msg');
-  msg.setAttribute('role', 'alert');
-  msg.hidden = true;
-  const msgText = make('span');
-  const msgAction = make('button', 'comment-action');
-  msgAction.type = 'button';
-  msgAction.hidden = true;
-  msg.append(msgText, msgAction);
-  box.append(what, form, msg);
+  const boxQuote = make('q', 'c-quote');
+  boxQuote.hidden = true;
+  const boxHead = make('div', 'c-note-head');
+  const boxAuthor = make('b', 'c-author');
+  boxHead.append(boxAuthor);
+  const boxC = makeCompose('Add a comment');
+  box.append(boxQuote, boxHead, boxC.body);
   document.body.append(box);
 
-  // The Comment control at a selection. It is shown only while the note box is closed.
+  // The Comment control at a selection. It is shown only while nothing is being typed.
   const tool = make('button', 'comment-tool', 'Comment');
   tool.type = 'button';
   tool.hidden = true;
@@ -145,67 +187,90 @@ export function initComments(margent) {
   tool.addEventListener('click', onTool);
   document.body.append(tool);
 
-  // job: the open note or message. { what, msg, error, form, range, id, build, preview, action, place }. build(note)
-  // returns the block's new source. place says where the rail shows the box (showDraft): { top() } or { after: id };
-  // without one the box docks at the bottom of the window. A message-only job (form false) is a refusal or a failed
-  // save.
-  let job = null;
-  let busy = false;
-  let opener = null;
+  // A draft is one open composer: boxD (the new-comment card, one object for the page, filled by showBox), replyD (a
+  // field at the foot of a thread's card) or editD (an owner's note being edited). Each is { kind, active, busy, form,
+  // editor, view, save, cancel, container, range, id, build, restore, close(restore) }. busy disables it while its save
+  // is in flight. restore is what takes focus on a cancel.
+  const boxD = {
+    kind: 'box',
+    active: false,
+    busy: false,
+    form: false,
+    editor: boxC.field,
+    view: boxC.view,
+    save: boxC.save,
+    cancel: boxC.cancel,
+    container: box,
+    range: null,
+    id: undefined,
+    build: null,
+    restore: null,
+    close: (restore) => closeBox(restore),
+  };
+  let replyD = null;
+  let editD = null;
   let dragging = false;
-  let actionRun = null;
   // The text selected inside an island, as its frame reported it: { el, text, rect } with rect relative to the island.
   // The page's selection cannot see into the frame, so this stands in for it (M5 R6.1). null when there is none.
   let islandSel = null;
-  // The island whose phrase is marked for the open note, so clear can unmark it. null when none is.
+  // The island whose phrase is marked for the open draft, so clear can unmark it. null when none is.
   let markedIsland = null;
 
-  // Unsaved note text is unsaved page text, so a reload waits for it (R5.7).
-  margent.registerDirty(() => job !== null && job.form && input.value.trim() !== '');
+  const hasText = (d) => d.active && d.editor.value.trim() !== '';
 
-  function setMsg(text, { error = false, action = null } = {}) {
-    msgText.textContent = text ?? '';
-    msg.hidden = !text;
-    msg.classList.toggle('comment-msg--error', error && Boolean(text));
-    actionRun = action ? action.run : null;
-    msgAction.hidden = !action;
-    msgAction.textContent = action ? action.label : '';
+  // Unsaved text is unsaved page text, so a reload waits for it (R5.7). An edit counts only when its text changed.
+  margent.registerDirty(
+    () =>
+      hasText(boxD) ||
+      (replyD !== null && hasText(replyD)) ||
+      (editD !== null && editD.editor.value.trim() !== editD.original),
+  );
+
+  function setDraftBusy(d, on) {
+    d.busy = on;
+    d.editor.disabled = on;
+    d.save.disabled = on;
+    d.cancel.disabled = on;
   }
 
-  function setBusy(on) {
-    busy = on;
-    input.disabled = on;
-    saveBtn.disabled = on;
-    cancelBtn.disabled = on;
-  }
-
-  // Closes the box and drops its state: the text, the pending highlight and the busy flag. Focus is not moved.
-  function clear() {
-    job = null;
-    setBusy(false);
-    input.value = '';
-    input.style.height = '';
+  // Closes the new-comment card and drops its state: the text, the pending highlight and the island mark. The rail
+  // puts the card back at the foot of the page. Focus moves back to what opened it only when restore is true.
+  function closeBox(restore) {
+    const target = boxD.restore;
+    boxD.active = false;
+    boxD.restore = null;
+    boxD.build = null;
+    setDraftBusy(boxD, false);
+    boxC.field.value = '';
+    fitField(boxC.field);
+    boxC.view.set(null);
     box.hidden = true;
-    setMsg(null);
     CSS.highlights.delete(PENDING);
     if (markedIsland !== null) {
       window.margentIslands.mark(markedIsland, null);
       markedIsland = null;
     }
     railHook().hideDraft();
+    if (restore && target?.isConnected) target.focus();
   }
 
-  function open(next) {
+  // Opens the new-comment card. form false is a message only (a refusal or a failed save), with a Close link.
+  function showBox(next) {
     const from = document.activeElement;
-    clear();
-    opener = from instanceof HTMLElement && from !== document.body ? from : null;
-    job = next;
-    what.textContent = next.what ?? '';
-    what.hidden = !next.what;
-    form.hidden = !next.form;
-    input.hidden = !next.form;
-    saveBtn.hidden = !next.form;
-    cancelBtn.textContent = next.form ? 'Cancel' : 'Close';
+    closeBox(false);
+    boxD.restore = from instanceof HTMLElement && from !== document.body ? from : null;
+    boxD.active = true;
+    boxD.form = next.form;
+    boxD.range = next.range ?? null;
+    boxD.id = next.id;
+    boxD.build = next.build ?? null;
+    boxQuote.textContent = next.quote ?? '';
+    boxQuote.hidden = !next.quote;
+    boxHead.hidden = !next.form;
+    boxAuthor.textContent = state.author ?? '';
+    boxC.field.hidden = !next.form;
+    boxC.save.hidden = !next.form;
+    boxC.cancel.textContent = next.form ? 'Cancel' : 'Close';
     if (next.preview) CSS.highlights.set(PENDING, new Highlight(next.preview));
     if (next.islandPreview) {
       // The island's frame draws the phrase, as the page's pending highlight would (R6.2, the same mark a hover uses).
@@ -213,36 +278,33 @@ export function initComments(margent) {
       markedIsland = next.islandPreview.el;
     }
     const parts = [next.msg, next.form && state.author === null ? AUTHOR_MESSAGE : null].filter(Boolean);
-    setMsg(parts.length ? parts.join(' ') : null, {
+    boxC.view.set(parts.length ? parts.join(' ') : null, {
       error: next.error || (next.form && state.author === null),
       action: next.action ?? null,
     });
     box.hidden = false;
     if (next.place) railHook().showDraft(box, next.place);
-    if (next.form) input.focus({ preventScroll: Boolean(next.place) });
-    else cancelBtn.focus();
+    fitField(boxC.field);
+    if (next.form) boxC.field.focus({ preventScroll: Boolean(next.place) });
+    else boxC.cancel.focus();
     update();
   }
 
-  // Closes the box as a cancel: focus returns to what opened it, and a reload held for the note's text can run.
-  function dismiss() {
-    const target = opener;
-    opener = null;
-    clear();
-    if (target && target.isConnected) target.focus();
-    margent.idle();
-    update();
-  }
-
-  // A refusal or a failed save, shown in the box with no form.
+  // A refusal or a failed save. While a draft holds text, the message goes on that draft, so its text is not lost.
   function notify(text, error = true) {
-    open({ what: '', form: false, msg: text, error });
+    const drafting = [boxD, replyD, editD].find((d) => d !== null && hasText(d));
+    if (drafting) {
+      drafting.view.set(text, { error });
+      return;
+    }
+    showBox({ form: false, msg: text, error });
   }
 
-  // The reason an action cannot start now, or null. A note being written, the side panel and an edit with unsaved
-  // changes each hold text that a block save would drop.
+  // The reason an action cannot start now, or null. A note being written or edited, the side panel and an edit with
+  // unsaved changes each hold text that a block save would drop.
   function blockedReason() {
-    if (job !== null && job.form && input.value.trim() !== '') return 'Send or cancel the note you are writing first.';
+    if (hasText(boxD) || (replyD !== null && hasText(replyD))) return 'Send or cancel the note you are writing first.';
+    if (editD !== null) return 'Save or cancel the note you are editing first (Enter saves, Esc cancels).';
     if (document.querySelector('.edit-panel:not([hidden])')) return 'Save or cancel the open side panel first.';
     for (const el of document.querySelectorAll('[data-editing]')) {
       const range = el.getAttribute('data-src');
@@ -254,76 +316,99 @@ export function initComments(margent) {
   }
 
   // Saves one block and handles the answer the way inline.js and panel.js do: 200 reloads, 409 goes to the stale path,
-  // 422 opens the panel with the errors. A failure stays in the box, so the text is not lost.
-  async function send(range, text) {
-    if (job !== null && job.form) setBusy(true);
+  // 422 opens the panel with the errors. A failure goes to job.fail, which keeps the text where it is. job is
+  // { fail(message), finish() }; finish runs before the page moves on.
+  async function send(range, text, job) {
     let res;
     try {
       res = await save(range, text);
     } catch (err) {
-      failed(`Save failed: ${err.message}. Your note is still here.`);
+      job.fail(`Save failed: ${err.message}. Your note is still here.`);
       return;
     }
     if (res.status === 200) {
-      clear();
+      job.finish();
       margent.reload();
     } else if (res.status === 409) {
-      clear();
+      job.finish();
       margent.stale(range, text);
     } else if (res.status === 422) {
-      clear();
+      job.finish();
       const errors = Array.isArray(res.body?.errors) ? res.body.errors : [`HTTP 422: ${JSON.stringify(res.body)}`];
       margent.openPanel(range, { text, errors });
     } else {
-      failed(`Save failed (HTTP ${res.status}): ${JSON.stringify(res.body)}`);
+      job.fail(`Save failed (HTTP ${res.status}): ${JSON.stringify(res.body)}`);
     }
   }
 
-  function failed(message) {
-    if (job !== null && job.form) {
-      setBusy(false);
-      setMsg(message, { error: true });
-    } else {
-      notify(message);
-    }
-  }
+  // The job for a draft: a failure keeps its text and shows the message; a finish closes it.
+  const draftJob = (d) => ({
+    fail: (message) => {
+      setDraftBusy(d, false);
+      d.view.set(message, { error: true });
+    },
+    finish: () => d.close(false),
+  });
 
-  // Submit: Enter in the box. An empty note sends nothing.
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (job === null || !job.form || busy) return;
-    const text = input.value.trim();
-    if (text === '') return;
+  // Enter saves. An empty new comment or reply sends nothing; an edit that is empty is refused and keeps its field; an
+  // unchanged edit closes without a save. A note without an author says so.
+  function submit(d) {
+    if (!d.active || d.busy) return;
+    const text = d.editor.value.trim();
+    if (d.kind === 'edit') {
+      if (text === d.original) return d.close(true);
+      if (text === '') return d.view.set(EMPTY_EDIT_MESSAGE, { error: true });
+    } else if (text === '') {
+      return;
+    }
     if (state.author === null) {
-      setMsg(AUTHOR_MESSAGE, { error: true });
+      d.view.set(AUTHOR_MESSAGE, { error: true });
       return;
     }
     let body;
     try {
-      body = job.build({ id: job.id ?? nextId(state.source), author: state.author, text });
+      body = d.build({ id: d.id ?? nextId(state.source), author: state.author, text });
     } catch (err) {
-      setMsg(err.message, { error: true });
+      d.view.set(err.message, { error: true });
       return;
     }
-    send(job.range, body);
-  });
+    setDraftBusy(d, true);
+    send(d.range, body, draftJob(d));
+  }
 
-  cancelBtn.addEventListener('click', () => {
-    if (!busy) dismiss();
-  });
-  msgAction.addEventListener('click', () => actionRun?.());
+  // Esc and Cancel close a draft and put focus back where it was (an edit puts its note's text back).
+  function cancel(d) {
+    if (!d.active || d.busy) return;
+    d.close(true);
+    margent.idle();
+    update();
+  }
 
-  box.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !busy) {
+  function attachDraft(d) {
+    d.editor.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
       e.preventDefault();
-      dismiss();
-    }
-  });
-  // Leaving the box with no text closes it. Text that was typed stays until it is sent or cancelled.
-  box.addEventListener('focusout', (e) => {
-    if (job === null || !job.form || busy || box.contains(e.relatedTarget) || input.value.trim() !== '') return;
-    dismiss();
-  });
+      submit(d);
+    });
+    d.container.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !d.active) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancel(d);
+    });
+    d.save.addEventListener('click', () => submit(d));
+    d.cancel.addEventListener('click', () => cancel(d));
+    // A new comment or a reply left empty closes when the focus leaves it, as the note box did. Typed text stays until it
+    // is sent or cancelled. An edit stays open until it is saved or cancelled.
+    d.container.addEventListener('focusout', (e) => {
+      if (!d.active || !d.form || d.kind === 'edit' || d.busy) return;
+      if (d.container.contains(e.relatedTarget) || d.editor.value.trim() !== '') return;
+      d.close(false);
+      margent.idle();
+      update();
+    });
+  }
+  attachDraft(boxD);
 
   // ---- the Comment control at a selection (R5.1, R5.2) -----------------------------------------------------------
 
@@ -344,10 +429,11 @@ export function initComments(margent) {
     return el;
   }
 
-  // Places the Comment control under the selection's end. It is hidden while a note is open, while the mouse is down
+  // Places the Comment control under the selection's end. It is hidden while a draft is open, while the mouse is down
   // (a drag), and when the selection is not inside one block.
   function update() {
-    const el = job === null && !dragging ? selectedBlock() : null;
+    const drafting = boxD.active || replyD !== null || editD !== null;
+    const el = !drafting && !dragging ? selectedBlock() : null;
     if (el === null) {
       tool.hidden = true;
       return;
@@ -377,8 +463,7 @@ export function initComments(margent) {
   }
 
   // quote: the selected phrase, or '' for an unquoted block comment. The first note then starts with the quote, and
-  // quotedText refuses a quote it cannot store, which the box shows when the note is sent. The box names only what the
-  // reader picked: the phrase, or the block in plain words. How it is stored is not their concern.
+  // quotedText refuses a quote it cannot store, which the card shows when the note is sent.
   // The draft lines up with the selected phrase when there is one, else with the block.
   function openBlockComment(el, quote = '') {
     const range = blockCreateRange(el);
@@ -390,13 +475,12 @@ export function initComments(margent) {
       const box = picked ? selectionEndRect(picked, el) : null;
       return (box && box.height > 0 ? picked.getBoundingClientRect() : el.getBoundingClientRect()).top;
     };
-    const kind = el.tagName === 'AGENT-ISLAND' ? 'island' : kindOf(el);
-    open({
-      what: quote ? `Comment on “${excerpt(quote)}”` : `Comment on the ${kind}`,
+    showBox({
+      form: true,
+      quote: quote || undefined,
       place: { top },
       preview: picked ?? undefined, // the selected phrase stays marked while the note is typed, as for an inline comment
       islandPreview: inFrame ? { el, phrase: quote } : undefined,
-      form: true,
       range,
       build: (n) => `${sourceOf(range)}\n\n${noteSource(quote ? { ...n, text: quotedText(quote, n.text) } : n)}`,
     });
@@ -413,9 +497,9 @@ export function initComments(margent) {
     const blockRange = el.getAttribute('data-src');
     if (res.kind === 'overlap') return notifyOverlap(res.id);
     if (res.kind === 'inline') {
-      open({
-        what: `Comment on “${excerpt(res.snapped.toString())}”`,
+      showBox({
         form: true,
+        quote: res.snapped.toString(),
         range: blockRange,
         preview: res.snapped,
         place: { top: () => res.snapped.getBoundingClientRect().top },
@@ -434,14 +518,14 @@ export function initComments(margent) {
           label: `Reply to ${id}`,
           run: () => {
             const reply = revealCard(id).querySelector('.comment-reply');
-            clear();
+            closeBox(false);
             margent.idle();
             reply.scrollIntoView({ block: 'center' });
             reply.focus();
           },
         }
       : null;
-    open({ what: '', form: false, error: true, msg: `This selection touches comment ${id}. Reply to that thread instead.`, action, place: { after: id } });
+    showBox({ form: false, error: true, msg: `This selection touches comment ${id}. Reply to that thread instead.`, action, place: { after: id } });
   }
 
   // ---- the block comment control on every block (R5.4) -----------------------------------------------------------
@@ -469,7 +553,7 @@ export function initComments(margent) {
     slot.insertBefore(commentBtn, slot.querySelector(':scope > .edit-control'));
   }
 
-  // ---- Reply and Resolve on every thread (R6), on the thread's card in the rail (decision 0023) ------------------------
+  // ---- Reply, Resolve and Edit on the thread's card (R6), in the rail (decision 0023) ------------------------------
 
   function threadOf(id) {
     return document.querySelector(`span.c-thread[data-c="${id}"]`);
@@ -489,19 +573,92 @@ export function initComments(margent) {
     return card;
   }
 
+  // Reply appends the author's header and a field ("Reply") after the thread's last note. The footer hides while the
+  // reply is typed, and comes back when it closes.
   function onReply(id) {
     const reason = blockedReason();
     if (reason) return notify(reason);
+    if (replyD !== null) replyD.close(false);
     const range = topBlockOf(threadOf(id)).getAttribute('data-src');
-    railHook().close();
-    open({
-      what: 'Reply',
+    const card = revealCard(id);
+    const footer = card.querySelector('.c-actions');
+    const reply = card.querySelector('.comment-reply');
+    const wrap = make('div', 'c-note');
+    const head = make('div', 'c-note-head');
+    head.append(make('b', 'c-author', state.author ?? ''));
+    const c = makeCompose('Reply');
+    wrap.append(head, c.body);
+    footer.before(wrap);
+    footer.hidden = true;
+    const d = {
+      kind: 'reply',
+      active: true,
+      busy: false,
       form: true,
+      editor: c.field,
+      view: c.view,
+      save: c.save,
+      cancel: c.cancel,
+      container: wrap,
       range,
       id,
-      place: { after: id },
       build: (n) => appendNote(sourceOf(range), id, n),
-    });
+      restore: reply,
+    };
+    d.close = (restore) => {
+      d.active = false;
+      d.busy = false;
+      wrap.remove();
+      footer.hidden = false;
+      if (replyD === d) replyD = null;
+      if (restore) reply.focus();
+    };
+    if (state.author === null) c.view.set(AUTHOR_MESSAGE, { error: true });
+    attachDraft(d);
+    replyD = d;
+    c.field.focus();
+  }
+
+  // Edit replaces the note's text with the field, prefilled with the note's body (the quote and author stay as they
+  // are, replaceNote keeps them). index is the note's place among the thread's notes in source order.
+  function beginEdit(info) {
+    const reason = blockedReason();
+    if (reason) return notify(reason);
+    if (replyD !== null) replyD.close(false);
+    const { id, index, body, range, note, text, button } = info;
+    const c = makeCompose('Edit note');
+    c.field.value = body;
+    const d = {
+      kind: 'edit',
+      active: true,
+      busy: false,
+      form: true,
+      editor: c.field,
+      view: c.view,
+      save: c.save,
+      cancel: c.cancel,
+      container: note,
+      range,
+      id,
+      build: (n) => replaceNote(sourceOf(range), id, index, n.text),
+      restore: button,
+      original: body.trim(),
+    };
+    d.close = (restore) => {
+      d.active = false;
+      d.busy = false;
+      c.body.replaceWith(text);
+      button.hidden = false;
+      if (editD === d) editD = null;
+      if (restore) button.focus();
+    };
+    text.replaceWith(c.body);
+    button.hidden = true;
+    editD = d;
+    attachDraft(d);
+    fitField(c.field); // a detached field measures 0, so it is sized once it is in the card
+    c.field.focus();
+    c.field.setSelectionRange(c.field.value.length, c.field.value.length);
   }
 
   // Resolve saves at once. An inline thread loses its notes and markers; a block comment line goes whole, so its text is
@@ -518,7 +675,34 @@ export function initComments(margent) {
       notify(err.message);
       return;
     }
-    send(range, text);
+    send(range, text, { fail: (message) => notify(message), finish: () => {} });
+  }
+
+  // The owner's notes get an Edit link in their header row. A note is the owner's when its author is state.author
+  // exactly. The thread's data-md holds the exact source of its notes, in source order, so index and the body come from
+  // it; the card's note lines must match them one for one.
+  function markOwnNotes(id, card) {
+    if (state.author === null) return;
+    const thread = threadOf(id);
+    const notes = [...thread.dataset.md.matchAll(NOTE)].map((m) => m.groups);
+    const cardNotes = card.querySelectorAll(':scope > .c-note');
+    if (cardNotes.length !== notes.length) {
+      throw new Error(`comment ${id}: the rail shows ${cardNotes.length} notes but its source has ${notes.length}`);
+    }
+    const range = topBlockOf(thread).getAttribute('data-src');
+    notes.forEach((note, index) => {
+      if (note.author !== state.author) return;
+      // The first note of a block comment line starts with its quote, which is not part of the body.
+      const quoted = index === 0 && thread.querySelector('q.c-quote') !== null;
+      const body = quoted ? splitQuote(note.text).body : note.text;
+      const line = cardNotes[index];
+      const text = line.querySelector(':scope > .c-text');
+      const button = make('button', 'comment-edit', 'Edit');
+      button.type = 'button';
+      line.dataset.own = '';
+      line.querySelector('.c-note-head').append(button);
+      button.addEventListener('click', () => beginEdit({ id, index, body, range, note: line, text, button }));
+    });
   }
 
   if (document.querySelector('span.c-thread')) {
@@ -534,6 +718,7 @@ export function initComments(margent) {
       resolve.addEventListener('click', () => onResolve(id));
       actions.append(reply, resolve);
       card.querySelector('.c-actions').append(actions);
+      markOwnNotes(id, card);
     }
   }
 
