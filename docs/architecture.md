@@ -18,7 +18,7 @@ This file describes only what exists in code. For the intended system, see [desi
 | `src/comments/` | `syntax.ts`: the note grammar and pure edits on one block's source (`noteSource`, `nextId`, `appendNote`, `stripThread`, `stripAll`), shared by node and the edit runtime; `clean.ts`: `cleanSource` for `export --clean` |
 | `src/islands/` | `parse.ts` (markers and fences to `<agent-island>`), `lookup.ts` (module lookup), `validate.ts` (`loadIsland`: reads a module as text and wraps it with the kit's `moduleScript`; no module code runs in Node) |
 | `src/cli.ts`, `src/cli/` | `open`, `check`, `comments`, `export`, `serve`, `doctor`, `--version`; `islands-run.ts` is the headless island run behind `check`, `comments.ts` the thread list, `doctor.ts` the environment check behind `doctor` |
-| `src/serve/` | `server.ts` (the `serve` HTTP server), `splice.ts` (hash, splice, validate, atomic write), `index-page.ts` (the `/` doc index) |
+| `src/serve/` | `server.ts` (the `serve` HTTP server), `watch.ts` (`watchTree`: Node's recursive watcher on macOS and Windows, one watcher per folder on Linux, where Node 22's recursive watcher loses a file replaced by a rename), `splice.ts` (hash, splice, validate, atomic write), `index-page.ts` (the `/` doc index) |
 | `src/errors.ts` | `RenderError(file, line, message)`, whose message is `{file}:{line}: {message}` |
 | `runtime/` | plain browser JS and CSS inlined into pages: `kit.js`, `host.js` (the page side of each island), `theme.js`, `island.css`, and `comments.js` (the comment rail, only on pages with threads) |
 | `runtime/guest.js` | the island guest: inlined as text into every island's sandboxed frame, where it checks and renders the module. Its other end is `host.js` |

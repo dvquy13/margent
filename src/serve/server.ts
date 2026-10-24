@@ -1,12 +1,12 @@
 // HTTP server for `margent serve` (spec R1, R2, R6.1, R6.6, R7.1). Pages are rendered in memory per request, saves
-// splice one block into the file, and a recursive watcher tells open pages when a file they use has changed.
+// splice one block into the file, and a file watcher (watch.ts) tells open pages when a file they use has changed.
 import editJs from '../../.build/runtime/edit.js?raw';
 import editCss from '../../runtime/edit/edit.css?raw';
 import shellCss from '../../shell/shell.css?raw';
 import { execFileSync } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { readFileSync, realpathSync, statSync, watch } from 'node:fs';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { RenderError } from '../errors.js';
 import { renderDoc } from '../render/page.js';
@@ -14,6 +14,7 @@ import { pagePolicy } from '../render/policy.js';
 import { findDocsRoot } from '../render/root.js';
 import { indexPage } from './index-page.js';
 import { hash, splice, validate, writeAtomic } from './splice.js';
+import { watchTree } from './watch.js';
 
 // The edit runtime, inlined into every page the server renders. Imported here so the bundle is wired end to end.
 export const EDIT_RUNTIME = { js: editJs, css: editCss };
@@ -322,8 +323,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     }
   };
 
-  const watcher = watch(root, { recursive: true }, (_event, filename) => onFileEvent(filename));
-  watcher.on('error', (err) => logError(`watcher error: ${err.message}`));
+  const watcher = watchTree(root, onFileEvent, (err) => logError(`watcher error: ${err.message}`));
 
   // ---- pages
 
