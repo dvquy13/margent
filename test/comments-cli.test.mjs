@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { versionless } from './helpers/version.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = join(REPO, 'dist', 'cli.js');
@@ -39,12 +40,12 @@ function assertGolden(name, actual) {
   const path = join(GOLDEN, name);
   if (process.env.UPDATE_GOLDEN === '1') {
     mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, actual);
+    writeFileSync(path, versionless(Buffer.isBuffer(actual) ? actual.toString('utf8') : actual));
     return;
   }
   assert.ok(existsSync(path), `golden ${name} is missing (run with UPDATE_GOLDEN=1 and review it)`);
   const expected = readFileSync(path);
-  const got = Buffer.isBuffer(actual) ? actual : Buffer.from(actual, 'utf8');
+  const got = Buffer.from(versionless(Buffer.isBuffer(actual) ? actual.toString('utf8') : actual), 'utf8');
   assert.ok(got.equals(expected), `golden ${name} differs (rerun with UPDATE_GOLDEN=1 if the change is intended)`);
 }
 

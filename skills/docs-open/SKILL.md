@@ -7,7 +7,8 @@ allowed-tools: Bash(margent open:*), Bash(npx -y margent@0.1.0 open:*), Bash(mar
 disable-model-invocation: true
 ---
 
-Run `margent --version` first. If it prints `0.1.0`, use `margent` as written below; otherwise replace `margent` with `npx -y margent@0.1.0` in every command.
+Run `margent --version` first. If it prints `0.1.0`, use `margent` as written below;
+otherwise replace `margent` with `npx -y margent@0.1.0` in every command.
 <!-- x-release-please-end -->
 
 Run `margent open $ARGUMENTS` with the Bash tool.

@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
+import { VERSION } from './helpers/version.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { RenderError } = await import('../.build/errors.js');
@@ -35,7 +36,19 @@ test('RenderError formats file:line: message', () => {
 
 test('dist/cli.js --version prints the package version', () => {
   const out = execFileSync(process.execPath, [join(root, 'dist', 'cli.js'), '--version'], { encoding: 'utf8' });
-  assert.equal(out, '0.1.0\n');
+  assert.equal(out, `${VERSION}\n`);
+});
+
+// release-please's generic updater bumps only the first version on a line, so a second one would go stale.
+test('no line in skills/ holds more than one version', () => {
+  const crowded = [];
+  for (const rel of readdirSync(join(root, 'skills'), { recursive: true })) {
+    if (!rel.endsWith('.md')) continue;
+    readFileSync(join(root, 'skills', rel), 'utf8').split('\n').forEach((line, i) => {
+      if ((line.match(/\b\d+\.\d+\.\d+\b/g) ?? []).length > 1) crowded.push(`skills/${rel.split(sep).join('/')}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(crowded, []);
 });
 
 test('package.json, plugin.json, skills and dist/cli.js carry one version', () => {

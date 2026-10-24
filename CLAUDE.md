@@ -52,7 +52,7 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 
 - Commits on `main` use Conventional Commits: `feat:` (minor bump while 0.x), `fix:` (patch), `docs:`, `chore:`, `test:`, `ci:`, `refactor:`. Only `feat`, `fix`, `perf` and `docs` reach `CHANGELOG.md`. release-please reads every commit since the last release, including those inside a merged branch; with a squash merge the PR title is the commit, so give it a type.
 - release-please (`.github/workflows/release.yml`) keeps a release PR open. Merging it tags `v{x.y.z}`, creates the GitHub Release, and publishes to npm with provenance through trusted publishing (no npm token). Run `npm run test:full` locally before merging it: CI runs only the fast tier, and the release PR, opened by the workflow's token, doesn't start CI on itself.
-- release-please bumps `package.json`, `package-lock.json`, `.claude-plugin/plugin.json` and every version between `x-release-please-start-version` and `x-release-please-end` in `skills/`. A new version string in a skill must sit inside those markers, or `test/scaffold.test.mjs` fails after the next release.
+- release-please bumps `package.json`, `package-lock.json`, `.claude-plugin/plugin.json` and every version between `x-release-please-start-version` and `x-release-please-end` in `skills/`. A new version string in a skill must sit inside those markers, one per line (the generic updater bumps only the first version on a line); `test/scaffold.test.mjs` enforces both. Tests never pin a literal version: use `VERSION` from `test/helpers/version.mjs`, and goldens store the generator line as `margent {version}`.
 - Never push the `archive/pre-public` tag, and never push with `--tags`: it holds private history.
 
 ## Plugin and skill

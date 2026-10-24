@@ -8,6 +8,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VERSION } from './helpers/version.mjs';
 import { full } from './helpers/tier.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -132,7 +133,7 @@ test('open writes the file and every doc it links to (recursively, within the ro
   assert.equal(r.stdout, `${join(dir, 'index.html')}\n`);
   assert.deepEqual([...snapshot(dir).keys()].sort(), ['guide.html', 'index.html', 'sub/deep.html']);
   const html = readFileSync(join(dir, 'index.html'), 'utf8');
-  assert.match(html, /<meta name="generator" content="margent 0\.1\.0">/);
+  assert.ok(html.includes(`<meta name="generator" content="margent ${VERSION}">`), 'the generator line names the package version');
   assert.match(html, /href="guide\.html"/);
 });
 

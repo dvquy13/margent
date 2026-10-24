@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MARGENT_CORPUS } from './helpers/corpus.mjs';
+import { VERSION, versionless } from './helpers/version.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..');
@@ -39,7 +40,8 @@ function bodyDump(r) {
 }
 
 // Byte-for-byte golden comparison. UPDATE_GOLDEN=1 rewrites the golden files instead.
-function assertGolden(name, actual) {
+function assertGolden(name, html) {
+  const actual = versionless(html);
   const path = join(GOLDEN, `${name}.html`);
   if (process.env.UPDATE_GOLDEN === '1') {
     mkdirSync(GOLDEN, { recursive: true });
@@ -431,8 +433,7 @@ test('renderDoc fills the shell: title, generator, header, footer and scripts', 
   const out = renderDoc({ file, source: readFileSync(file, 'utf8'), root: FIX, outFile: join(FIX, 'basic.html') });
   assert.equal(out.title, 'Basic page');
   assert.ok(out.html.includes('<title>Basic page</title>'));
-  const { version } = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
-  assert.ok(out.html.includes(`<meta name="generator" content="margent ${version}">`));
+  assert.ok(out.html.includes(`<meta name="generator" content="margent ${VERSION}">`));
   assert.ok(out.html.includes('Rendered from basic.md'));
   assert.ok(out.html.includes('<span class="top-meta">draft · 1.10 · 2026-10-23</span>'));
   assert.ok(out.html.includes('<span class="wordmark">render</span>'), 'project name is the root folder name when it is not docs');
