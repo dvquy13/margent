@@ -181,14 +181,14 @@ async function openPanel(page, spec) {
   await page.waitForSelector('.edit-panel:not([hidden]) textarea');
 }
 
-const CONTROLS = { Comment: '.comment-control', Reply: '.comment-reply', Resolve: '.comment-resolve' };
+const CONTROLS = { Comment: '.comment-control', Reply: '.comment-reply', Resolve: '.comment-resolve', Edit: '.comment-edit' };
 
 // Clicks a comment control with a real mouse click. Without near or range, `Comment` is the floating control at the
 // selection. With near (a text in the block) or range (the block's lines, e.g. "13-23"), the control is one of the block's:
-// its Comment control, or the Reply or Resolve of its thread. The block is hovered first, as a user would. nth picks
+// its Comment control, or the Reply, Resolve or Edit of its thread. The block is hovered first, as a user would. nth picks
 // among that block's controls with that label (1-based).
 async function clickControl(page, { label, near = null, range = null, nth = null }) {
-  if (!Object.hasOwn(CONTROLS, label)) throw new Error(`control.label must be Comment, Reply or Resolve, got ${JSON.stringify(label)}`);
+  if (!Object.hasOwn(CONTROLS, label)) throw new Error(`control.label must be Comment, Reply, Resolve or Edit, got ${JSON.stringify(label)}`);
   if (near === null && range === null) {
     if (label !== 'Comment') throw new Error(`control ${label} needs near or range, to find the block of its thread`);
     await page.locator('.comment-tool:not([hidden])').click();
@@ -224,9 +224,10 @@ async function clickControl(page, { label, near = null, range = null, nth = null
     } else {
       const hook = window.margentComments;
       if (!hook) throw new Error(`${label} needs the comment rail, and this page has none`);
-      hits = [...block.querySelectorAll('span.c-thread[data-c]')]
-        .map((thread) => hook.cards.get(thread.dataset.c)?.querySelector(selector))
-        .filter(Boolean);
+      // A card can hold several controls of one label (Edit on each of the owner's notes), so all of them count.
+      hits = [...block.querySelectorAll('span.c-thread[data-c]')].flatMap((thread) => [
+        ...(hook.cards.get(thread.dataset.c)?.querySelectorAll(selector) ?? []),
+      ]);
     }
     const want = nth ?? 1;
     if (hits.length < want) throw new Error(`the block has ${hits.length} ${label} control(s), not ${want}`);

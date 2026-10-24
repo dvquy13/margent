@@ -2,11 +2,21 @@
 // control at a selection inside one top-level block, a comment control on every block, and Reply and Resolve on every
 // thread. Each action is one margent.save of one block (decision 0021): the block's new source is built here from its
 // markdown with the syntax module, and the save goes through the same path as an edit.
-import { appendNote, nextId, noteSource, quotedText, stripThread } from '../../src/comments/syntax.ts';
+import {
+  appendNote,
+  NOTE,
+  nextId,
+  noteSource,
+  quotedText,
+  replaceNote,
+  splitQuote,
+  stripThread,
+} from '../../src/comments/syntax.ts';
 
 const PENDING = 'margent-pending';
 const AUTHOR_MESSAGE =
   'No author is set, so notes cannot be saved. Start margent serve with --author {name}, or set git config user.name {name}, then reload this page.';
+const EMPTY_EDIT_MESSAGE = "A note can't be empty. Resolve removes the thread.";
 
 function make(tag, className, text) {
   const el = document.createElement(tag);
@@ -145,10 +155,11 @@ export function initComments(margent) {
   tool.addEventListener('click', onTool);
   document.body.append(tool);
 
-  // job: the open note or message. { what, msg, error, form, range, id, build, preview, action, place }. build(note)
-  // returns the block's new source. place says where the rail shows the box (showDraft): { top() } or { after: id };
-  // without one the box docks at the bottom of the window. A message-only job (form false) is a refusal or a failed
-  // save.
+  // job: the open note or message. { what, msg, error, form, range, id, build, preview, action, place, prefill, original }.
+  // build(note) returns the block's new source. place says where the rail shows the box (showDraft): { top() } or
+  // { after: id }; without one the box docks at the bottom of the window. A message-only job (form false) is a refusal or
+  // a failed save. prefill is the text the box starts with (an edit); original is that text trimmed, so an edit that
+  // leaves it unchanged closes without a save.
   let job = null;
   let busy = false;
   let opener = null;
@@ -218,6 +229,11 @@ export function initComments(margent) {
       action: next.action ?? null,
     });
     box.hidden = false;
+    if (next.prefill !== undefined) {
+      input.value = next.prefill;
+      input.setSelectionRange(input.value.length, input.value.length);
+      fitInput(); // measures the text, so the box is shown first
+    }
     if (next.place) railHook().showDraft(box, next.place);
     if (next.form) input.focus({ preventScroll: Boolean(next.place) });
     else cancelBtn.focus();
@@ -293,6 +309,10 @@ export function initComments(margent) {
     e.preventDefault();
     if (job === null || !job.form || busy) return;
     const text = input.value.trim();
+    if (job.original !== undefined) {
+      if (text === job.original) return dismiss(); // unchanged: close without a save
+      if (text === '') return setMsg(EMPTY_EDIT_MESSAGE, { error: true });
+    }
     if (text === '') return;
     if (state.author === null) {
       setMsg(AUTHOR_MESSAGE, { error: true });
@@ -504,6 +524,49 @@ export function initComments(margent) {
     });
   }
 
+  // Edit opens the owner's note for changes. The box starts with the note's body (the quote and author stay as they are,
+  // replaceNote keeps them), and index is the note's place among the thread's notes in source order.
+  function onEdit(id, index, body) {
+    const reason = blockedReason();
+    if (reason) return notify(reason);
+    const range = topBlockOf(threadOf(id)).getAttribute('data-src');
+    railHook().close();
+    open({
+      what: 'Edit',
+      form: true,
+      range,
+      id,
+      place: { after: id },
+      prefill: body,
+      original: body.trim(),
+      build: (n) => replaceNote(sourceOf(range), id, index, n.text),
+    });
+  }
+
+  // The owner's notes get an Edit control, right after the note in its card. A note is the owner's when its author is
+  // state.author exactly. The thread's data-md holds the exact source of its notes, in source order, so index and the
+  // body come from it; the card's p.c-note elements must match them one for one.
+  function addEditControls(id, card) {
+    if (state.author === null) return;
+    const thread = threadOf(id);
+    const notes = [...thread.dataset.md.matchAll(NOTE)].map((m) => m.groups);
+    const cardNotes = card.querySelectorAll(':scope > .c-note');
+    if (cardNotes.length !== notes.length) {
+      throw new Error(`comment ${id}: the rail shows ${cardNotes.length} notes but its source has ${notes.length}`);
+    }
+    notes.forEach((note, index) => {
+      if (note.author !== state.author) return;
+      // The first note of a block comment line starts with its quote, which is not part of the body.
+      const quoted = index === 0 && thread.querySelector('q.c-quote') !== null;
+      const body = quoted ? splitQuote(note.text).body : note.text;
+      const button = make('button', 'comment-edit', 'Edit');
+      button.type = 'button';
+      button.addEventListener('mousedown', keepPress);
+      button.addEventListener('click', () => onEdit(id, index, body));
+      cardNotes[index].after(button);
+    });
+  }
+
   // Resolve saves at once. An inline thread loses its notes and markers; a block comment line goes whole, so its text is
   // empty and the splice drops the line and the blank line beside it.
   function onResolve(id) {
@@ -534,6 +597,7 @@ export function initComments(margent) {
       resolve.addEventListener('click', () => onResolve(id));
       actions.append(reply, resolve);
       card.querySelector('.c-actions').append(actions);
+      addEditControls(id, card);
     }
   }
 

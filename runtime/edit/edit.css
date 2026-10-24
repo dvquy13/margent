@@ -302,6 +302,27 @@ agent-island.edit-block > .comment-control {
 }
 .comment-reply:hover, .comment-resolve:hover { color: var(--accent); }
 
+/* Edit sits under the owner's own note in its card: a small text link, right-aligned, quiet until the card is hovered,
+   focused or linked, like Reply and Resolve. */
+.comment-edit {
+  display: block; margin: 0.2em 0 0 auto;
+  font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
+  padding: 0; border: 0; background: none;
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: color var(--fade), opacity var(--fade);
+}
+.c-card:hover .comment-edit,
+.c-card:focus-within .comment-edit,
+.c-card.is-linked .comment-edit,
+.comment-edit:focus-visible { opacity: 1; }
+@media (hover: none) {
+  .comment-edit { opacity: 1; }
+}
+.comment-edit:hover { color: var(--accent); }
+.comment-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 @media print {
-  .comment-tool, .comment-box, .comment-control, .comment-actions { display: none; }
+  .comment-tool, .comment-box, .comment-control, .comment-actions, .comment-edit { display: none; }
 }

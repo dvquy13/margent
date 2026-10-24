@@ -15,7 +15,7 @@ This file describes only what exists in code. For the intended system, see [desi
 | Path | What it is |
 |---|---|
 | `src/render/` | frontmatter, slugs, markdown-it setup ([0011](decisions/0011-markdown-it-for-parsing.md)), docs root, `comments.ts` (comment markup rules and thread records), `page.ts` (`renderDoc`, which fills the shell and lists every script hash), `policy.ts` (`pagePolicy`, `scriptHash`: the page's Content-Security-Policy) |
-| `src/comments/` | `syntax.ts`: the note grammar and pure edits on one block's source (`noteSource`, `nextId`, `appendNote`, `stripThread`, `stripAll`), shared by node and the edit runtime; `clean.ts`: `cleanSource` for `export --clean` |
+| `src/comments/` | `syntax.ts`: the note grammar and pure edits on one block's source (`noteSource`, `nextId`, `appendNote`, `replaceNote`, `stripThread`, `stripAll`), shared by node and the edit runtime; `clean.ts`: `cleanSource` for `export --clean` |
 | `src/islands/` | `parse.ts` (markers and fences to `<agent-island>`), `lookup.ts` (module lookup), `validate.ts` (`loadIsland`: reads a module as text and wraps it with the kit's `moduleScript`; no module code runs in Node) |
 | `src/cli.ts`, `src/cli/` | `open`, `check`, `comments`, `export`, `serve`, `doctor`, `--version`; `islands-run.ts` is the headless island run behind `check`, `comments.ts` the thread list, `doctor.ts` the environment check behind `doctor` |
 | `src/serve/` | `server.ts` (the `serve` HTTP server), `watch.ts` (`watchTree`: Node's recursive watcher on macOS and Windows, one watcher per folder on Linux, where Node 22's recursive watcher loses a file replaced by a rename), `splice.ts` (hash, splice, validate, atomic write), `index-page.ts` (the `/` doc index) |

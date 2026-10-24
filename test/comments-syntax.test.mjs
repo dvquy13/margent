@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { NOTE, noteSource, nextId, appendNote, stripThread, stripAll, splitQuote, quotedText } = await import(
+const { NOTE, noteSource, nextId, appendNote, replaceNote, stripThread, stripAll, splitQuote, quotedText } = await import(
   '../.build/comments/syntax.js'
 );
 
@@ -82,6 +82,69 @@ test('appendNote adds a reply after the last note of a two-note thread', () => {
 
 test('appendNote throws when the block has no note with the id', () => {
   assert.throws(() => appendNote('plain text', 'c1', { id: 'c1', author: 'Quy', text: 'x' }), /no note with id c1/);
+});
+
+test('replaceNote rewrites one note and leaves every byte before and after it unchanged', () => {
+  const block = 'Keep {==this==}{>>[c1] Quy: first<<} and more';
+  const out = replaceNote(block, 'c1', 0, 'changed');
+  assert.equal(out, 'Keep {==this==}{>>[c1] Quy: changed<<} and more');
+  assert.equal(out.slice(0, out.indexOf('{>>')), block.slice(0, block.indexOf('{>>')));
+  assert.equal(out.slice(out.indexOf('<<}') + 3), block.slice(block.indexOf('<<}') + 3));
+});
+
+test('replaceNote on a reply changes only the second note of that id', () => {
+  const block = 'Keep {==this==}{>>[c1] Quy: first<<}{>>[c1] Claude: second<<} end';
+  assert.equal(
+    replaceNote(block, 'c1', 1, 'revised'),
+    'Keep {==this==}{>>[c1] Quy: first<<}{>>[c1] Claude: revised<<} end'
+  );
+});
+
+test('replaceNote leaves the notes of another thread untouched', () => {
+  const block = '{==a==}{>>[c1] Quy: one<<} b {>>[c2] Quy: two<<}{>>[c2] Claude: three<<}';
+  assert.equal(replaceNote(block, 'c2', 0, 'TWO'), '{==a==}{>>[c1] Quy: one<<} b {>>[c2] Quy: TWO<<}{>>[c2] Claude: three<<}');
+});
+
+test('replaceNote keeps the quote prefix of a block comment line and replaces only the body', () => {
+  const line = '{>>[c4] Quy: "Reddit is out" → why left out?<<}';
+  assert.equal(
+    replaceNote(`Para.\n\n${line}`, 'c4', 0, 'why was it left out?'),
+    'Para.\n\n{>>[c4] Quy: "Reddit is out" → why was it left out?<<}'
+  );
+});
+
+test('replaceNote does not read a quote on an inline note or on a reply', () => {
+  assert.equal(replaceNote('x {>>[c1] Quy: "q" → b<<}', 'c1', 0, 'new'), 'x {>>[c1] Quy: new<<}');
+  const line = '{>>[c1] Quy: plain<<}{>>[c1] Claude: "q" → b<<}';
+  assert.equal(replaceNote(line, 'c1', 1, 'new'), '{>>[c1] Quy: plain<<}{>>[c1] Claude: new<<}');
+});
+
+test('replaceNote skips a note inside a code span when it counts the notes', () => {
+  const block = 'use `{>>[c1] X: y<<}` then {>>[c1] Quy: real<<}';
+  assert.equal(replaceNote(block, 'c1', 0, 'new'), 'use `{>>[c1] X: y<<}` then {>>[c1] Quy: new<<}');
+  assert.throws(() => replaceNote(block, 'c1', 1, 'new'), /no note 1 in thread c1/);
+});
+
+test('replaceNote keeps the author exactly', () => {
+  const block = '{>>[c1] Quy Dinh: first<<}{>>[c1] Claude Haiku: second<<}';
+  assert.equal(replaceNote(block, 'c1', 1, 'x'), '{>>[c1] Quy Dinh: first<<}{>>[c1] Claude Haiku: x<<}');
+});
+
+test('replaceNote throws on a bad index or an unknown thread', () => {
+  const block = '{==a==}{>>[c1] Quy: one<<}';
+  assert.throws(() => replaceNote(block, 'c1', 1, 'x'), /no note 1 in thread c1/);
+  assert.throws(() => replaceNote(block, 'c1', -1, 'x'), /no note -1 in thread c1/);
+  assert.throws(() => replaceNote(block, 'c2', 0, 'x'), /no note 0 in thread c2/);
+});
+
+test('replaceNote validates the text the way noteSource does', () => {
+  const block = '{>>[c1] Quy: one<<}';
+  assert.throws(() => replaceNote(block, 'c1', 0, ''), /text is empty/);
+  assert.throws(() => replaceNote(block, 'c1', 0, 'two\nlines'), /one line/);
+  assert.throws(() => replaceNote(block, 'c1', 0, 'has <<} inside'), /'<<\}'/);
+  const quoted = '{>>[c4] Quy: "q" → body<<}';
+  assert.throws(() => replaceNote(quoted, 'c4', 0, 'two\nlines'), /one line/);
+  assert.throws(() => replaceNote(quoted, 'c4', 0, ''), /body is empty/);
 });
 
 test('stripThread keeps the highlight bytes exactly and leaves other threads untouched', () => {

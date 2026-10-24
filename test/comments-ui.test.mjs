@@ -434,6 +434,103 @@ test(
   })
 );
 
+// ---- 0033 editing your own notes ------------------------------------------------------------------------------------
+
+const EDIT_DOCS = join(REPO, 'test', 'edit-corpus', 'docs');
+const CTRL = process.platform === 'darwin' ? 'Meta' : 'Control';
+const EMPTY_NOTE = "A note can't be empty. Resolve removes the thread.";
+
+test(
+  '0033: Edit shows after each note of the owner, and after no other author\'s note',full, 
+  scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page }) => {
+    // threadButton opens the rail's drawer below 1100px; the rail's cards are in the DOM either way.
+    await threadButton(page, 'c1', 'Reply');
+    const notes = await page.evaluate(() =>
+      [...document.querySelectorAll('.c-card[data-c="c1"] p.c-note')].map((p) => ({
+        author: p.querySelector('.c-author').textContent.trim(),
+        edit: p.nextElementSibling?.classList.contains('comment-edit') ?? false,
+      }))
+    );
+    assert.deepEqual(notes, [
+      { author: 'Quy', edit: true },
+      { author: 'Claude', edit: false },
+    ]);
+    const all = await page.evaluate(() => ({
+      notes: document.querySelectorAll('.c-card p.c-note').length,
+      quy: [...document.querySelectorAll('.c-card p.c-note')].filter((p) => p.querySelector('.c-author').textContent.trim() === 'Quy').length,
+      edits: document.querySelectorAll('.c-card button.comment-edit').length,
+    }));
+    assert.equal(all.edits, all.quy, 'one Edit per note by Quy');
+    assert.ok(all.notes > all.quy, 'the page has a note by another author');
+  })
+);
+
+test(
+  '0033: Edit on a reply, after the page reloads with it, changes that reply and keeps the thread',full, 
+  scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page, served, saves }) => {
+    const reviewed = served.read('reviewed.md');
+    await (await threadButton(page, 'c1', 'Reply')).click();
+    await page.locator('.comment-input').waitFor();
+    await page.keyboard.type('Agreed, keep it.');
+    const reloaded = page.waitForEvent('load');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    await reloaded;
+    const edits = page.locator('.c-card[data-c="c1"] button.comment-edit');
+    assert.equal(await edits.count(), 2, 'the reply gets an Edit after the Quy note');
+    await threadButton(page, 'c1', 'Reply'); // opens the rail's drawer below 1100px, and hovers the card
+    await edits.nth(1).click();
+    await page.locator('.comment-input').waitFor();
+    await page.keyboard.press(`${CTRL}+a`);
+    await page.keyboard.type('Agreed, keep it for now.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('reviewed.md'),
+      reviewed.replace('{>>[c1] Claude: Checked against the API docs.<<}', '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: Agreed, keep it for now.<<}')
+    );
+    assert.equal(saves.length, 2, 'the reply and its edit are two saves');
+  })
+);
+
+test(
+  '0033: with no author, no note has an Edit control',full, 
+  scenario({ noAuthor: true }, async ({ page }) => {
+    await page.locator('.c-note').first().waitFor({ state: 'attached' });
+    assert.equal(await page.locator('.c-note').count() > 0, true, 'the rail shows notes');
+    assert.equal(await page.locator('button.comment-edit').count(), 0);
+  })
+);
+
+test(
+  '0033: Edit with the box emptied, then Enter, shows the empty message and sends nothing',full, 
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await (await threadButton(page, 'c1', 'Edit')).click();
+    await page.locator('.comment-input').waitFor();
+    await page.keyboard.press(`${CTRL}+a`);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Enter');
+    await settle(page);
+    assert.equal(await page.locator('.comment-msg').textContent(), EMPTY_NOTE);
+    assert.equal(await page.locator('.comment-box').isVisible(), true, 'the box stays open');
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
+test(
+  '0033: Esc closes the Edit box and sends nothing',full, 
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await (await threadButton(page, 'c1', 'Edit')).click();
+    await page.locator('.comment-input').waitFor();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' Never sent.');
+    await page.keyboard.press('Escape');
+    await page.locator('.comment-box').waitFor({ state: 'hidden' });
+    await settle(page);
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
 // ---- R6 replying and resolving ---------------------------------------------------------------------------------
 
 test(
