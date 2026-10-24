@@ -7,23 +7,72 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "include-v-in-tag": true,
+      "include-component-in-tag": false,
       "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance" },
-        { "type": "docs", "section": "Documentation" },
-        { "type": "refactor", "section": "Refactoring", "hidden": true },
-        { "type": "chore", "section": "Miscellaneous", "hidden": true },
-        { "type": "test", "section": "Tests", "hidden": true },
-        { "type": "ci", "section": "Continuous Integration", "hidden": true },
-        { "type": "build", "section": "Build System", "hidden": true }
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation"
+        },
+        {
+          "type": "refactor",
+          "section": "Refactoring",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "Miscellaneous",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "Tests",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "Continuous Integration",
+          "hidden": true
+        },
+        {
+          "type": "build",
+          "section": "Build System",
+          "hidden": true
+        }
       ],
       "extra-files": [
-        { "type": "json", "path": ".claude-plugin/plugin.json", "jsonpath": "$.version" },
-        { "type": "generic", "path": "skills/margent/SKILL.md" },
-        { "type": "generic", "path": "skills/docs-open/SKILL.md" },
-        { "type": "generic", "path": "skills/docs-serve/SKILL.md" },
-        { "type": "generic", "path": "skills/docs-review/SKILL.md" }
+        {
+          "type": "json",
+          "path": ".claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "skills/margent/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "skills/docs-open/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "skills/docs-serve/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "skills/docs-review/SKILL.md"
+        }
       ]
     }
   }
