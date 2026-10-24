@@ -4,7 +4,7 @@
 
 ### Features
 
-* Render markdown docs into designed pages with `margent render`.
+* Render markdown docs into designed pages, with a table of contents, theme toggle and inline SVG diagrams.
 * Data-driven islands (charts, boards and other visuals) whose data stays in the markdown, with schema and column patterns.
 * `margent check` runs every island headless at 390px and 1280px and reports failures.
 * `margent open` previews a doc in the browser; `margent export` writes HTML or clean markdown (`--md`, `--clean`).
