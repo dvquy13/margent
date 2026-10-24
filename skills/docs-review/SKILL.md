@@ -3,12 +3,12 @@ name: docs-review
 description: Address the review comments in a doc or folder of docs (margent CriticMarkup threads)
 argument-hint: <file or folder>
 # x-release-please-start-version
-allowed-tools: Skill, Read, Edit, Bash(margent comments:*), Bash(margent check:*), Bash(npx -y margent@0.2.0:*), Bash(margent --version)
+allowed-tools: Skill, Read, Edit, Bash(margent comments:*), Bash(margent check:*), Bash(npx -y margent@0.3.0:*), Bash(margent --version)
 disable-model-invocation: true
 ---
 
-Run `margent --version` first. If it prints `0.2.0`, use `margent` as written below;
-otherwise replace `margent` with `npx -y margent@0.2.0` in every command.
+Run `margent --version` first. If it prints `0.3.0`, use `margent` as written below;
+otherwise replace `margent` with `npx -y margent@0.3.0` in every command.
 <!-- x-release-please-end -->
 
 Address the review comments in `$ARGUMENTS`. First load the margent skill with the Skill tool and follow its Comments section, which is the contract for this command.
