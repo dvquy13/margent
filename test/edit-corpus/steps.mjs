@@ -181,14 +181,21 @@ async function openPanel(page, spec) {
   await page.waitForSelector('.edit-panel:not([hidden]) textarea');
 }
 
-const CONTROLS = { Comment: '.comment-control', Reply: '.comment-reply', Resolve: '.comment-resolve', Edit: '.comment-edit' };
+const CONTROLS = {
+  Comment: '.comment-control',
+  Reply: '.comment-reply',
+  Resolve: '.comment-resolve',
+  Edit: '.comment-edit',
+  Save: '.comment-save',
+  Cancel: '.comment-cancel',
+};
 
 // Clicks a comment control with a real mouse click. Without near or range, `Comment` is the floating control at the
 // selection. With near (a text in the block) or range (the block's lines, e.g. "13-23"), the control is one of the block's:
-// its Comment control, or the Reply, Resolve or Edit of its thread. The block is hovered first, as a user would. nth picks
+// its Comment control, or the Reply, Resolve or Edit of its thread (Save and Cancel are a draft's, in its card). The block is hovered first, as a user would. nth picks
 // among that block's controls with that label (1-based).
 async function clickControl(page, { label, near = null, range = null, nth = null }) {
-  if (!Object.hasOwn(CONTROLS, label)) throw new Error(`control.label must be Comment, Reply, Resolve or Edit, got ${JSON.stringify(label)}`);
+  if (!Object.hasOwn(CONTROLS, label)) throw new Error(`control.label must be Comment, Reply, Resolve, Edit, Save or Cancel, got ${JSON.stringify(label)}`);
   if (near === null && range === null) {
     if (label !== 'Comment') throw new Error(`control ${label} needs near or range, to find the block of its thread`);
     await page.locator('.comment-tool:not([hidden])').click();

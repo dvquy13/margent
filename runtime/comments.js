@@ -76,11 +76,17 @@
       card.append(el('q', 'c-quote', quote));
       quotes.set(id, quote);
     }
+    // A note is a header row (its author; the edit runtime adds Edit to an owner's) and its text below it.
     for (const note of thread.querySelectorAll('.c-note')) {
       const copy = note.cloneNode(true);
       for (const q of copy.querySelectorAll('q.c-quote')) q.remove();
+      const author = copy.querySelector('.c-author');
+      if (author === null) throw new Error(`comment ${id}: a note has no author element`);
+      author.remove();
+      const head = el('div', 'c-note-head');
+      head.append(author);
       const p = el('p', 'c-note');
-      p.append(...copy.childNodes);
+      p.append(head, el('div', 'c-text', copy.textContent.trim()));
       card.append(p);
     }
     card.append(el('div', 'c-actions'));
@@ -98,21 +104,15 @@
   const railOn = (on) => document.documentElement.classList.toggle('c-rail-on', on);
   railOn(cards.size > 0);
 
-  // The draft: the edit runtime's note box, placed in the rail like a card (decision 0023). place is { top() } for a
-  // new comment (the viewport top of what it is about) or { after: id } for a reply, which sits right under that card.
-  // Below 1100px the box stays docked at the bottom of the window, so the selection it is about stays in view.
+  // The draft: the edit runtime's new-comment card, placed in the rail like a card (decision 0023). place is { top() }
+  // for a new comment (the viewport top of what it is about), or { after: id } for a message about a thread, which sits
+  // right under that card. Below 1100px the card stays docked at the bottom of the window, so the selection it is about
+  // stays in view.
   let draft = null;
-  // place: { after: id } (a reply, under its card), { top() } (a new comment, by its anchor), or { note } (an edit: the
-  // box stands in for that note inside its card, at every width, and the note comes back when the box goes).
   function showDraft(box, place) {
     draft = { box, place };
     cardObserver.observe(box); // a message line or a wrap in the box moves the cards under it
-    if (place.note !== undefined) {
-      place.note.hidden = true;
-      place.note.closest('.c-card').classList.add('is-editing');
-      box.classList.add('c-inplace');
-      place.note.after(box);
-    } else if (wide.matches) {
+    if (wide.matches) {
       railOn(true);
       box.classList.add('c-draft');
       rail.append(box);
@@ -124,11 +124,6 @@
   function hideDraft() {
     if (draft === null) return;
     cardObserver.unobserve(draft.box);
-    if (draft.place.note !== undefined) {
-      draft.place.note.hidden = false;
-      draft.place.note.closest('.c-card').classList.remove('is-editing');
-      draft.box.classList.remove('c-inplace');
-    }
     dockDraft(draft.box);
     draft = null;
     railOn(cards.size > 0);
@@ -361,7 +356,8 @@
   }
   for (const [id, card] of cards) {
     card.addEventListener('click', (e) => {
-      if (wide.matches || e.target.closest('button')) return;
+      // A press in a button or the field of a draft is not a click on the card (below 1100px it would close the drawer).
+      if (wide.matches || e.target.closest('button, textarea')) return;
       card.blur();
       anchors.get(id).scrollIntoView({ block: 'center' });
       setOpen(false);

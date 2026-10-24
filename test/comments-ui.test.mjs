@@ -2,7 +2,7 @@
 // or key press. Every result is read from disk and compared with the expected bytes. Run `npm run build` first (or npm test).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +16,8 @@ const REFUSAL = join(REPO, 'test', 'fixtures', 'comments', 'ui-refusal', 'docs')
 const ORIGINAL = readFileSync(join(FIXTURE, 'ui.md'), 'utf8');
 const ISLAND = join(REPO, 'test', 'fixtures', 'comments', 'ui-island', 'docs');
 const ISLAND_ORIGINAL = readFileSync(join(ISLAND, 'island.md'), 'utf8');
-const SHOTS = join(REPO, 'docs', 'results', 'm3');
+// The screenshots go to the folder UPDATE_SHOTS names, never into docs/: the test is skipped without one.
+const SHOTS = process.env.UPDATE_SHOTS && process.env.UPDATE_SHOTS !== '1' ? process.env.UPDATE_SHOTS : null;
 const PLAIN = 'The plain paragraph has one word to mark and a second sentence to leave alone.';
 
 // Serves a copy of a fixture folder (`fixture`, default the UI fixture; `doc` is the page to open) with the other options
@@ -140,7 +141,10 @@ const selectedText = (page) => page.evaluate(() => window.getSelection().toStrin
 const highlightSet = (page) => page.evaluate(() => CSS.highlights.has('margent-pending'));
 const settle = (page) => page.waitForTimeout(300);
 
-// The Comment control that the selection shows, clicked, and the note box that opens.
+// The quote a new-comment card shows: the phrase it is about.
+const quoteText = (page) => page.locator('.comment-box q.c-quote').textContent();
+
+// The Comment control that the selection shows, clicked, and the new-comment card that opens.
 async function openNote(page) {
   const tool = page.locator('.comment-tool');
   await tool.waitFor();
@@ -271,7 +275,7 @@ test(
     await openNote(page);
     // The box names the phrase only: how the comment is stored (a line after the list) is not the reader's concern.
     assert.equal((await page.locator('.comment-msg').textContent()).trim(), '');
-    assert.match(await page.locator('.comment-what').textContent(), /^Comment on “First item with the first point\. Second”$/);
+    assert.equal(await quoteText(page), 'First item with the first point. Second', 'the quote shows before anything is typed');
     await page.keyboard.type('A note on the list.');
     const status = await saveVia(page, () => page.keyboard.press('Enter'));
     assert.equal(status, 200);
@@ -291,7 +295,7 @@ test(
     await drag(page, { text: 'Proceed', index: 0 }, { text: 'Proceed', index: 7 });
     assert.equal(await selectedText(page), 'Proceed');
     await openNote(page);
-    assert.match(await page.locator('.comment-what').textContent(), /^Comment on “Proceed”$/, 'the quote shows before anything is typed');
+    assert.equal(await quoteText(page), 'Proceed', 'the quote shows before anything is typed');
     await page.keyboard.type('Table note.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
@@ -307,7 +311,7 @@ test(
   scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served }) => {
     await drag(page, { text: 'Forum and Wiki are out', index: 15 }, { text: 'Blog and Docs stay in', index: 8 });
     await openNote(page);
-    assert.equal(await page.locator('.comment-what').textContent(), 'Comment on “are out Blog and”');
+    assert.equal(await quoteText(page), 'are out Blog and');
     await page.keyboard.type('Two lines.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.ok(served.read('island.md').includes('{>>[c1] Ada: "are out Blog and" → Two lines.<<}'), served.read('island.md'));
@@ -337,11 +341,7 @@ test(
     const phrase = 'Forum and Wiki are out';
     await drag(page, { text: phrase, index: 0 }, { text: phrase, index: phrase.length });
     await openNote(page);
-    assert.match(
-      await page.locator('.comment-what').textContent(),
-      /^Comment on “Forum and Wiki are out”$/,
-      'the quote shows before anything is typed'
-    );
+    assert.equal(await quoteText(page), phrase, 'the quote shows before anything is typed');
     // The island's frame marks the phrase (M5 R6.2): the page cannot reach into it.
     const frame = page.frames().find((f) => f !== page.mainFrame());
     await frame.waitForFunction(() => CSS.highlights.has('margent-quote'));
@@ -405,7 +405,7 @@ test(
     await openNote(page);
     const message = page.locator('.comment-msg');
     assert.match(await message.textContent(), /touches comment c1/);
-    assert.equal(await page.locator('.comment-input').isVisible(), false, 'no note can be typed over it');
+    assert.equal(await page.locator('.comment-input:visible').isVisible(), false, 'no note can be typed over it');
     await page.locator('.comment-action').click();
     const focused = await page.evaluate(() => document.activeElement.className);
     assert.equal(focused, 'comment-reply', 'the action focuses the Reply of that thread');
@@ -439,57 +439,162 @@ test(
 const EDIT_DOCS = join(REPO, 'test', 'edit-corpus', 'docs');
 const CTRL = process.platform === 'darwin' ? 'Meta' : 'Control';
 const EMPTY_NOTE = "A note can't be empty. Resolve removes the thread.";
+// The Edit control of the thread's nth owner note (1-based), in its note header. It shows on hover, as the card's footer does.
+const editButtons = (page, id) => page.locator(`.c-card[data-c="${id}"] button.comment-edit`);
+
+// Opens the rail's drawer when it is closed (below 1100px), and hovers the thread's card, where its footer and Edit show.
+async function openCard(page, id) {
+  const toggle = page.locator('.c-toggle');
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  await page.locator(`.c-card[data-c="${id}"]`).hover();
+}
 
 test(
-  '0033: Edit shows after each note of the owner, and after no other author\'s note',full, 
+  '0033: Edit is on the header of each owner note, and on no other author\'s note',full,
   scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page }) => {
-    // threadButton opens the rail's drawer below 1100px; the rail's cards are in the DOM either way.
-    await threadButton(page, 'c1', 'Reply');
     const notes = await page.evaluate(() =>
-      [...document.querySelectorAll('.c-card[data-c="c1"] p.c-note')].map((p) => ({
+      [...document.querySelectorAll('.c-card p.c-note')].map((p) => ({
         author: p.querySelector('.c-author').textContent.trim(),
-        edit: p.nextElementSibling?.classList.contains('comment-edit') ?? false,
+        own: p.hasAttribute('data-own'),
+        edit: p.querySelector(':scope > .c-note-head > button.comment-edit') !== null,
       }))
     );
-    assert.deepEqual(notes, [
-      { author: 'Quy', edit: true },
-      { author: 'Claude', edit: false },
-    ]);
-    const all = await page.evaluate(() => ({
-      notes: document.querySelectorAll('.c-card p.c-note').length,
-      quy: [...document.querySelectorAll('.c-card p.c-note')].filter((p) => p.querySelector('.c-author').textContent.trim() === 'Quy').length,
-      edits: document.querySelectorAll('.c-card button.comment-edit').length,
-    }));
-    assert.equal(all.edits, all.quy, 'one Edit per note by Quy');
-    assert.ok(all.notes > all.quy, 'the page has a note by another author');
-    // A thread that is one note by the owner has its Edit in the action row, after Reply and Resolve.
+    assert.deepEqual(
+      notes.filter((n) => n.own !== (n.author === 'Quy') || n.edit !== n.own),
+      [],
+      'a note is data-own, and has an Edit, exactly when its author is the owner'
+    );
+    assert.ok(notes.some((n) => !n.own), 'the page has a note by another author');
+    const c1 = await page.evaluate(() =>
+      [...document.querySelectorAll('.c-card[data-c="c1"] p.c-note')].map((p) => p.querySelector('.c-author').textContent.trim())
+    );
+    assert.deepEqual(c1, ['Quy', 'Claude']);
+    // The footer keeps Reply and Resolve only: Edit is no longer in the action row.
     const rows = await page.evaluate(() =>
-      ['c2', 'c3'].map((id) =>
-        [...document.querySelectorAll(`.c-card[data-c="${id}"] .comment-actions button`)].map((b) => b.textContent)
-      )
+      ['c2', 'c3'].map((id) => [...document.querySelectorAll(`.c-card[data-c="${id}"] .c-actions button`)].map((b) => b.textContent))
     );
     assert.deepEqual(rows, [
-      ['Reply', 'Resolve', 'Edit'],
-      ['Reply', 'Resolve', 'Edit'],
+      ['Reply', 'Resolve'],
+      ['Reply', 'Resolve'],
     ]);
   })
 );
 
 test(
-  '0033: Edit on a reply, after the page reloads with it, changes that reply and keeps the thread',full, 
+  '0033: with no author, no note has an Edit control',full,
+  scenario({ noAuthor: true, fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page }) => {
+    await page.locator('.c-note').first().waitFor({ state: 'attached' });
+    assert.ok((await page.locator('.c-note').count()) > 0, 'the rail shows notes');
+    assert.equal(await page.locator('.c-note[data-own]').count(), 0);
+    assert.equal(await page.locator('button.comment-edit').count(), 0);
+  })
+);
+
+test(
+  '0033: Edit, Save after a change: the note is saved, and the field and Edit go back',full,
+  scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page, served, saves }) => {
+    const reviewed = served.read('reviewed.md');
+    await openCard(page, 'c1');
+    await editButtons(page, 'c1').click();
+    const field = page.locator('.comment-input:visible');
+    await field.waitFor();
+    assert.equal(await field.inputValue(), 'is this still true?', 'the field is prefilled with the note');
+    await page.keyboard.press('End');
+    await page.keyboard.type(' Still true.');
+    assert.equal(await saveVia(page, () => page.locator('.comment-save:visible').click()), 200);
+    assert.equal(
+      served.read('reviewed.md'),
+      reviewed.replace('{>>[c1] Quy: is this still true?<<}', '{>>[c1] Quy: is this still true? Still true.<<}')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  '0033: Edit with the field emptied, then Enter, shows the empty message and sends nothing',full,
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await openCard(page, 'c1');
+    await editButtons(page, 'c1').click();
+    await page.locator('.comment-input:visible').waitFor();
+    await page.keyboard.press(`${CTRL}+a`);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Enter');
+    await settle(page);
+    assert.equal(await page.locator('.comment-msg:not([hidden])').textContent(), EMPTY_NOTE);
+    assert.equal(await page.locator('.comment-input:visible').isVisible(), true, 'the field stays open');
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
+test(
+  '0033: Edit, then Esc, puts the note back and sends nothing',full,
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await openCard(page, 'c1');
+    await editButtons(page, 'c1').click();
+    await page.locator('.comment-input:visible').waitFor();
+    // The field takes the note's text in its header's place, in the same card.
+    const inCard = await page.evaluate(() => [...document.querySelectorAll('.comment-input')].find((f) => f.offsetParent !== null)?.closest('.c-card')?.dataset.c);
+    assert.equal(inCard, 'c1', 'the field is in the note\'s card');
+    await page.keyboard.press('End');
+    await page.keyboard.type(' Never sent.');
+    await page.keyboard.press('Escape');
+    await settle(page);
+    assert.equal(await page.locator('.comment-input:visible').count(), 0, 'the field is gone');
+    assert.equal(await page.locator('.c-card[data-c="c1"] .c-text').first().textContent(), 'is this still true?', 'the note is back');
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
+test(
+  '0033: Edit, then Save button click, saves the note',full,
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await openCard(page, 'c1');
+    await editButtons(page, 'c1').click();
+    await page.locator('.comment-input:visible').waitFor();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' Saved by button.');
+    assert.equal(await saveVia(page, () => page.locator('.comment-save:visible').click()), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('{>>[c1] Quy: is this still true?<<}', '{>>[c1] Quy: is this still true? Saved by button.<<}')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  '0033: Edit, then a click elsewhere, neither saves nor closes the field',full,
+  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
+    await openCard(page, 'c1');
+    await editButtons(page, 'c1').click();
+    await page.locator('.comment-input:visible').waitFor();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' Not yet.');
+    await page.mouse.click(990, 880);
+    await settle(page);
+    assert.equal(await page.locator('.comment-input:visible').isVisible(), true, 'the field stays open with the change');
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
+test(
+  '0033: a reply by the owner, after the page reloads with it, is edited in place and keeps the thread',full,
   scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page, served, saves }) => {
     const reviewed = served.read('reviewed.md');
     await (await threadButton(page, 'c1', 'Reply')).click();
-    await page.locator('.comment-input').waitFor();
+    await page.locator('.comment-input:visible').waitFor();
     await page.keyboard.type('Agreed, keep it.');
     const reloaded = page.waitForEvent('load');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     await reloaded;
-    const edits = page.locator('.c-card[data-c="c1"] button.comment-edit');
+    const edits = editButtons(page, 'c1');
     assert.equal(await edits.count(), 2, 'the reply gets an Edit after the Quy note');
     await threadButton(page, 'c1', 'Reply'); // opens the rail's drawer below 1100px, and hovers the card
     await edits.nth(1).click();
-    await page.locator('.comment-input').waitFor();
+    await page.locator('.comment-input:visible').waitFor();
     await page.keyboard.press(`${CTRL}+a`);
     await page.keyboard.type('Agreed, keep it for now.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
@@ -501,54 +606,106 @@ test(
   })
 );
 
-test(
-  '0033: with no author, no note has an Edit control',full, 
-  scenario({ noAuthor: true }, async ({ page }) => {
-    await page.locator('.c-note').first().waitFor({ state: 'attached' });
-    assert.equal(await page.locator('.c-note').count() > 0, true, 'the rail shows notes');
-    assert.equal(await page.locator('button.comment-edit').count(), 0);
-  })
-);
+// An owner note long enough to wrap to several lines in the 280px rail card (decision 0033).
+const LONG_NOTE =
+  'This note is long enough to wrap over several lines in the narrow rail card, so the field that Edit opens on it must show every line of the text, with none clipped away at the bottom.';
 
-test(
-  '0033: Edit with the box emptied, then Enter, shows the empty message and sends nothing',full, 
-  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
-    await (await threadButton(page, 'c1', 'Edit')).click();
-    await page.locator('.comment-input').waitFor();
-    await page.keyboard.press(`${CTRL}+a`);
-    await page.keyboard.press('Backspace');
-    await page.keyboard.press('Enter');
-    await settle(page);
-    assert.equal(await page.locator('.comment-msg').textContent(), EMPTY_NOTE);
-    assert.equal(await page.locator('.comment-box').isVisible(), true, 'the box stays open');
-    assert.deepEqual(saves, []);
-    assert.equal(served.read('ui.md'), ORIGINAL);
-  })
-);
+for (const [label, viewport] of [
+  ['the default viewport', undefined],
+  ['1400px wide', { width: 1400, height: 900 }],
+]) {
+  test(
+    `0033: Edit on a long owner note shows all of its text in the field, at ${label}`,
+    full,
+    async () => {
+      const served = await serveCopy(EDIT_DOCS, { author: 'Quy' });
+      try {
+        const reviewed = served.read('reviewed.md');
+        writeFileSync(join(served.root, 'reviewed.md'), reviewed.replace('Quy: is this still true?', `Quy: ${LONG_NOTE}`));
+        await withBrowser(async (browser) => {
+          const { page, errors, close } = await openServedPage(browser, served, 'reviewed.md', viewport ? { viewport } : {});
+          try {
+            await openCard(page, 'c1');
+            await editButtons(page, 'c1').click();
+            const field = page.locator('.comment-input:visible');
+            await field.waitFor();
+            const m = await field.evaluate((el) => {
+              const cs = getComputedStyle(el);
+              const line = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+              return { scroll: el.scrollHeight, client: el.clientHeight, line };
+            });
+            assert.ok(m.scroll <= m.client, `the field shows all its text (scroll ${m.scroll}, client ${m.client})`);
+            assert.ok(m.client > 2 * m.line, `the field is several lines tall (client ${m.client}, line ${m.line})`);
+            assert.equal(await field.inputValue(), LONG_NOTE, 'the field holds the whole note');
+            assert.deepEqual(errors, [], 'the page logs no errors');
+          } finally {
+            await close();
+          }
+        });
+      } finally {
+        await served.close();
+      }
+    }
+  );
+}
 
-test(
-  '0033: Edit opens in place of the note, and Esc puts the note back and sends nothing',full, 
-  scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
-    await (await threadButton(page, 'c1', 'Edit')).click();
-    await page.locator('.comment-input').waitFor();
-    // The box takes the note's place in its card: the note gives way and the box sits where it was.
-    const placed = await page.evaluate(() => {
-      const box = document.querySelector('.comment-box');
-      const note = box.previousElementSibling;
-      return { card: box.parentElement.matches('.c-card[data-c="c1"]'), noteBefore: note?.matches('p.c-note'), noteShown: note?.checkVisibility() };
+// Opens a served copy of a fixture at a viewport (the default one when undefined), runs fn, and closes everything.
+async function withPage(fixture, doc, viewport, fn, options = { author: 'Ada' }) {
+  const served = await serveCopy(fixture, options);
+  try {
+    await withBrowser(async (browser) => {
+      const { page, errors, close } = await openServedPage(browser, served, doc, viewport ? { viewport } : {});
+      try {
+        await fn(page);
+        assert.deepEqual(errors, [], 'the page logs no errors');
+      } finally {
+        await close();
+      }
     });
-    assert.deepEqual(placed, { card: true, noteBefore: true, noteShown: false });
-    await page.keyboard.press('End');
-    await page.keyboard.type(' Never sent.');
-    await page.keyboard.press('Escape');
-    await page.locator('.comment-box').waitFor({ state: 'hidden' });
-    await settle(page);
-    // Below 1100px Esc also closes the drawer, so the card itself may be out of view: the note is back when it is not hidden.
-    assert.equal(await page.evaluate(() => document.querySelector('.c-card[data-c="c1"] p.c-note').hidden), false, 'the note is back');
-    assert.deepEqual(saves, []);
-    assert.equal(served.read('ui.md'), ORIGINAL);
-  })
-);
+  } finally {
+    await served.close();
+  }
+}
+
+// The field that is open and empty is at least one line tall, and shows its placeholder (decision 0033 and the draft card).
+async function assertEmptyField(page, placeholder, what) {
+  const field = page.locator('.comment-input:visible');
+  await field.waitFor();
+  const m = await field.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { client: el.clientHeight, line: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2, value: el.value, placeholder: el.placeholder };
+  });
+  assert.ok(m.client >= m.line, `${what}: the empty field is at least a line tall (client ${m.client}, line ${m.line})`);
+  assert.equal(m.value, '', `${what}: the field is empty`);
+  assert.equal(m.placeholder, placeholder, `${what}: the field shows its placeholder`);
+}
+
+for (const [label, viewport] of [
+  ['the default viewport', undefined],
+  ['1400px wide', { width: 1400, height: 900 }],
+]) {
+  test(`0023: the empty field of a new comment from a block's Comment control is a line tall, at ${label}`, full, () =>
+    withPage(FIXTURE, 'ui.md', viewport, async (page) => {
+      const control = await blockControl(page, 'table');
+      await control.click();
+      await page.locator('.comment-box:not([hidden])').waitFor();
+      await assertEmptyField(page, 'Add a comment', 'the block comment');
+    }));
+
+  test(`0023: the empty field of a new comment from a selection's Comment tool is a line tall, at ${label}`, full, () =>
+    withPage(FIXTURE, 'ui.md', viewport, async (page) => {
+      await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+      await openNote(page);
+      await assertEmptyField(page, 'Add a comment', 'the selection comment');
+    }));
+
+  test(`0033: the empty reply field is a line tall, at ${label}`, full, () =>
+    withPage(FIXTURE, 'ui.md', viewport, async (page) => {
+      await openCard(page, 'c1');
+      await page.locator('.c-card[data-c="c1"] .comment-reply').click();
+      await assertEmptyField(page, 'Reply', 'the reply');
+    }));
+}
 
 // ---- R6 replying and resolving ---------------------------------------------------------------------------------
 
@@ -557,7 +714,7 @@ test(
   scenario({ author: 'Ada' }, async ({ page, served }) => {
     const reply = await threadButton(page, 'c1', 'Reply');
     await reply.click();
-    await page.locator('.comment-input').waitFor();
+    await page.locator('.comment-input:visible').waitFor();
     await page.keyboard.type('Rechecked, still true.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
@@ -647,7 +804,7 @@ test(
     await page.locator('.edit-banner[data-kind="changed"]').waitFor();
     await page.waitForTimeout(600);
     assert.equal(await page.evaluate(() => window.__marker), 'held', 'the page did not reload');
-    assert.equal(await page.locator('.comment-input').inputValue(), 'Held note.');
+    assert.equal(await page.locator('.comment-input:visible').inputValue(), 'Held note.');
 
     const status = await saveVia(page, () => page.keyboard.press('Enter'));
     assert.equal(status, 409);
@@ -702,17 +859,24 @@ test('0023: at 1280px a new comment opens as a draft card in the rail, level wit
     assert.equal((await boxIn(page)).inRail, false, 'Esc puts the box away');
   }));
 
-test('0023: at 1280px a reply opens right under its card', full, () =>
+test('0023: at 1280px a reply is typed in its thread card, inside it, under the notes', full, () =>
   wide(async (page) => {
     const card = page.locator('.c-card[data-c="c1"]');
     await card.hover();
     await card.locator('.comment-reply').click();
-    await page.locator('.comment-box:not([hidden])').waitFor();
+    const field = card.locator('.comment-input');
+    await field.waitFor();
+    assert.equal(await field.getAttribute('placeholder'), 'Reply');
+    const inRail = await page.evaluate(() => document.querySelector('.c-card[data-c="c1"]').parentElement.classList.contains('c-rail'));
+    assert.equal(inRail, true, 'the card is in the rail');
     const cardBox = await card.boundingBox();
-    const box = await boxIn(page);
-    assert.equal(box.inRail, true);
-    assert.ok(Math.abs(box.top - (cardBox.y + cardBox.height + 8)) < 2, `the reply box is 8px under its card (${box.top} vs ${cardBox.y + cardBox.height})`);
-    assert.equal(await page.locator('.comment-what').textContent(), 'Reply');
+    const fieldBox = await field.boundingBox();
+    assert.ok(
+      fieldBox.y >= cardBox.y && fieldBox.y + fieldBox.height <= cardBox.y + cardBox.height,
+      `the reply field is inside its card (field ${fieldBox.y}, card ${cardBox.y} to ${cardBox.y + cardBox.height})`
+    );
+    assert.equal(await page.locator('.comment-box').isVisible(), false, 'no new-comment card opens for a reply');
+    assert.equal(await card.locator('.c-actions').isVisible(), false, 'the footer hides while the reply is typed');
   }));
 
 test('0023: on a served doc with no comments yet, the first note still opens in the rail', full, () =>
@@ -729,7 +893,7 @@ test('0023: on a served doc with no comments yet, the first note still opens in 
     { fixture: ISLAND, doc: 'island.md' }
   ));
 
-test('0023: a long note wraps and the box grows, and Enter still saves it as one line', full, async () => {
+test('0023: a long note wraps in the field, which grows, and Enter still saves it as one line', full, async () => {
   const served = await serveCopy(FIXTURE, { author: 'Ada' });
   try {
     await withBrowser(async (browser) => {
@@ -737,12 +901,12 @@ test('0023: a long note wraps and the box grows, and Enter still saves it as one
       try {
         await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
         await openNote(page);
-        const before = (await page.locator('.comment-input').boundingBox()).height;
+        const before = (await page.locator('.comment-input:visible').boundingBox()).height;
         const note = 'This note is long enough to wrap over several lines in the narrow rail card, so the box must grow to show it.';
         await page.keyboard.type(note);
-        const after = (await page.locator('.comment-input').boundingBox()).height;
-        assert.ok(after > before, `the box grew with the text (${before} to ${after})`);
-        const hidden = await page.locator('.comment-input').evaluate((el) => el.scrollHeight - el.clientHeight);
+        const after = (await page.locator('.comment-input:visible').boundingBox()).height;
+        assert.ok(after > before, `the field grew with the text (${before} to ${after})`);
+        const hidden = await page.locator('.comment-input:visible').evaluate((el) => el.scrollHeight - el.clientHeight);
         assert.ok(hidden <= 1, `all of the note shows, none scrolled out of view (${hidden}px hidden)`);
         assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
         assert.ok(served.read('ui.md').includes(`{==plain==}{>>[c3] Ada: ${note}<<}`), served.read('ui.md'));
@@ -763,9 +927,10 @@ test('0023: below 1100px the note box stays docked at the bottom of the window',
   })());
 
 test(
-  'screenshots: the control, the note box and a thread (light, 1280px)',
-  { skip: process.env.UPDATE_SHOTS !== '1' },
+  'screenshots: the control, the note box and a thread (light, 1280px), into the UPDATE_SHOTS folder',
+  { skip: !SHOTS },
   async (t) => {
+    mkdirSync(SHOTS, { recursive: true });
     const served = await serveCopy(FIXTURE, { author: 'Ada' });
     t.after(() => served.close());
     await withBrowser(async (browser) => {

@@ -196,11 +196,12 @@ agent-island.edit-block > .comment-control {
 .edit-banner[data-kind="connection"],
 .edit-banner[data-kind="error"] { border-left-color: var(--red); }
 
-/* ---- comments (M3 spec R5, R6; comments.js) */
+/* ---- comments (M3 spec R5, R6; comments.js) ---- option A: header rows */
 
 /* A hidden control stays hidden, whatever its class sets its display to. */
-.comment-tool[hidden], .comment-box[hidden], .comment-what[hidden], .comment-form[hidden], .comment-input[hidden],
-.comment-save[hidden], .comment-msg[hidden], .comment-action[hidden] { display: none; }
+.comment-tool[hidden], .comment-box[hidden], .comment-msg[hidden], .comment-action[hidden], .comment-edit[hidden],
+.comment-box .c-quote[hidden], .c-note[hidden], .comment-box .c-note-head[hidden], .comment-input[hidden],
+.comment-save[hidden] { display: none !important; }
 
 /* The pending highlight: the text a new comment will mark. The CSS Custom Highlight API draws it, so the DOM is unchanged. */
 ::highlight(margent-pending) { background-color: var(--accent-border); color: var(--text); }
@@ -217,70 +218,114 @@ agent-island.edit-block > .comment-control {
 }
 .comment-tool:hover { color: var(--accent); border-color: var(--accent); }
 
-/* The note box: a bar at the foot of the page. Its one primary action is Save, the accent fill. */
-.comment-box {
-  position: fixed; left: 50%; bottom: var(--gap-md); z-index: 30;
-  transform: translateX(-50%);
-  box-sizing: border-box; width: min(40rem, calc(100% - 2 * var(--gutter)));
-  display: flex; flex-direction: column; gap: var(--gap-xs);
-  padding: var(--gap-sm) var(--gap-md);
-  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+/* ---- a note: a header row (the author, and Edit for an owner's note), then its text ---- */
+
+.c-note-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap-sm);
 }
-.comment-what {
-  margin: 0;
-  font-family: var(--font-ui); font-size: var(--font-sm); color: var(--text-muted);
+.c-note-head .c-author { margin-right: 0; }
+/* Edit sits at the header's right edge, which is the card's content edge. It fades like the footer. */
+.comment-edit {
+  flex: none;
+  font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
+  padding: 0; border: 0; background: none;
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: color var(--fade), opacity var(--fade);
 }
-.comment-form {
-  display: flex; align-items: center; gap: var(--gap-xs);
+.c-card:hover .comment-edit,
+.c-card:focus-within .comment-edit,
+.c-card.is-linked .comment-edit,
+.comment-edit:focus-visible { opacity: 1; }
+.comment-edit:hover { color: var(--accent); }
+@media (hover: none) {
+  .comment-edit { opacity: 1; }
 }
+
+/* ---- the field: one quiet box for a new comment, a reply, or an edit ---- */
+
+.comment-compose { margin-top: var(--gap-xs); }
 .comment-input {
-  flex: 1 1 auto; min-width: 0;
-  box-sizing: border-box; resize: none; overflow-y: auto; max-height: calc(8 * 1.5em + 14px); /* about 8 lines */
-  font-family: var(--font-prose); font-size: var(--font-md); line-height: 1.5;
-  padding: 6px var(--gap-sm);
-  color: var(--text); background: var(--bg2);
+  display: block; box-sizing: border-box; width: 100%;
+  margin: 0; resize: none; overflow-y: auto; max-height: calc(8 * 1.45em + 10px); /* about 8 lines */
+  font-family: var(--font-prose); font-size: var(--font-md); line-height: 1.45;
+  padding: 4px 6px;
+  color: var(--text); background: var(--bg);
   border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
-.comment-cancel, .comment-save, .comment-action {
-  font-family: var(--font-ui); font-size: var(--font-sm); line-height: 1;
-  padding: 8px 14px;
-  border-radius: var(--radius-pill);
+.comment-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.comment-input:disabled { opacity: 0.6; }
+.comment-input::placeholder { color: var(--text-muted); }
+
+/* Under the field, right-aligned: Cancel as a text link, Save as the one small accent button. */
+.comment-row {
+  display: flex; justify-content: flex-end; align-items: center; gap: var(--gap-sm);
+  margin-top: var(--gap-xs);
+  font-family: var(--font-ui); font-size: var(--font-xs);
+}
+.comment-cancel {
+  font: inherit; line-height: 1;
+  padding: 0; border: 0; background: none;
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
   cursor: pointer;
-  transition: color var(--fade), border-color var(--fade), background var(--fade);
+  transition: color var(--fade);
 }
-.comment-cancel, .comment-action {
-  background: var(--bg); color: var(--text); border: 1px solid var(--border);
-}
-.comment-cancel:hover:not(:disabled), .comment-action:hover {
-  color: var(--accent); border-color: var(--accent);
-}
+.comment-cancel:hover:not(:disabled) { color: var(--accent); }
 .comment-save {
-  background: var(--accent); color: var(--bg); border: 1px solid var(--accent);
+  font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
+  padding: 3px 10px;
+  color: var(--bg); background: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--fade), background var(--fade);
 }
-.comment-save:hover:not(:disabled) { background: var(--bg); color: var(--accent); }
-.comment-cancel:disabled, .comment-save:disabled { opacity: 0.5; cursor: default; }
-.comment-input:focus-visible,
-.comment-tool:focus-visible,
-.comment-cancel:focus-visible,
-.comment-save:focus-visible,
-.comment-action:focus-visible,
-.comment-reply:focus-visible,
-.comment-resolve:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.comment-save:hover:not(:disabled) { color: var(--accent); background: var(--bg); }
+.comment-save:disabled, .comment-cancel:disabled { opacity: 0.5; cursor: default; }
+
+/* A message under the field: one line, left-aligned, in UI type. An error is red text. */
 .comment-msg {
-  margin: 0;
-  display: flex; align-items: center; flex-wrap: wrap; gap: var(--gap-xs) var(--gap-sm);
-  font-family: var(--font-ui); font-size: var(--font-sm); line-height: 1.5; color: var(--text);
+  margin: var(--gap-xs) 0 0;
+  font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1.5; color: var(--text);
 }
-/* A refusal or a failed save has a red rule; an explanation has none. */
-.comment-msg--error {
-  padding-left: var(--gap-sm);
-  border-left: 3px solid var(--red);
+/* An error is told by its color alone, on the card's left edge like the notes: no bar, no indent. */
+.comment-msg--error { color: var(--red); }
+.comment-action {
+  font: inherit; line-height: 1;
+  padding: 0; border: 0; background: none;
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+}
+.comment-action:hover { color: var(--accent); }
+
+/* ---- the new-comment card: a draft that looks like the card it becomes ---- */
+
+/* The shape, type and padding of a finished card (shell/comments.css, .c-card): a draft is linked to its selection, so
+   its left rule is the accent, as a linked card's is. Below 1100px it has no rail around it, so it sets its own type. */
+.comment-box {
+  box-sizing: border-box;
+  padding: var(--gap-xs) var(--gap-sm);
+  background: var(--bg2); border-left: 2px solid var(--accent); border-radius: var(--radius-sm);
+  font-family: var(--font-prose); font-size: var(--font-sm); line-height: 1.45; color: var(--text-muted);
+}
+.comment-box .c-quote { display: block; margin: 0 0 var(--gap-xs); color: var(--text); font-style: normal; }
+/* Below 1100px the card is docked at the foot of the window, as the note box was, and its width follows the page. */
+@media screen and (not (min-width: 1100px)) {
+  .comment-box:not(.c-draft) {
+    position: fixed; left: 50%; bottom: var(--gap-md); z-index: 30;
+    transform: translateX(-50%);
+    width: min(24rem, calc(100% - 2 * var(--gutter)));
+  }
+}
+/* 1100px and wider: the draft sits in the rail, placed by its anchor (comments.js relayout), at the card's width. */
+@media screen and (min-width: 1100px) {
+  html.c-rail-on .c-rail > .comment-box.c-draft {
+    position: absolute; left: 0; right: 0; bottom: auto; transform: none; width: auto;
+  }
 }
 
-/* The block's comment control sits in the block's tools (see .block-tools above). */
+/* ---- the footer: Reply and Resolve, quiet until the card is hovered, focused or linked; always shown on a touch screen */
 
-/* Reply and Resolve sit at the foot of a thread's card in the rail. Quiet until the card is hovered, focused or linked;
-   always shown on a touch screen. They are text links, so they stay small and muted. */
 .comment-actions {
   display: inline-flex; gap: var(--gap-sm);
   font-family: var(--font-ui); font-size: var(--font-xs);
@@ -301,41 +346,18 @@ agent-island.edit-block > .comment-control {
   transition: color var(--fade);
 }
 .comment-reply:hover, .comment-resolve:hover { color: var(--accent); }
+/* The footer hides while a reply is typed (comments.js onReply). Its display rule would beat [hidden], so it is named here. */
+html.c-rail-on .c-card .c-actions[hidden] { display: none; }
 
-/* Edit sits under the owner's own note in its card: a small text link, left-aligned with Reply, quiet until the card is hovered,
-   focused or linked, like Reply and Resolve. */
-.comment-edit {
-  display: block; margin: 0.2em 0 0.5em;
-  font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
-  padding: 0; border: 0; background: none;
-  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
-  cursor: pointer;
-  opacity: 0;
-  transition: color var(--fade), opacity var(--fade);
-}
-.c-card:hover .comment-edit,
-.c-card:focus-within .comment-edit,
-.c-card.is-linked .comment-edit,
-.comment-edit:focus-visible { opacity: 1; }
-@media (hover: none) {
-  .comment-edit { opacity: 1; }
-}
-.comment-edit:hover { color: var(--accent); }
-/* While a note is edited in place its card shows no Edit links, and the note itself gives way to the box (the card's
-   own display rule would otherwise beat the hidden attribute). */
-.c-card.is-editing .comment-edit,
-.c-card > .c-note[hidden] { display: none; }
-/* The edit box in place of the note: part of the card, not a floating box. */
-.c-card > .comment-box.c-inplace {
-  position: static; left: auto; bottom: auto; transform: none; z-index: auto;
-  width: auto; margin: 0.2em 0 0.4em; padding: 0; border: 0; background: none;
-}
-.c-card > .comment-box.c-inplace .comment-form { flex-wrap: wrap; justify-content: flex-end; }
-.c-card > .comment-box.c-inplace .comment-input { flex: 1 1 100%; font-size: var(--font-sm); background: var(--bg); }
-/* In the action row (a thread of one owner's note) it is one more link like Reply and Resolve; the row fades it. */
-.comment-actions .comment-edit { display: inline; margin: 0; font: inherit; opacity: 1; }
-.comment-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The focus ring of the controls that take focus. */
+.comment-tool:focus-visible,
+.comment-save:focus-visible,
+.comment-cancel:focus-visible,
+.comment-action:focus-visible,
+.comment-edit:focus-visible,
+.comment-reply:focus-visible,
+.comment-resolve:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media print {
-  .comment-tool, .comment-box, .comment-control, .comment-actions, .comment-edit { display: none; }
+  .comment-tool, .comment-box, .comment-actions, .comment-edit { display: none; }
 }

@@ -12,8 +12,9 @@ M3 made notes write-once in the page: spec R7.2 says notes are not editable, so 
 
 ## Decision
 
-- A note signed with the page's author (`state.author`, compared exactly) shows an `Edit` control in its rail card. Other notes don't, and with no author no note does.
-- Edit opens the note in place: the comment box takes the note's place in its card, holding the note's text, and the note comes back when the box is saved or cancelled. A thread that is one owner's note shows Edit in its action row next to Reply and Resolve; in a longer thread each of the owner's notes has its own Edit under it. For a quoted first note of a block comment line, only the body after `"phrase" →` is in the box, and the quote is kept. Saving unchanged text closes the box without a save; empty text is refused in the box.
+- A note signed with the page's author (`state.author`, compared exactly) is editable in its rail card. Other notes aren't, and with no author none is.
+- Each note in a rail card is a header line (the author, and for the owner's note an `Edit` link at its right edge) above its text. The card's footer is always `Reply · Resolve`. Edit sits in the same place on every owner note, however many notes the thread has.
+- Typing happens in one quiet field inside the card, with `Cancel` and a small accent `Save` under it: Edit swaps the note's text for the field, prefilled; Reply adds your header and the field after the last note; a new comment is a draft card with the quote, your header and the field. A draft looks like the card it becomes. Enter saves and Esc cancels. Saving unchanged text sends nothing; empty text is refused under the field.
 - The save is an ordinary block save, like reply and resolve: `replaceNote(block, id, index, text)` in `src/comments/syntax.ts` rewrites one note's text through `noteSource` and leaves every other byte of the block alone. Notes in a thread share its id, so a note is addressed by the id and its position among that id's notes in the block.
 - The note keeps its author, and nothing marks it as edited. Git history shows the change.
 - This amends M3 R7.2 for the owner's own notes. Highlighted text stays editable in place as before.
