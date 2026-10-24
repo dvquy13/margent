@@ -1,9 +1,9 @@
 // `margent doctor` (spec R7): one line per environment check, exit 1 when any check fails. The islands check renders
 // a built-in sample doc in a temp dir (removed afterwards) and runs its island in headless Chrome.
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolveAuthor } from '../serve/author.js';
 import { VERSION } from '../version.js';
 import { findChrome } from './chrome.js';
 import { cacheRoot, renderOne } from './collect.js';
@@ -69,15 +69,11 @@ function checkCache(): Check {
   }
 }
 
-// A warning only: notes in `serve` need an author, nothing else does.
+// A warning only: notes in `serve` need an author, nothing else does. It resolves the author as serve does in this folder.
 function checkAuthor(): Check {
-  const result = spawnSync('git', ['config', 'user.name'], { encoding: 'utf8', cwd: process.cwd() });
-  const name = result.status === 0 ? result.stdout.trim() : '';
-  if (name !== '') return { status: 'ok', line: `ok author: ${name}` };
-  return {
-    status: 'warn',
-    line: 'warn author: git config user.name is not set; serve needs an author for notes (or --author).',
-  };
+  const { author, source, reason } = resolveAuthor(undefined, process.cwd());
+  if (author === null) return { status: 'warn', line: `warn author: ${reason}; serve refuses notes until one is set (or --author).` };
+  return { status: 'ok', line: source === 'os' ? `ok author: ${author} (the OS user name; ${reason})` : `ok author: ${author}` };
 }
 
 const SAMPLE_DOC = [

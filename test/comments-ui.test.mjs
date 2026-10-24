@@ -28,10 +28,11 @@ function scenario(options, fn) {
     let served;
     if (noAuthor) {
       const home = mkdtempSync(join(tmpdir(), 'margent-home-'));
-      const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM };
+      const saved = { HOME: process.env.HOME, GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM, USER: process.env.USER, USERNAME: process.env.USERNAME, LOGNAME: process.env.LOGNAME };
       process.env.HOME = home;
       process.env.GIT_CONFIG_GLOBAL = '/dev/null';
       process.env.GIT_CONFIG_NOSYSTEM = '1';
+      for (const key of ['USER', 'USERNAME', 'LOGNAME']) delete process.env[key];
       try {
         served = await serveCopy(fixture);
       } finally {
