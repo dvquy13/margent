@@ -13,7 +13,7 @@ M3 made notes write-once in the page: spec R7.2 says notes are not editable, so 
 ## Decision
 
 - A note signed with the page's author (`state.author`, compared exactly) shows an `Edit` control in its rail card. Other notes don't, and with no author no note does.
-- Edit opens the comment box with the note's text. For a quoted first note of a block comment line, only the body after `"phrase" →` is in the box, and the quote is kept. Saving unchanged text closes the box without a save; empty text is refused in the box.
+- Edit opens the note in place: the comment box takes the note's place in its card, holding the note's text, and the note comes back when the box is saved or cancelled. A thread that is one owner's note shows Edit in its action row next to Reply and Resolve; in a longer thread each of the owner's notes has its own Edit under it. For a quoted first note of a block comment line, only the body after `"phrase" →` is in the box, and the quote is kept. Saving unchanged text closes the box without a save; empty text is refused in the box.
 - The save is an ordinary block save, like reply and resolve: `replaceNote(block, id, index, text)` in `src/comments/syntax.ts` rewrites one note's text through `noteSource` and leaves every other byte of the block alone. Notes in a thread share its id, so a note is addressed by the id and its position among that id's notes in the block.
 - The note keeps its author, and nothing marks it as edited. Git history shows the change.
 - This amends M3 R7.2 for the owner's own notes. Highlighted text stays editable in place as before.

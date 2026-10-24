@@ -321,6 +321,17 @@ agent-island.edit-block > .comment-control {
   .comment-edit { opacity: 1; }
 }
 .comment-edit:hover { color: var(--accent); }
+/* While a note is edited in place its card shows no Edit links, and the note itself gives way to the box (the card's
+   own display rule would otherwise beat the hidden attribute). */
+.c-card.is-editing .comment-edit,
+.c-card > .c-note[hidden] { display: none; }
+/* The edit box in place of the note: part of the card, not a floating box. */
+.c-card > .comment-box.c-inplace {
+  position: static; left: auto; bottom: auto; transform: none; z-index: auto;
+  width: auto; margin: 0.2em 0 0.4em; padding: 0; border: 0; background: none;
+}
+.c-card > .comment-box.c-inplace .comment-form { flex-wrap: wrap; justify-content: flex-end; }
+.c-card > .comment-box.c-inplace .comment-input { flex: 1 1 100%; font-size: var(--font-sm); background: var(--bg); }
 /* In the action row (a thread of one owner's note) it is one more link like Reply and Resolve; the row fades it. */
 .comment-actions .comment-edit { display: inline; margin: 0; font: inherit; opacity: 1; }
 .comment-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

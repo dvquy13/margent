@@ -102,10 +102,17 @@
   // new comment (the viewport top of what it is about) or { after: id } for a reply, which sits right under that card.
   // Below 1100px the box stays docked at the bottom of the window, so the selection it is about stays in view.
   let draft = null;
+  // place: { after: id } (a reply, under its card), { top() } (a new comment, by its anchor), or { note } (an edit: the
+  // box stands in for that note inside its card, at every width, and the note comes back when the box goes).
   function showDraft(box, place) {
     draft = { box, place };
     cardObserver.observe(box); // a message line or a wrap in the box moves the cards under it
-    if (wide.matches) {
+    if (place.note !== undefined) {
+      place.note.hidden = true;
+      place.note.closest('.c-card').classList.add('is-editing');
+      box.classList.add('c-inplace');
+      place.note.after(box);
+    } else if (wide.matches) {
       railOn(true);
       box.classList.add('c-draft');
       rail.append(box);
@@ -117,6 +124,11 @@
   function hideDraft() {
     if (draft === null) return;
     cardObserver.unobserve(draft.box);
+    if (draft.place.note !== undefined) {
+      draft.place.note.hidden = false;
+      draft.place.note.closest('.c-card').classList.remove('is-editing');
+      draft.box.classList.remove('c-inplace');
+    }
     dockDraft(draft.box);
     draft = null;
     railOn(cards.size > 0);
@@ -137,12 +149,12 @@
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
       return;
     }
-    if (draft !== null && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
+    if (draft !== null && draft.place.note === undefined && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
     // The rail is positioned against main, so anchors are measured from main's top edge. The draft joins the cards in
     // order: right after its thread's card for a reply, else before the first card whose anchor is further down.
     const origin = main.getBoundingClientRect().top;
     const entries = [...cards].map(([id, card]) => ({ id, el: card, wanted: anchors.get(id).getBoundingClientRect().top - origin }));
-    if (draft !== null) {
+    if (draft !== null && draft.place.note === undefined) {
       const { place } = draft;
       if (place.after !== undefined) {
         const at = entries.findIndex((e) => e.id === place.after);

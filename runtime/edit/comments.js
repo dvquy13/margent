@@ -229,12 +229,12 @@ export function initComments(margent) {
       action: next.action ?? null,
     });
     box.hidden = false;
+    if (next.place) railHook().showDraft(box, next.place);
     if (next.prefill !== undefined) {
       input.value = next.prefill;
       input.setSelectionRange(input.value.length, input.value.length);
-      fitInput(); // measures the text, so the box is shown first
+      fitInput(); // measures the text at the box's width, so the box is shown and placed first
     }
-    if (next.place) railHook().showDraft(box, next.place);
     if (next.form) input.focus({ preventScroll: Boolean(next.place) });
     else cancelBtn.focus();
     update();
@@ -524,19 +524,19 @@ export function initComments(margent) {
     });
   }
 
-  // Edit opens the owner's note for changes. The box starts with the note's body (the quote and author stay as they are,
-  // replaceNote keeps them), and index is the note's place among the thread's notes in source order.
-  function onEdit(id, index, body) {
+  // Edit opens the owner's note for changes where it is: the box takes the note's place in its card, starting with the
+  // note's body (the quote and author stay as they are, replaceNote keeps them). index is the note's place among the
+  // thread's notes in source order. Below 1100px the card is in the drawer, which revealCard opens.
+  function onEdit(id, index, body, note) {
     const reason = blockedReason();
     if (reason) return notify(reason);
     const range = topBlockOf(threadOf(id)).getAttribute('data-src');
-    railHook().close();
+    revealCard(id);
     open({
-      what: 'Edit',
       form: true,
       range,
       id,
-      place: { after: id },
+      place: { note },
       prefill: body,
       original: body.trim(),
       build: (n) => replaceNote(sourceOf(range), id, index, n.text),
@@ -562,7 +562,7 @@ export function initComments(margent) {
       const button = make('button', 'comment-edit', 'Edit');
       button.type = 'button';
       button.addEventListener('mousedown', keepPress);
-      button.addEventListener('click', () => onEdit(id, index, body));
+      button.addEventListener('click', () => onEdit(id, index, body, cardNotes[index]));
       if (notes.length === 1) card.querySelector('.comment-actions').append(button);
       else cardNotes[index].after(button);
     });

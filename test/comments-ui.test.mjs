@@ -527,15 +527,24 @@ test(
 );
 
 test(
-  '0033: Esc closes the Edit box and sends nothing',full, 
+  '0033: Edit opens in place of the note, and Esc puts the note back and sends nothing',full, 
   scenario({ author: 'Quy' }, async ({ page, served, saves }) => {
     await (await threadButton(page, 'c1', 'Edit')).click();
     await page.locator('.comment-input').waitFor();
+    // The box takes the note's place in its card: the note gives way and the box sits where it was.
+    const placed = await page.evaluate(() => {
+      const box = document.querySelector('.comment-box');
+      const note = box.previousElementSibling;
+      return { card: box.parentElement.matches('.c-card[data-c="c1"]'), noteBefore: note?.matches('p.c-note'), noteShown: note?.checkVisibility() };
+    });
+    assert.deepEqual(placed, { card: true, noteBefore: true, noteShown: false });
     await page.keyboard.press('End');
     await page.keyboard.type(' Never sent.');
     await page.keyboard.press('Escape');
     await page.locator('.comment-box').waitFor({ state: 'hidden' });
     await settle(page);
+    // Below 1100px Esc also closes the drawer, so the card itself may be out of view: the note is back when it is not hidden.
+    assert.equal(await page.evaluate(() => document.querySelector('.c-card[data-c="c1"] p.c-note').hidden), false, 'the note is back');
     assert.deepEqual(saves, []);
     assert.equal(served.read('ui.md'), ORIGINAL);
   })
