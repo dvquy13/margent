@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'sha256-7pvH9veRLG+CN0tskkErWF0RaVqJQ3zd9YQgmFE3Prw='; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All blocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,100..1000&family=DM+Sans:opsz,wght@9..40,400..700&family=Google+Sans+Code:wght@400;500&display=swap">
+<meta name="generator" content="margent 0.1.0">
+<style>
+/* margent house shell. One 900px column, one left axis. Black, white, one accent;
+   green, amber and red are status tones only. Every value below is a token. */
+
+:root {
+  --bg: #ffffff;
+  --bg2: #f6f6f6;
+  --bg3: #eeeeee;
+  --border: #e4e4e4;
+  --text: #0a0a0a;
+  --text-muted: #666666;
+  --accent: #0062a8;
+  --accent-light: #e0f0ff;
+  --accent-border: #b3d9f5;
+  --green: #059669;
+  --amber: #b45309;
+  --red: #b91c1c;
+
+  --font-ui: 'Google Sans Flex', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-prose: 'DM Sans', system-ui, sans-serif;
+  --mono: 'Google Sans Code', 'Menlo', 'Consolas', monospace;
+
+  --font-xs: 0.6875rem;
+  --font-sm: 0.75rem;
+  --font-md: 0.8125rem;
+  --font-body: 0.875rem;
+  --font-base: 0.9375rem;
+  --font-lg: 1rem;
+  --font-2xl: 1.125rem;
+  --font-4xl: 1.375rem;
+  --font-5xl: 2rem;
+  --font-6xl: 2.5rem;
+
+  --radius-sm: 4px;
+  --radius-pill: 99px;
+
+  --gap-xs: 0.375rem;
+  --gap-sm: 0.75rem;
+  --gap-md: 1.25rem;
+  --gap-lg: 2rem;
+  --gap-xl: 4rem;
+
+  --page-max: 900px;
+  --gutter: 16px;
+  --header-h: 56px;
+  --prose-max: 68ch;
+  --fade: 120ms;
+
+  color-scheme: light;
+}
+/* Dark values, written twice: once for the system preference, once for the header toggle.
+   Both sit under "screen" so print always uses the light values. */
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a; --bg2: #151515; --bg3: #1e1e1e; --border: #2a2a2a;
+    --text: #f2f2f2; --text-muted: #a0a0a0;
+    --accent: #5aaee8; --accent-light: #0d2b45; --accent-border: #1d4f78;
+    --green: #34d399; --amber: #fbbf24; --red: #f87171;
+    color-scheme: dark;
+  }
+}
+@media screen {
+  :root[data-theme="dark"] {
+    --bg: #0a0a0a; --bg2: #151515; --bg3: #1e1e1e; --border: #2a2a2a;
+    --text: #f2f2f2; --text-muted: #a0a0a0;
+    --accent: #5aaee8; --accent-light: #0d2b45; --accent-border: #1d4f78;
+    --green: #34d399; --amber: #fbbf24; --red: #f87171;
+    color-scheme: dark;
+  }
+}
+@media (max-width: 560px) {
+  :root { --font-6xl: 1.875rem; --font-5xl: 1.5rem; --gap-xl: 3rem; }
+}
+
+/* Page */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--text);
+  font-family: var(--font-ui); font-size: var(--font-base);
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+.wrap {
+  max-width: calc(var(--page-max) + 2 * var(--gutter)); margin-inline: auto;
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+/* Header: wordmark on the axis, meta and theme toggle on the right */
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+header.top .wrap {
+  height: var(--header-h); display: flex; align-items: center; gap: var(--gap-sm);
+}
+.wordmark { font-weight: 700; font-size: var(--font-lg); white-space: nowrap; }
+.top-meta {
+  margin-left: auto; min-width: 0;
+  font-size: var(--font-sm); color: var(--text-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.theme-toggle {
+  flex: none; font: inherit; font-size: var(--font-sm); line-height: 1; padding: 6px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--bg); color: var(--text); cursor: pointer;
+  transition: color var(--fade), border-color var(--fade);
+}
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Column: hero, then one section per ##, with the same gap between them */
+main.wrap {
+  display: flex; flex-direction: column; gap: var(--gap-xl);
+  padding-block: var(--gap-lg) var(--gap-xl);
+}
+.hero, section, figure, blockquote {
+  display: flex; flex-direction: column; min-width: 0;
+}
+.hero, section { gap: var(--gap-md); }
+section, h3, h4, h5, h6 { scroll-margin-top: calc(var(--header-h) + var(--gap-md)); }
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 { margin: 0; color: var(--text); text-wrap: balance; overflow-wrap: break-word; }
+h1 { font-size: var(--font-6xl); font-weight: 700; line-height: 1.1; }
+h2 { font-size: var(--font-4xl); font-weight: 700; line-height: 1.25; }
+h3 { font-size: var(--font-lg); font-weight: 600; line-height: 1.4; }
+h4, h5, h6 {
+  font-size: var(--font-sm); font-weight: 600; line-height: 1.4; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+/* A sub-heading sits closer to what it introduces than to what came before it. */
+section > :is(h3, h4, h5, h6) { margin-top: var(--gap-md); margin-bottom: calc(var(--gap-md) * -0.5); }
+section > h2 + :is(h3, h4, h5, h6) { margin-top: 0; }
+/* Author-written section numbers ("## 02 Data layers"), when the renderer wraps them */
+.num {
+  font-family: var(--mono); font-size: var(--font-md); font-weight: 400; color: var(--text-muted);
+  font-variant-numeric: tabular-nums; margin-right: var(--gap-sm);
+}
+h2 .num { vertical-align: 0.2em; }
+
+/* Prose */
+p, li, blockquote, figcaption, td { overflow-wrap: break-word; }
+p, li {
+  font-family: var(--font-prose); font-size: var(--font-base); line-height: 1.6;
+  color: var(--text-muted); margin: 0; max-width: var(--prose-max);
+}
+strong { color: var(--text); font-weight: 600; }
+em { font-style: italic; }
+s, del { color: var(--text-muted); text-decoration-color: var(--text-muted); }
+a {
+  color: var(--text); text-decoration: underline; text-decoration-color: var(--border);
+  text-decoration-thickness: 1px; text-underline-offset: 3px;
+  transition: color var(--fade), text-decoration-color var(--fade);
+}
+a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code { font-family: var(--mono); font-size: 0.9em; color: var(--text); }
+a code { color: inherit; }
+
+/* Hero: title, a lede, and any facts written before the first ## */
+.hero > h1 + p { font-size: var(--font-2xl); color: var(--text); max-width: 60ch; line-height: 1.55; }
+.hero > ul {
+  list-style: none; padding: var(--gap-md) 0; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--gap-md) var(--gap-lg);
+  border-block: 1px solid var(--border);
+}
+.hero > ul > li { max-width: none; color: var(--text); font-family: var(--font-ui); font-size: var(--font-2xl); font-weight: 500; line-height: 1.35; }
+.hero > ul > li > strong:first-child {
+  display: block; margin-bottom: var(--gap-xs);
+  font-size: var(--font-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* Table of contents: a grid of section links, set off from the hero text by a rule */
+.toc { border-top: 1px solid var(--border); padding-top: var(--gap-md); }
+.hero > ul + .toc { border-top: 0; padding-top: 0; }
+.toc ol {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-xs) var(--gap-lg);
+}
+.toc li { font-family: var(--font-ui); font-size: var(--font-body); line-height: 1.45; color: var(--text); max-width: none; }
+.toc a { display: block; text-decoration: none; }
+.toc .num { font-size: var(--font-sm); margin-right: var(--gap-xs); transition: color var(--fade); }
+.toc a:hover .num { color: var(--accent); }
+
+/* Lists */
+ul, ol { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: var(--gap-xs); }
+ol { padding-left: 1.6rem; }
+ol:has(> li:nth-child(10)) { padding-left: 2.2rem; }
+li::marker { color: var(--text-muted); font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+li > p { max-width: none; }
+li > * + * { margin-top: var(--gap-xs); }
+
+/* Quotes */
+blockquote {
+  margin: 0; padding-left: var(--gap-md); gap: var(--gap-sm);
+  border-left: 2px solid var(--border);
+}
+blockquote p { font-style: italic; }
+
+/* Code blocks */
+pre {
+  margin: 0; padding: var(--gap-sm) var(--gap-md);
+  background: var(--bg2); border-radius: var(--radius-sm);
+  font-family: var(--mono); font-size: var(--font-md); line-height: 1.8; color: var(--text);
+  overflow-x: auto; white-space: pre; tab-size: 2;
+}
+pre code { font-size: inherit; color: inherit; }
+
+/* Wide things scroll inside their own box, never the page */
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; max-width: 100%; }
+
+/* Tables */
+table { border-collapse: collapse; width: auto; font-size: var(--font-body); font-variant-numeric: tabular-nums; }
+th {
+  text-align: left; vertical-align: bottom;
+  font-size: var(--font-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0 var(--gap-md) var(--gap-xs) 0; border-bottom: 1px solid var(--border);
+}
+td {
+  min-width: 7rem; padding: var(--gap-sm) var(--gap-md) var(--gap-sm) 0;
+  border-bottom: 1px solid var(--border); vertical-align: top;
+  font-family: var(--font-prose); color: var(--text-muted); line-height: 1.5;
+}
+td:first-child { color: var(--text); font-family: var(--font-ui); font-weight: 500; }
+td:last-child, th:last-child { padding-right: 0; }
+
+/* Figures: inline SVG diagrams keep their drawn size and scroll on narrow screens */
+figure { margin: 0; gap: var(--gap-sm); }
+figure > .scroll svg { display: block; width: 100%; min-width: 720px; height: auto; }
+svg { color: var(--text); }
+figcaption {
+  font-family: var(--font-prose); font-size: var(--font-md); line-height: 1.5;
+  color: var(--text-muted); max-width: 72ch;
+}
+img { display: block; max-width: 100%; height: auto; border-radius: var(--radius-sm); }
+
+hr { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--border); }
+
+/* Footer */
+footer.wrap {
+  font-size: var(--font-sm); color: var(--text-muted);
+  padding-block: 0 var(--gap-lg);
+}
+footer.wrap::before { content: ""; display: block; border-top: 1px solid var(--border); margin-bottom: var(--gap-md); }
+
+/* Narrow screens */
+@media (max-width: 720px) {
+  .toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .toc ol { grid-template-columns: minmax(0, 1fr); }
+  .hero > h1 + p, .hero > ul > li { font-size: var(--font-lg); }
+  /* Prose columns stay readable; the table scrolls inside its box instead of squeezing them */
+  td:not(:first-child) { min-width: 10rem; }
+}
+
+/* Print: light tokens (the dark sets are screen only), no sticky header or toggle, no clipped boxes */
+@media print {
+  header.top { position: static; border-bottom: 0; }
+  .theme-toggle, body::before { display: none; }
+  main.wrap { padding-top: 0; gap: var(--gap-lg); }
+  .toc { display: none; }
+  .scroll, pre { overflow: visible; }
+  pre { white-space: pre-wrap; }
+  figure > .scroll svg { min-width: 0; }
+  figure, pre, tr, blockquote { break-inside: avoid-page; }
+  h2, h3, h4 { break-after: avoid-page; }
+  a { text-decoration-color: currentColor; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Page-level island styles. Colors come from theme tokens only (defined on :root by the shell). */
+agent-island {
+  display: block;
+  margin: var(--gap-md) 0;
+}
+agent-island[data-state="rendered"] > .island-fallback,
+agent-island[data-reserved] > .island-fallback {
+  display: none;
+}
+.island-badge {
+  margin-bottom: var(--gap-xs);
+  padding: var(--gap-xs) var(--gap-sm);
+  border-left: 3px solid var(--amber);
+  font-family: var(--font-ui);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.island-badge ul {
+  margin: var(--gap-xs) 0 0;
+  padding-left: 1.1rem;
+}
+@media print {
+  .island-mount,
+  .island-badge {
+    display: none;
+  }
+  agent-island[data-state="rendered"] > .island-fallback,
+  agent-island[data-reserved] > .island-fallback {
+    display: block;
+  }
+}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="wordmark">blocks</span>
+    <span class="top-meta">draft · v3 · 2026-10-23</span>
+    <button id="theme-toggle" class="theme-toggle" type="button">Theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <header class="hero">
+<h1 data-src="8-8" id="all-blocks">All blocks</h1>
+<p data-src="10-10">Every block type the renderer emits, on one page. This first paragraph is the lede: it sits under the title and reads a size larger than body text.</p>
+<p data-src="12-12">A second paragraph before the first section stays in the hero, at body size, with <strong>bold</strong>, <em>italic</em>, <code>inline code</code> and a <a href="specs/m1-render-islands.html#r2-house-shell" data-md-href="specs/m1-render-islands.md#r2-house-shell">link to the spec</a>.</p>
+<ul data-src="14-15">
+<li><strong>System success:</strong> the page renders the same bytes twice in a row.</li>
+<li><strong>Outcome success:</strong> a reader on a phone never scrolls the page sideways.</li>
+</ul>
+
+<nav class="toc" aria-label="Sections"><ol><li><a href="#prose-and-inline-marks">Prose and inline marks</a></li><li><a href="#lists">Lists</a></li><li><a href="#quote">Quote</a></li><li><a href="#code">Code</a></li><li><a href="#tables">Tables</a></li><li><a href="#figures">Figures</a></li></ol></nav>
+  </header>
+<section id="prose-and-inline-marks">
+<h2 data-src="17-17">Prose and inline marks</h2>
+<p data-src="19-19">A paragraph with <strong>strong text</strong>, <em>emphasis</em>, <em><strong>both at once</strong></em>, <code>inline code</code>, <s>struck-out text</s>, an <a href="https://example.com/docs">external link</a>, a <a href="other-page.html" data-md-href="other-page.md">relative markdown link</a> and a <a href="other-page.html#some-heading" data-md-href="other-page.md#some-heading">link with an anchor</a>. Prices keep their escaped dollar: $3.87 a month.</p>
+<p data-src="21-21">A long unbroken token must not push the page wider on a phone: <code>render-cache.example.com:6543/pages?sslmode=require&amp;application_name=margent-fixture</code> and https://example.com/a/very/long/path/that/keeps/going/without/any/spaces/at/all/index.html.</p>
+<h3 data-src="23-23" id="a-third-level-heading">A third-level heading</h3>
+<p data-src="25-25">A paragraph under an h3. Sub-headings group with the text they introduce.</p>
+<h4 data-src="27-27" id="a-fourth-level-heading">A fourth-level heading</h4>
+<p data-src="29-29">A paragraph under an h4.</p>
+<h3 data-src="31-31" id="example">Example</h3>
+<p data-src="33-33">The first of two headings with the same text, so slugs need a suffix.</p>
+<h3 data-src="35-35" id="example-2">Example</h3>
+<p data-src="37-37">The second one.</p>
+</section>
+<section id="lists">
+<h2 data-src="39-39">Lists</h2>
+<p data-src="41-41">An unordered list, with nesting:</p>
+<ul data-src="43-48">
+<li>First item, short.</li>
+<li>Second item, long enough to wrap onto a second line at phone width so the hanging indent is visible under the marker.
+<ul>
+<li>Nested item one.</li>
+<li>Nested item two, with <code>code</code>.
+<ul>
+<li>Third level.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Third item.</li>
+</ul>
+<p data-src="50-50">An ordered list that reaches two digits:</p>
+<ol data-src="52-63">
+<li>One</li>
+<li>Two</li>
+<li>Three</li>
+<li>Four</li>
+<li>Five</li>
+<li>Six</li>
+<li>Seven</li>
+<li>Eight</li>
+<li>Nine</li>
+<li>Ten, with a nested list:
+<ol>
+<li>Ten point one.</li>
+<li>Ten point two.</li>
+</ol>
+</li>
+</ol>
+<p data-src="65-65">A loose list, where items hold more than one paragraph:</p>
+<ul data-src="67-71">
+<li>
+<p><strong>First point.</strong> Its opening paragraph.</p>
+<p>A second paragraph inside the same item.</p>
+</li>
+<li data-gap="1">
+<p><strong>Second point.</strong> Only one paragraph.</p>
+</li>
+</ul>
+</section>
+<section id="quote">
+<h2 data-src="73-73">Quote</h2>
+<blockquote data-src="75-77">
+<p>A blockquote with one paragraph. It quotes someone, so it reads in italics with a rule on its left.</p>
+<p>A second paragraph in the same quote, with <strong>bold</strong> and <code>code</code>.</p>
+</blockquote>
+</section>
+<section id="code">
+<h2 data-src="79-79">Code</h2>
+<p data-src="81-81">A fenced block with a language and a line longer than any screen:</p>
+<pre data-src="83-89"><code class="language-js">// The renderer's entry point. This comment line is deliberately long so that the block has to scroll sideways inside its own box on every screen width.
+export function renderDoc(file, source) {
+  const { data, body } = frontmatter(source);
+  return page({ title: data.title ?? firstHeading(body), main: render(body) });
+}
+</code></pre>
+<p data-src="91-91">A fenced block without a language:</p>
+<pre data-src="93-96"><code>plain text
+  keeps its indentation
+</code></pre>
+</section>
+<section id="tables">
+<h2 data-src="98-98">Tables</h2>
+<p data-src="100-100">A narrow table, with column alignment:</p>
+<div class="scroll" data-src="102-106">
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Item</th>
+<th style="text-align:right">Count</th>
+<th style="text-align:right">Share</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Tally</td>
+<td style="text-align:right">2,500</td>
+<td style="text-align:right">16%</td>
+</tr>
+<tr>
+<td style="text-align:left">Board</td>
+<td style="text-align:right">12,698</td>
+<td style="text-align:right">84%</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Total</strong></td>
+<td style="text-align:right"><strong>15,198</strong></td>
+<td style="text-align:right"><strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p data-src="108-108">A wide table that has to scroll inside its own box:</p>
+<div class="scroll" data-src="110-114">
+<table>
+<thead>
+<tr>
+<th>Island</th>
+<th>Rows (small / medium / large)</th>
+<th>Source</th>
+<th>Access</th>
+<th>Limit</th>
+<th>Fields</th>
+<th>Stability</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tally</td>
+<td>15–41 / 450–1,080 / up to 19,000</td>
+<td>Inline table in the Markdown</td>
+<td>Read at build time, <code>margent render</code></td>
+<td>10,000 rows a page</td>
+<td>label, count, share</td>
+<td>Stable</td>
+<td>M1 island</td>
+</tr>
+<tr>
+<td>Diagram</td>
+<td>2–6 / 12–40 / up to 400</td>
+<td>Image file in <code>assets/</code></td>
+<td>Read at build time, <code>margent render</code></td>
+<td>10 MB a file</td>
+<td>path, alt text</td>
+<td>Stable</td>
+<td>M1 figure, the most used</td>
+</tr>
+<tr>
+<td>Video embed</td>
+<td>about 12,700 / 62,500 / 62,000</td>
+<td>Remote host</td>
+<td>Blocked by the page policy</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>Out of M1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="figures">
+<h2 data-src="116-116">Figures</h2>
+<p data-src="118-118">An inline SVG diagram with an italic caption on the next line:</p>
+<figure data-src="120-122"><div class="scroll"><svg xmlns="http://www.w3.org/2000/svg" class="margent-d" data-asset="feedback-loops.svg" viewBox="0 0 880 200" role="img" aria-label="Three feedback loops on a time axis: renders within a second to a day, doctor checks on each commit, review threads over months.">
+<style>
+svg.margent-d { --d-bg:#ffffff; --d-bg2:#f6f6f6; --d-border:#e4e4e4; --d-text:#0a0a0a; --d-muted:#666666; --d-accent:#0062a8; --d-accent-light:#e0f0ff; color: var(--text, var(--d-text)); }
+@media (prefers-color-scheme: dark) { svg.margent-d { --d-bg:#0a0a0a; --d-bg2:#151515; --d-border:#2a2a2a; --d-text:#f2f2f2; --d-muted:#a0a0a0; --d-accent:#5aaee8; --d-accent-light:#0d2b45; } }
+.margent-d .n { fill: var(--bg, var(--d-bg)); stroke: var(--text, var(--d-text)); stroke-width: 1.5; }
+.margent-d .n.core { fill: var(--accent-light, var(--d-accent-light)); stroke: var(--accent, var(--d-accent)); }
+.margent-d .n.ph { stroke: var(--text-muted, var(--d-muted)); stroke-dasharray: 5 4; }
+.margent-d .t { fill: var(--text, var(--d-text)); font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); font-size: 13px; font-weight: 600; }
+.margent-d .t.core, .margent-d .acc { fill: var(--accent, var(--d-accent)); }
+.margent-d .t.mut, .margent-d .bar.soft { fill: var(--text-muted, var(--d-muted)); }
+.margent-d .s, .margent-d .el { fill: var(--text-muted, var(--d-muted)); font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); font-size: 11px; }
+.margent-d .sm { fill: var(--text-muted, var(--d-muted)); font-family: var(--mono, 'Google Sans Code', Menlo, monospace); font-size: 10.5px; }
+.margent-d .bl { fill: var(--text-muted, var(--d-muted)); font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; }
+.margent-d .e { fill: none; stroke: var(--text-muted, var(--d-muted)); stroke-width: 1.5; }
+.margent-d .e.fb { stroke-dasharray: 5 4; }
+.margent-d .band { fill: var(--bg2, var(--d-bg2)); }
+.margent-d .grid { stroke: var(--border, var(--d-border)); stroke-width: 1; }
+.margent-d .axis { stroke: var(--text-muted, var(--d-muted)); stroke-width: 1; }
+.margent-d .thr { stroke: var(--text-muted, var(--d-muted)); stroke-width: 1.25; stroke-dasharray: 4 4; }
+.margent-d .line { fill: none; stroke: var(--accent, var(--d-accent)); stroke-width: 2; }
+.margent-d .pt { fill: var(--accent, var(--d-accent)); stroke: var(--bg, var(--d-bg)); stroke-width: 2; }
+.margent-d .bar { fill: var(--text, var(--d-text)); }
+</style>
+      <line class="axis" x1="200" y1="170" x2="700" y2="170"/>
+      <g class="el" text-anchor="middle">
+        <text x="200" y="188">hour</text><text x="325" y="188">day</text><text x="450" y="188">week</text><text x="575" y="188">month</text><text x="700" y="188">quarter</text>
+      </g>
+      <g>
+        <line class="grid" x1="200" y1="30" x2="200" y2="170"/><line class="grid" x1="325" y1="30" x2="325" y2="170"/>
+        <line class="grid" x1="450" y1="30" x2="450" y2="170"/><line class="grid" x1="575" y1="30" x2="575" y2="170"/><line class="grid" x1="700" y1="30" x2="700" y2="170"/>
+      </g>
+      <text class="t" x="0" y="54">Renders</text>
+      <text class="s" x="0" y="70">watch mode rebuilds</text>
+      <rect class="bar soft" x="200" y="45" width="125" height="14" rx="2"/>
+      <text class="el" x="715" y="56">about 10 a day · quick</text>
+
+      <text class="t" x="0" y="104">Checks</text>
+      <text class="s" x="0" y="120">doctor on the example docs</text>
+      <rect class="bar soft" x="415" y="95" width="60" height="14" rx="2"/>
+      <text class="el" x="715" y="106">1 run a commit · medium</text>
+
+      <text class="t" x="0" y="154">Reviews</text>
+      <rect class="bar" x="575" y="145" width="125" height="14" rx="2"/>
+      <text class="el" x="715" y="156">a few a month · ground truth</text>
+      <text class="s" x="0" y="170">comment threads resolved</text>
+    </svg></div><figcaption>Three feedback loops at three speeds. The diagram themes itself from the page tokens, so it follows the dark toggle.</figcaption></figure>
+<p data-src="124-124">A raster image stays an image:</p>
+<p data-src="126-126"><img src="assets/raster.jpg" alt="A small raster test image."></p>
+<hr data-src="128-128">
+<p data-src="130-130">A paragraph after a horizontal rule ends the page.</p>
+</section>
+
+</main>
+
+<footer class="wrap">Rendered from all-blocks.md</footer>
+<script>
+// Page-level theme toggle. The shell must provide a <button id="theme-toggle">; the button sets data-theme on <html>.
+// Its label names the theme it switches to. Islands refresh their tokens from host.js (watchTheme).
+(function () {
+  'use strict';
+
+  var btn = document.getElementById('theme-toggle');
+  if (!btn) throw new Error('theme.js: the page has no #theme-toggle button, so the theme cannot be switched');
+  var systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function effective() {
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr) return attr;
+    return systemDark.matches ? 'dark' : 'light';
+  }
+  function label() {
+    var next = effective() === 'dark' ? 'light' : 'dark';
+    btn.textContent = next === 'light' ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' theme');
+  }
+  btn.addEventListener('click', function () {
+    document.documentElement.setAttribute('data-theme', effective() === 'dark' ? 'light' : 'dark');
+    label();
+  });
+  systemDark.addEventListener('change', label);
+  label();
+})();
+</script>
+</body>
+</html>

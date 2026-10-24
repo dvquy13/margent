@@ -1,0 +1,26 @@
+test/fixtures/comments/cli/crlf.md:9: [c1] needs agent · "this part"
+  Quy: why this part?
+test/fixtures/comments/cli/crlf.md:13: [c2] needs agent · block comment on the paragraph at line 11
+  Quy: Is the last line right?
+test/fixtures/comments/cli/islands.md:17: [c7] needs agent · block comment on the island at line 11
+  Quy: Add the S4 row too.
+test/fixtures/comments/cli/quoted.md:14: [c1] needs you · block comment on the table at line 9, at "Wiki and Forum are out"
+  Quy: why are these left out?
+  Claude: They were excluded before the sample was drawn.
+test/fixtures/comments/cli/review.md:9: [c1] needs you · "96% of rendered pages"
+  Quy: is that stable across repos?
+  Claude: Measured on 4 repos.
+test/fixtures/comments/cli/review.md:11: [c2] needs agent · point comment
+  Quy: Cite the source for this.
+test/fixtures/comments/cli/review.md:13: [c3] needs agent · "per month"
+  Quy: or per run?
+test/fixtures/comments/cli/review.md:15: [c4] needs agent · "$40"
+  Quy: Is this per run?
+test/fixtures/comments/cli/review.md:22: [c5] needs agent · block comment on the table at line 17
+  Quy: S1 is missing a cost row.
+test/fixtures/comments/cli/review.md:24: [c6] needs you · block comment on the table at line 17
+  Quy: Add S4 too.
+  Claude: S4 is out of scope for this report.
+test/fixtures/comments/cli/review.md:26: [c7] needs agent · "an inline note"
+  Quy: keep it short.
+11 threads in 4 docs: 8 needs agent, 3 needs you

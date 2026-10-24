@@ -1,0 +1,37 @@
+<!-- hero -->
+<h1 data-src="7-7" id="comments-in-one-doc">Comments in one doc</h1>
+<p data-src="9-9">A filter keeps <mark class="c-hl" data-c="c1">96% of <strong>rendered</strong> pages</mark><span class="c-thread" data-c="c1" data-md="{&gt;&gt;[c1] Quy: is that stable across repos?&lt;&lt;}{&gt;&gt;[c1] Claude: Measured on 4 repos in S3.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> is that stable across repos?</span><span class="c-note"><b class="c-author">Claude</b> Measured on 4 repos in S3.</span></span> as the sample.</p>
+<p data-src="11-11">A point comment sits here.<span class="c-thread" data-c="c3" data-md="{&gt;&gt;[c3] Quy: Cite the source for this.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> Cite the source for this.</span></span> The text goes on.</p>
+<!-- toc -->
+<nav class="toc" aria-label="Sections"><ol><li><a href="#2-costs-per-month"><span class="num">2</span>Costs per month</a></li></ol></nav>
+<!-- main -->
+<section id="2-costs-per-month">
+<h2 data-src="13-13"><span class="num">2</span>Costs <mark class="c-hl" data-c="c4">per month</mark><span class="c-thread" data-c="c4" data-md="{&gt;&gt;[c4] Quy: or per run?&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> or per run?</span></span></h2>
+<p data-src="15-15">Spend is about <mark class="c-hl" data-c="c5">$40</mark><span class="c-thread" data-c="c5" data-md="{&gt;&gt;[c5] Claude: Per run, from the S3 log.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Claude</b> Per run, from the S3 log.</span></span> each month.</p>
+<div class="scroll" data-src="17-19">
+<table>
+<thead>
+<tr>
+<th>Spike</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S3</td>
+<td>Proceed</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="c-line" data-src="21-21" data-anchor="17-19"><span class="c-thread" data-c="c6" data-md="{&gt;&gt;[c6] Quy: S1 is missing from this table.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> S1 is missing from this table.</span></span></p>
+<p class="c-line" data-src="23-23" data-anchor="17-19"><span class="c-thread" data-c="c7" data-md="{&gt;&gt;[c7] Quy: Add S4 too.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> Add S4 too.</span></span></p>
+<ul data-src="25-26">
+<li>First item with <mark class="c-hl" data-c="c8">an inline note</mark><span class="c-thread" data-c="c8" data-md="{&gt;&gt;[c8] Quy: keep it short.&lt;&lt;}" contenteditable="false"><span class="c-note"><b class="c-author">Quy</b> keep it short.</span></span></li>
+<li>Second item</li>
+</ul>
+<p data-src="28-28">Escaped {==this stays text==} and the fence below stays text.</p>
+<pre data-src="30-32"><code class="language-text">The filter keeps {==96% of rendered pages==}{&gt;&gt;[c3] Quy: is that stable?&lt;&lt;}
+</code></pre>
+<p data-src="34-34">A code span <code>{&gt;&gt;[c9] X: y&lt;&lt;}</code> stays text too.</p>
+</section>

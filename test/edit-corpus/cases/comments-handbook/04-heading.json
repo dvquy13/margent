@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Leaked Chrome"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Add the Windows path."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "margent",
+  "owner": {
+    "name": "Quy Dinh"
+  },
+  "metadata": {
+    "description": "Render markdown docs into designed pages with data-driven islands."
+  },
+  "plugins": [
+    {
+      "name": "margent",
+      "source": ".",
+      "description": "Render markdown docs into designed pages with data-driven islands."
+    }
+  ]
+}

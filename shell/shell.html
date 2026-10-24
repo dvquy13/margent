@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="{{policy}}">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,100..1000&family=DM+Sans:opsz,wght@9..40,400..700&family=Google+Sans+Code:wght@400;500&display=swap">
+{{head}}
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="wordmark">{{project}}</span>
+    <span class="top-meta">{{meta}}</span>
+    <button id="theme-toggle" class="theme-toggle" type="button">Theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <header class="hero">
+{{hero}}
+{{toc}}
+  </header>
+{{main}}
+</main>
+
+<footer class="wrap">Rendered from {{source}}</footer>
+{{scripts}}
+</body>
+</html>

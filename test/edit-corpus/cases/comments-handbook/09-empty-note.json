@@ -1,0 +1,18 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "saves edits from the browser back into the file"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

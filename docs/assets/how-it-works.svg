@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mg-d" data-asset="how-it-works.svg" viewBox="0 0 860 400" role="img" aria-label="The agent and you both change only doc.md. A script renders doc.md, the island modules and the shell into doc.html, which the browser shows. Edits and comments made in the browser are spliced back into doc.md. Agents never read the HTML.">
+<style>
+svg.mg-d { --d-bg:#ffffff; --d-bg2:#f6f6f6; --d-border:#e4e4e4; --d-text:#0a0a0a; --d-muted:#666666; --d-accent:#0062a8; --d-accent-light:#e0f0ff; --d-red:#b91c1c; color: var(--text, var(--d-text)); }
+@media (prefers-color-scheme: dark) { svg.mg-d { --d-bg:#0d0d0d; --d-bg2:#171717; --d-border:#2c2c2c; --d-text:#f2f2f2; --d-muted:#9a9a9a; --d-accent:#5aa9e6; --d-accent-light:#0f2536; --d-red:#f87171; } }
+.mg-d .box { fill: var(--bg, var(--d-bg)); stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .box.soft { fill: var(--bg2, var(--d-bg2)); stroke: var(--border, var(--d-border)); }
+.mg-d .box.acc { fill: var(--accent-light, var(--d-accent-light)); stroke: var(--accent, var(--d-accent)); }
+.mg-d .line { fill: none; stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .line.acc { stroke: var(--accent, var(--d-accent)); }
+.mg-d .line.dash { stroke: var(--text-muted, var(--d-muted)); stroke-dasharray: 4 4; }
+.mg-d .x { stroke: var(--red, var(--d-red)); stroke-width: 2; }
+.mg-d .arrow { fill: var(--text, var(--d-text)); }
+.mg-d .arrow.acc { fill: var(--accent, var(--d-accent)); }
+.mg-d text { font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); fill: var(--text, var(--d-text)); }
+.mg-d text.mono { font-family: var(--mono, 'Google Sans Code', Menlo, monospace); }
+.mg-d text.mut { fill: var(--text-muted, var(--d-muted)); }
+.mg-d text.acc { fill: var(--accent, var(--d-accent)); }
+</style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow acc" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <!-- agent -->
+  <rect class="box soft" x="20" y="20" width="200" height="64" rx="4"/>
+  <text x="36" y="46" font-size="14" font-weight="600">Agent</text>
+  <text class="mut" x="36" y="66" font-size="12">writes md · designs islands once</text>
+
+  <!-- sources -->
+  <rect class="box" x="20" y="130" width="200" height="96" rx="4"/>
+  <text class="mono" x="36" y="156" font-size="14" font-weight="600">doc.md</text>
+  <text class="mut" x="36" y="178" font-size="12">prose and tables</text>
+  <text class="mut" x="36" y="196" font-size="12">island data · comments</text>
+  <text class="acc" x="36" y="214" font-size="12">the only source of truth</text>
+
+  <rect class="box soft" x="20" y="248" width="200" height="48" rx="4"/>
+  <text class="mono" x="36" y="277" font-size="13">islands/*.island.js</text>
+
+  <rect class="box soft" x="20" y="312" width="200" height="48" rx="4"/>
+  <text class="mono" x="36" y="341" font-size="13">shell + island kit</text>
+
+  <line class="line" x1="120" y1="84" x2="120" y2="128" marker-end="url(#ah)"/>
+
+  <!-- render -->
+  <rect class="box" x="300" y="200" width="150" height="72" rx="4"/>
+  <text class="mono" x="316" y="228" font-size="14" font-weight="600">render</text>
+  <text class="mut" x="316" y="250" font-size="12">script · no LLM</text>
+  <path class="line" d="M220 178 C 260 178, 260 220, 298 222" marker-end="url(#ah)"/>
+  <path class="line" d="M220 272 C 255 272, 265 244, 298 240" marker-end="url(#ah)"/>
+  <path class="line" d="M220 336 C 262 336, 270 262, 298 256" marker-end="url(#ah)"/>
+
+  <!-- html -->
+  <rect class="box" x="510" y="200" width="140" height="72" rx="4"/>
+  <text class="mono" x="526" y="228" font-size="14" font-weight="600">doc.html</text>
+  <text class="mut" x="526" y="250" font-size="12">build output</text>
+  <line class="line" x1="450" y1="236" x2="508" y2="236" marker-end="url(#ah)"/>
+
+  <!-- browser -->
+  <rect class="box acc" x="700" y="180" width="140" height="112" rx="4"/>
+  <text x="716" y="208" font-size="14" font-weight="600">Browser</text>
+  <text class="mut" x="716" y="230" font-size="12">via serve</text>
+  <text x="716" y="252" font-size="12">read · edit</text>
+  <text x="716" y="272" font-size="12">comment</text>
+  <line class="line" x1="650" y1="236" x2="698" y2="236" marker-end="url(#ah)"/>
+
+  <!-- human -->
+  <rect class="box soft" x="700" y="20" width="140" height="64" rx="4"/>
+  <text x="716" y="46" font-size="14" font-weight="600">You</text>
+  <text class="mut" x="716" y="66" font-size="12">review the page</text>
+  <line class="line" x1="770" y1="84" x2="770" y2="178" marker-end="url(#ah)"/>
+
+  <!-- write-back loop -->
+  <path class="line acc" d="M770 292 L 770 372 Q 770 384 758 384 L 18 384 Q 6 384 6 372 L 6 190 Q 6 178 18 178" marker-end="url(#aha)"/>
+  <text class="acc" x="430" y="374" font-size="12">edits and comments, spliced into the block's source lines</text>
+
+  <!-- agents never read the html -->
+  <path class="line dash" d="M220 52 L 560 52 C 580 52, 580 120, 580 196"/>
+  <text class="mut" x="300" y="44" font-size="12">agents never read the HTML</text>
+  <line class="x" x1="568" y1="112" x2="592" y2="136"/>
+  <line class="x" x1="592" y1="112" x2="568" y2="136"/>
+</svg>

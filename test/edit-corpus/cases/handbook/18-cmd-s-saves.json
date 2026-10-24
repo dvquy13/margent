@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "lives outside the repository.", "at": "end" } },
+    { "type": " Confirmed." },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

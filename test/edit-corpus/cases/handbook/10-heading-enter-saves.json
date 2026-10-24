@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Architecture", "at": "end", "nth": 2 } },
+    { "type": " and layout" },
+    { "press": "Enter" },
+    { "wait": "save" }
+  ]
+}

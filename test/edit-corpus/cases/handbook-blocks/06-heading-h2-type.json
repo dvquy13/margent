@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Release process", "at": "end", "nth": 2 } },
+    { "type": " checklist" },
+    { "blur": true }
+  ]
+}

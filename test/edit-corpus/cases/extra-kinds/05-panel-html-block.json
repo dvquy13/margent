@@ -1,0 +1,22 @@
+{
+  "doc": "extra-kinds.md",
+  "steps": [
+    {
+      "panel": {
+        "text": "A raw HTML block"
+      }
+    },
+    {
+      "panelSelectAll": true
+    },
+    {
+      "type": "<div class=\"note\">\n<p>A raw HTML block, edited in the panel.</p>\n</div>"
+    },
+    {
+      "press": "Meta+S"
+    },
+    {
+      "wait": "save"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "click": {
+        "text": "here is marked",
+        "at": "end"
+      }
+    },
+    {
+      "type": " now"
+    },
+    {
+      "blur": true
+    }
+  ]
+}

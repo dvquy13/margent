@@ -1,0 +1,16 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "select": {
+        "text": "here is marked"
+      }
+    },
+    {
+      "press": "Backspace"
+    },
+    {
+      "blur": true
+    }
+  ]
+}

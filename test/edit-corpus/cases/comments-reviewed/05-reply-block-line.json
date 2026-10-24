@@ -1,0 +1,17 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Reply",
+        "near": "Add the cost row."
+      }
+    },
+    {
+      "type": "Which quarter?"
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

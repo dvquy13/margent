@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "Tag the commit with the new version and push the tag to the remote." } },
+    { "press": "Backspace" },
+    { "press": "Backspace" },
+    { "blur": true }
+  ]
+}

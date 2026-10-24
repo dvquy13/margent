@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "on this machine", "at": "end" } },
+    { "press": "Enter" },
+    { "type": "Every release is also logged." },
+    { "blur": true }
+  ]
+}

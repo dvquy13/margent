@@ -1,0 +1,27 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "write": {
+        "append": "\nAn outside edit lands here.\n"
+      }
+    },
+    {
+      "select": {
+        "text": "stays unmarked"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Late note."
+    },
+    {
+      "press": "Enter"
+    }
+  ],
+  "expect": "stale"
+}

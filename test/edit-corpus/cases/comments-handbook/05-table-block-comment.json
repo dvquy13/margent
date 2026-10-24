@@ -1,0 +1,17 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Comment",
+        "near": "a build, then the fast tier"
+      }
+    },
+    {
+      "type": "Say which tier this runs."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

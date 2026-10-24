@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "text": "rewrites the golden files" } },
+    { "panelSelectAll": true },
+    { "type": "| Command | What it runs | When |\n|---|---|---|\n| `npm test` | a build, then the fast tier | after every change |\n| `npm run test:full` | every test, 4 to 9 minutes | before a merge or a release |\n| `npm run typecheck` | a type check, which esbuild skips | before a merge |\n| `UPDATE_GOLDEN=1 npm test` | rewrites the golden files | after an intended output change and a review |\n| `node dist/cli.js check docs/` | renders every doc and runs its islands | after a docs edit |" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

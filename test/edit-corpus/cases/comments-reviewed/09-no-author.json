@@ -1,0 +1,22 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "select": {
+        "text": "stays unmarked"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "No author here."
+    },
+    {
+      "press": "Enter"
+    }
+  ],
+  "author": null
+}

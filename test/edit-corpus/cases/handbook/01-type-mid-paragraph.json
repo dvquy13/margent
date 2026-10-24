@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Three stages.", "at": "end" } },
+    { "type": " In short." },
+    { "blur": true }
+  ]
+}

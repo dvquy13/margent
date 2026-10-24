@@ -1,0 +1,7 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Three stages.", "at": "start" } },
+    { "blur": true }
+  ]
+}

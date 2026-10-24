@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "npm pack --dry-run and check " } },
+    { "press": "Backspace" },
+    { "blur": true }
+  ]
+}

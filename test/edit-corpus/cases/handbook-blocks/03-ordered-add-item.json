@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "check the package page.", "at": "end" } },
+    { "press": "Enter" },
+    { "type": "Post the release notes." },
+    { "blur": true }
+  ]
+}

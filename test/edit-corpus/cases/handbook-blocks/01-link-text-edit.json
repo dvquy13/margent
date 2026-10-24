@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "This handbook covers", "at": "start" } },
+    { "select": { "text": "the block kinds page" } },
+    { "type": "the block kinds reference" },
+    { "blur": true }
+  ]
+}

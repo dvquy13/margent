@@ -1,0 +1,32 @@
+/* Page-level island styles. Colors come from theme tokens only (defined on :root by the shell). */
+agent-island {
+  display: block;
+  margin: var(--gap-md) 0;
+}
+agent-island[data-state="rendered"] > .island-fallback,
+agent-island[data-reserved] > .island-fallback {
+  display: none;
+}
+.island-badge {
+  margin-bottom: var(--gap-xs);
+  padding: var(--gap-xs) var(--gap-sm);
+  border-left: 3px solid var(--amber);
+  font-family: var(--font-ui);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.island-badge ul {
+  margin: var(--gap-xs) 0 0;
+  padding-left: 1.1rem;
+}
+@media print {
+  .island-mount,
+  .island-badge {
+    display: none;
+  }
+  agent-island[data-state="rendered"] > .island-fallback,
+  agent-island[data-reserved] > .island-fallback {
+    display: block;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Reply",
+        "near": "here is marked"
+      }
+    },
+    {
+      "type": "Agreed, keep it."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

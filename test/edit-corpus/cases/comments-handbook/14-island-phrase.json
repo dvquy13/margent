@@ -1,0 +1,22 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Pages render with islands in a sandboxed frame",
+        "island": true
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Cite the M1 spec."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

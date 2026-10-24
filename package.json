@@ -1,0 +1,51 @@
+{
+  "name": "margent",
+  "version": "0.1.0",
+  "description": "Render markdown docs into designed pages with data-driven islands",
+  "keywords": [
+    "markdown",
+    "docs",
+    "cli",
+    "agents",
+    "claude-code",
+    "islands",
+    "review"
+  ],
+  "homepage": "https://github.com/dvquy13/margent#readme",
+  "bugs": {
+    "url": "https://github.com/dvquy13/margent/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvquy13/margent.git"
+  },
+  "author": "Quy Dinh",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "margent": "dist/cli.js"
+  },
+  "files": [
+    "dist/cli.js"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test 'test/**/*.test.mjs'",
+    "test:full": "npm run build && MARGENT_TIER=full node --test --test-concurrency=3 'test/**/*.test.mjs'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "markdown-it": "^15.0.3",
+    "markdown-it-front-matter": "^0.2.4",
+    "playwright-core": "^1.64.1",
+    "turndown": "^7.2.4",
+    "typescript": "^5.9.0",
+    "yaml": "^2.9.1"
+  }
+}

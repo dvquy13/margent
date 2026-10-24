@@ -1,0 +1,17 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Comment",
+        "near": "Record counts per month"
+      }
+    },
+    {
+      "type": "Give the endpoint a version."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mg-d" data-asset="islands-flow.svg" viewBox="0 0 860 150" role="img" aria-label="A table or YAML block in the markdown is parsed and validated against the island's schema, then passed to the island's render function inside a shadow root, along with the shared kit.">
+<style>
+svg.mg-d { --d-bg:#ffffff; --d-bg2:#f6f6f6; --d-border:#e4e4e4; --d-text:#0a0a0a; --d-muted:#666666; --d-accent:#0062a8; --d-accent-light:#e0f0ff; color: var(--text, var(--d-text)); }
+@media (prefers-color-scheme: dark) { svg.mg-d { --d-bg:#0d0d0d; --d-bg2:#171717; --d-border:#2c2c2c; --d-text:#f2f2f2; --d-muted:#9a9a9a; --d-accent:#5aa9e6; --d-accent-light:#0f2536; } }
+.mg-d .box { fill: var(--bg, var(--d-bg)); stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .box.soft { fill: var(--bg2, var(--d-bg2)); stroke: var(--border, var(--d-border)); }
+.mg-d .box.acc { fill: var(--accent-light, var(--d-accent-light)); stroke: var(--accent, var(--d-accent)); }
+.mg-d .line { fill: none; stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .arrow { fill: var(--text, var(--d-text)); }
+.mg-d text { font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); fill: var(--text, var(--d-text)); }
+.mg-d text.mono { font-family: var(--mono, 'Google Sans Code', Menlo, monospace); }
+.mg-d text.mut { fill: var(--text-muted, var(--d-muted)); }
+</style>
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="170" height="80" rx="4"/>
+  <text x="26" y="58" font-size="13" font-weight="600">Markdown data</text>
+  <text class="mut" x="26" y="80" font-size="12">table rows, or YAML</text>
+  <text class="mut" x="26" y="98" font-size="12">primary facts only</text>
+  <line class="line" x1="180" y1="70" x2="228" y2="70" marker-end="url(#ah)"/>
+  <rect class="box soft" x="230" y="30" width="170" height="80" rx="4"/>
+  <text x="246" y="58" font-size="13" font-weight="600">Parse + validate</text>
+  <text class="mut" x="246" y="80" font-size="12">against the island's</text>
+  <text class="mut" x="246" y="98" font-size="12">schema · fails loudly</text>
+  <line class="line" x1="400" y1="70" x2="448" y2="70" marker-end="url(#ah)"/>
+  <rect class="box acc" x="450" y="30" width="210" height="80" rx="4"/>
+  <text class="mono" x="466" y="58" font-size="13" font-weight="600">render(root, data, kit)</text>
+  <text class="mut" x="466" y="80" font-size="12">the agent's design · computes</text>
+  <text class="mut" x="466" y="98" font-size="12">totals, shares, counts</text>
+  <line class="line" x1="660" y1="70" x2="708" y2="70" marker-end="url(#ah)"/>
+  <rect class="box" x="710" y="30" width="140" height="80" rx="4"/>
+  <text x="726" y="58" font-size="13" font-weight="600">Shadow root</text>
+  <text class="mut" x="726" y="80" font-size="12">page tokens</text>
+  <text class="mut" x="726" y="98" font-size="12">inherit inside</text>
+</svg>

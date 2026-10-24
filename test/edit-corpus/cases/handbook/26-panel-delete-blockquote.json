@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "text": "Island code never runs" } },
+    { "panelSelectAll": true },
+    { "press": "Backspace" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

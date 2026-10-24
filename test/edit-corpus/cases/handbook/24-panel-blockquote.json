@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "text": "Island code never runs" } },
+    { "panelSelectAll": true },
+    { "type": "> Island code never runs in Node, so a bad module cannot crash the server.\n> Its only output is pixels inside its frame, and its only input is the data in the table, read once." },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

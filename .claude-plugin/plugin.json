@@ -1,0 +1,9 @@
+{
+  "name": "margent",
+  "version": "0.1.0",
+  "description": "Render markdown docs into designed pages with data-driven islands.",
+  "license": "MIT",
+  "author": {
+    "name": "Quy Dinh"
+  }
+}

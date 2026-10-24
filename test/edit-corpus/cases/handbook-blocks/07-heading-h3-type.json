@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Leaked Chrome", "at": "end" } },
+    { "type": " safely" },
+    { "blur": true }
+  ]
+}

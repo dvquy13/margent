@@ -1,0 +1,20 @@
+{
+  "doc": "extra-kinds.md",
+  "steps": [
+    {
+      "click": {
+        "text": "when it is fresh.",
+        "at": "end"
+      }
+    },
+    {
+      "press": "Enter"
+    },
+    {
+      "type": "From the disk."
+    },
+    {
+      "blur": true
+    }
+  ]
+}

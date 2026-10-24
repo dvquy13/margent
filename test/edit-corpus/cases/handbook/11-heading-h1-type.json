@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "maintainer handbook", "at": "end" } },
+    { "type": " notes" },
+    { "blur": true }
+  ]
+}

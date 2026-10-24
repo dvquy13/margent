@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "ever committed", "at": "end" } },
+    { "paste": { "html": "<strong>anew</strong> <em>today</em>", "text": " anew" } },
+    { "blur": true }
+  ]
+}

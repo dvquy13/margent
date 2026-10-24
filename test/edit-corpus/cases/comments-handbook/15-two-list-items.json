@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "and shell\nislands"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Name the modules in order."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

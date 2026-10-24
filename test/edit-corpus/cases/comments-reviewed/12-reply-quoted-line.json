@@ -1,0 +1,17 @@
+{
+  "doc": "quoted.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Reply",
+        "near": "Which endpoint is this?"
+      }
+    },
+    {
+      "type": "Use the search endpoint."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

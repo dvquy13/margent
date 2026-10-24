@@ -1,0 +1,176 @@
+/* Comment display (M3 spec R4, decision 0023). Inlined only in pages with comments, after shell.css. Every colour is a
+   shell token. Two layouts. Without the rail (no JS, print) each thread sits in its block, as before. With the rail
+   (html.c-rail-on, set by runtime/comments.js) threads are hidden, and each one is a card: in a right-hand rail at 1100px
+   and wider, or in a drawer below. */
+
+:root {
+  --rail-w: 280px;
+  --rail-gap: 32px;
+  /* The page width with the rail: the content column (--page-max), both gutters, the gap and the rail. */
+  --rail-page: calc(var(--page-max) + 2 * var(--gutter) + var(--rail-w) + var(--rail-gap));
+}
+
+/* Highlight: the marked text, tinted with the accent. Linked (hover or focus) takes the stronger accent tint. */
+mark.c-hl {
+  background: var(--accent-light); color: var(--text);
+  border-radius: 2px; padding: 0 0.1em;
+  transition: background-color var(--fade);
+}
+mark.c-hl.is-linked { background: var(--accent-border); }
+
+/* Thread: notes in source order, the author in bold, then the text. Inline by default, so it sits at its highlight and
+   wraps with the prose. Its left rule ties it to its highlight. */
+.c-thread {
+  display: inline-block; max-width: 100%; vertical-align: baseline;
+  margin: 0 0 0 var(--gap-xs); padding: 0 0 0 var(--gap-xs);
+  border-left: 2px solid var(--accent-border);
+  font-family: var(--font-prose); font-size: var(--font-sm); font-weight: 400; font-style: normal;
+  line-height: 1.45; color: var(--text-muted); text-transform: none; letter-spacing: normal;
+  transition: border-color var(--fade);
+}
+.c-thread.is-linked { border-left-color: var(--accent); }
+.c-note { display: block; }
+.c-note + .c-note { margin-top: 0.4em; }
+.c-author { color: var(--text); font-weight: 600; margin-right: 0.3em; }
+
+/* A block comment line holds only its thread, under the block it follows. */
+p.c-line > .c-thread { margin-left: 0; }
+
+/* Focus: highlights and threads take the tabindex the link script gives them. */
+mark.c-hl:focus-visible, .c-thread:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px;
+}
+
+/* Margin (no rail): where the viewport has room beside the prose column (the 68ch measure, the gutter and a 220px note),
+   the thread floats in the right margin beside its highlight. The negative margin keeps the float out of the line width,
+   so the prose does not wrap around it. Narrower viewports keep the inline form above. Elements that clip their
+   overflow (tables in .scroll, cells) also keep it. */
+@media screen and (min-width: 1000px) {
+  .c-thread {
+    float: right; width: 220px; margin: 0.15em calc(-1 * (220px + var(--gap-md))) 0 0; padding: 0 0 0 var(--gap-xs);
+  }
+  .c-thread.is-linked { border-left-color: var(--accent); }
+  /* Headings span the whole column, so their notes stay inline: a margin float there would run past the page edge. */
+  .scroll .c-thread, td .c-thread, th .c-thread, :is(h1, h2, h3, h4, h5, h6) > .c-thread {
+    float: none; width: auto; margin: 0 0 0 var(--gap-xs);
+  }
+  /* A block comment line has no height of its own, so its note floats beside the block above it. */
+  p.c-line { height: 0; }
+}
+
+/* Headings: the note keeps the body text style (no heading size, weight or caps). */
+:is(h1, h2, h3, h4, h5, h6) > .c-thread {
+  font-size: var(--font-sm); font-weight: 400; text-transform: none; letter-spacing: normal;
+}
+
+/* The rail (screen only, with JS). The threads and the block comment lines are hidden. A point comment keeps a small dot
+   where it was, so it has an anchor and a tab stop. */
+@media screen {
+  /* Hidden at zero size, not display: none. A selection that ends at a highlight's edge then stops there, as it does
+     with the thread in flow, so deleting the text never takes the thread (and its notes) with it. */
+  html.c-rail-on .c-thread {
+    display: inline-block; float: none; width: 0; height: 0; overflow: hidden;
+    margin: 0; padding: 0; border: 0; font-size: 0;
+  }
+  html.c-rail-on .c-thread.c-point {
+    display: inline-block; float: none; width: 8px; height: 8px; margin: 0 0.25em; padding: 0; border: 0;
+    border-radius: 50%; background: var(--accent); font-size: 0; vertical-align: middle;
+    transition: outline-color var(--fade);
+  }
+  html.c-rail-on .c-thread.c-point.is-linked { outline: 2px solid var(--accent-border); outline-offset: 2px; }
+  html.c-rail-on p.c-line { display: none; }
+  /* A linked block gets a 2px bar 6px outside its left edge, so it never touches the block's own text: an accent strip
+     8px out, with a page-coloured strip over its inner 6px. */
+  html.c-rail-on [data-src].is-linked { box-shadow: -8px 0 0 -2px var(--bg), -10px 0 0 -2px var(--accent); }
+
+  html.c-rail-on .c-rail { display: flex; flex-direction: column; gap: var(--gap-sm); }
+  html.c-rail-on .c-rail-head { display: none; }
+  html.c-rail-on .c-toggle { display: none; }
+
+  html.c-rail-on .c-card {
+    padding: var(--gap-xs) var(--gap-sm); background: var(--bg2);
+    border-left: 2px solid transparent; border-radius: var(--radius-sm);
+    font-family: var(--font-prose); font-size: var(--font-sm); line-height: 1.45; color: var(--text-muted);
+    transition: border-color var(--fade);
+  }
+  html.c-rail-on .c-card.is-linked { border-left-color: var(--accent); }
+  html.c-rail-on .c-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  html.c-rail-on .c-card .c-quote { display: block; margin: 0 0 var(--gap-xs); color: var(--text); font-style: normal; }
+  html.c-rail-on .c-card .c-note { max-width: none; margin: 0; }
+  html.c-rail-on .c-card .c-note + .c-note { margin-top: 0.4em; }
+  html.c-rail-on .c-card .c-author { color: var(--text); font-weight: 600; margin-right: 0.3em; }
+  html.c-rail-on .c-card .c-actions {
+    display: flex; flex-wrap: wrap; gap: var(--gap-sm); margin-top: var(--gap-xs);
+    font-family: var(--font-ui); font-size: var(--font-xs);
+  }
+  html.c-rail-on .c-card .c-actions:empty { display: none; }
+}
+
+/* The rail and its button exist on every served page, but show only while the rail is on (html.c-rail-on). */
+.c-rail, .c-toggle { display: none; }
+
+/* Quoted phrases inside their blocks, through the Custom Highlight API: all of them in the highlight tint, and the
+   linked card's one in the stronger tint (the script sets both; it gives island shadow roots their own copy). */
+::highlight(margent-quotes) { background-color: var(--accent-light); color: var(--text); }
+::highlight(margent-quote) { background-color: var(--accent-border); color: var(--text); }
+
+/* 1100px and wider: the content column keeps --page-max when the viewport allows it, and the rail sits to its right,
+   so the page is the column, the gap and the rail. The header and footer use the same width, so their left edge is the
+   column's. The rail is positioned against main; each card's top is set by the script. */
+@media screen and (min-width: 1100px) {
+  html.c-rail-on main.wrap {
+    position: relative; max-width: var(--rail-page);
+    padding-right: calc(var(--rail-w) + var(--rail-gap) + var(--gutter));
+  }
+  html.c-rail-on header.top .wrap, html.c-rail-on footer.wrap { max-width: var(--rail-page); }
+  html.c-rail-on .c-rail { position: absolute; top: 0; right: var(--gutter); width: var(--rail-w); }
+  html.c-rail-on .c-card { position: absolute; left: 0; right: 0; }
+  /* The note box as a draft card in the rail (runtime/edit/comments.js opens it, this script places it): the card's
+     shape and width, the input on its own line and the buttons under it, right-aligned. */
+  html.c-rail-on .c-rail > .comment-box.c-draft {
+    position: absolute; left: 0; right: 0; bottom: auto; transform: none; width: auto;
+    padding: var(--gap-sm); border-left: 2px solid var(--accent); background: var(--bg2);
+  }
+  html.c-rail-on .c-rail > .comment-box.c-draft .comment-form { flex-wrap: wrap; justify-content: flex-end; }
+  html.c-rail-on .c-rail > .comment-box.c-draft .comment-input { flex: 1 1 100%; font-size: var(--font-sm); background: var(--bg); }
+}
+
+/* Below 1100px: the rail is a drawer on the right, opened by the Comments button. */
+@media screen and (not (min-width: 1100px)) {
+  html.c-rail-on .c-rail {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 20;
+    width: min(360px, 100%); padding: var(--gap-md) var(--gutter) var(--gap-lg);
+    background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; overscroll-behavior: contain;
+    transform: translateX(100%); visibility: hidden;
+    /* Closing slides out, then hides, so a card is never focused while hidden. Opening shows at once. */
+    transition: transform var(--fade), visibility 0s linear var(--fade);
+  }
+  html.c-rail-on .c-rail.is-open { transform: none; visibility: visible; transition: transform var(--fade), visibility 0s; }
+  html.c-rail-on .c-rail-head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--gap-sm);
+    font-family: var(--font-ui); font-size: var(--font-sm); color: var(--text-muted);
+  }
+  html.c-rail-on .c-close, html.c-rail-on .c-toggle {
+    font: inherit; font-size: var(--font-sm); line-height: 1; cursor: pointer;
+    padding: var(--gap-xs) var(--gap-sm); border: 1px solid var(--border); border-radius: var(--radius-pill);
+    background: var(--bg); color: var(--text);
+    transition: color var(--fade), border-color var(--fade);
+  }
+  html.c-rail-on .c-close:hover, html.c-rail-on .c-toggle:hover { color: var(--accent); border-color: var(--accent); }
+  html.c-rail-on .c-close:focus-visible, html.c-rail-on .c-toggle:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  html.c-rail-on .c-toggle {
+    display: inline-flex; position: fixed; z-index: 15;
+    right: max(var(--gutter), env(safe-area-inset-right, 0px));
+    bottom: max(var(--gutter), env(safe-area-inset-bottom, 0px));
+  }
+  html.c-rail-on .c-card { position: static; }
+}
+
+/* Print: the rail and its button are not printed, and the threads stay in their blocks (their screen rules above do not
+   apply). Notes do not split across pages. */
+@media print {
+  .c-rail, .c-toggle { display: none !important; }
+  .c-thread { break-inside: avoid; }
+}

@@ -1,0 +1,19 @@
+{
+  "doc": "extra-kinds.md",
+  "steps": [
+    {
+      "select": {
+        "text": "From the cache, when it is fresh."
+      }
+    },
+    {
+      "press": "Backspace"
+    },
+    {
+      "press": "Backspace"
+    },
+    {
+      "blur": true
+    }
+  ]
+}

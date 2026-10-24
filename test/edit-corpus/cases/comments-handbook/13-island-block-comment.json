@@ -1,0 +1,17 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Comment",
+        "range": "80-87"
+      }
+    },
+    {
+      "type": "Add the milestone dates."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

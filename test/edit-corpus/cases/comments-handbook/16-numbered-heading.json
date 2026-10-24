@@ -1,0 +1,22 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Reviewing changes",
+        "nth": 2
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Is the review list still complete?"
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

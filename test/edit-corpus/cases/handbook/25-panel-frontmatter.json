@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": "frontmatter" },
+    { "panelSelectAll": true },
+    { "type": "---\ntitle: margent maintainer handbook\nstatus: accepted\nversion: 0.1.0\nupdated: 2026-10-25\n---" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

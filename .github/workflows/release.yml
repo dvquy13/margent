@@ -1,0 +1,57 @@
+# Release flow: release-please opens and updates a release PR on every push to main.
+# Merging that PR creates the tag and GitHub release; the publish steps then run
+# only when release_created is set.
+#
+# Publishing uses npm trusted publishing (OIDC), not an NPM_TOKEN secret. Configure
+# the trusted publisher for the `margent` package on npmjs.com (repository
+# dvquy13/margent, workflow release.yml). `id-token: write` lets npm exchange the
+# GitHub OIDC token for a short-lived publish credential, and `--provenance` attaches
+# a signed build attestation. Trusted publishing needs npm 11.5.1 or later, hence
+# the npm upgrade step.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      - if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - if: ${{ steps.release.outputs.release_created }}
+        name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - if: ${{ steps.release.outputs.release_created }}
+        run: npm ci
+
+      - if: ${{ steps.release.outputs.release_created }}
+        name: Test
+        env:
+          BROWSER: "true"
+        run: npm test
+
+      - if: ${{ steps.release.outputs.release_created }}
+        name: Publish
+        run: npm publish --provenance --access public

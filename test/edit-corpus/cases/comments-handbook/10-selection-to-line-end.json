@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "and nowhere else."
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Name the frame that shows the error."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

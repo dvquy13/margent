@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "Nothing rendered", "at": "start" } },
+    { "type": "zz" },
+    { "press": "Meta+Z" },
+    { "blur": true }
+  ]
+}

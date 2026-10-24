@@ -1,0 +1,22 @@
+{
+  "doc": "extra-kinds.md",
+  "steps": [
+    {
+      "panel": {
+        "range": "17-24"
+      }
+    },
+    {
+      "panelSelectAll": true
+    },
+    {
+      "type": "```island steps\ntitle: Three steps\nsteps:\n  - label: Collect the rows\n    detail: Gather what all sources return.\n  - label: Render them\n    detail: Draw the rows.\n```"
+    },
+    {
+      "press": "Meta+S"
+    },
+    {
+      "wait": "save"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Three stages."
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Name each stage in the glossary."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

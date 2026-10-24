@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "range": "65-69" } },
+    { "panelSelectAll": true },
+    { "type": "```sh\nnpm ci && npm run build\nnode dist/cli.js check docs/\nnode dist/cli.js open docs/handbook.md\n```" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

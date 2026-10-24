@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Nothing rendered is ever committed"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Never sent"
+    },
+    {
+      "press": "Escape"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "a markdown file into a page", "at": "end" } },
+    { "type": " in one pass" },
+    { "blur": true }
+  ]
+}

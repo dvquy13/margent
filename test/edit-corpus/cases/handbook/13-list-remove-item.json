@@ -1,0 +1,9 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "serve: a local server that reloads pages and saves edits to the markdown" } },
+    { "press": "Backspace" },
+    { "press": "Backspace" },
+    { "blur": true }
+  ]
+}

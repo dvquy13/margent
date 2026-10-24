@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "click": { "text": "the theme toggle", "at": "end" } },
+    { "type": " and the print view" },
+    { "blur": true }
+  ]
+}

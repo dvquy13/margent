@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "npm publish from " } },
+    { "press": "Backspace" },
+    { "blur": true }
+  ]
+}

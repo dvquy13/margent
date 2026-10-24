@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mg-d" data-asset="margent-loop.svg" viewBox="0 0 880 230" role="img" aria-label="Markdown renders into a page, a reader reviews the page, and comments and edits go back into the markdown.">
+<style>
+svg.mg-d { --d-bg:#ffffff; --d-bg2:#f6f6f6; --d-border:#e4e4e4; --d-text:#0a0a0a; --d-muted:#666666; --d-accent:#0062a8; --d-accent-light:#e0f0ff; color: var(--text, var(--d-text)); }
+@media (prefers-color-scheme: dark) { svg.mg-d { --d-bg:#0d0d0d; --d-bg2:#171717; --d-border:#2c2c2c; --d-text:#f2f2f2; --d-muted:#9a9a9a; --d-accent:#5aa9e6; --d-accent-light:#0f2536; } }
+.mg-d .box { fill: var(--bg, var(--d-bg)); stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .box.acc { fill: var(--accent-light, var(--d-accent-light)); stroke: var(--accent, var(--d-accent)); }
+.mg-d .line { fill: none; stroke: var(--text, var(--d-text)); stroke-width: 1.25; }
+.mg-d .line.acc { stroke: var(--accent, var(--d-accent)); }
+.mg-d .line.dash { stroke: var(--text-muted, var(--d-muted)); stroke-dasharray: 4 4; }
+.mg-d .arrow { fill: var(--text, var(--d-text)); }
+.mg-d .arrow.acc { fill: var(--accent, var(--d-accent)); }
+.mg-d text { font-family: var(--font-ui, 'Google Sans Flex', 'Inter', system-ui, sans-serif); fill: var(--text, var(--d-text)); }
+.mg-d text.mut { fill: var(--text-muted, var(--d-muted)); }
+.mg-d text.acc { fill: var(--accent, var(--d-accent)); }
+</style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="ahAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow acc" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <rect class="box acc" x="30" y="110" width="150" height="56" rx="6"/>
+  <text class="acc" x="105" y="134" font-size="15" font-weight="600" text-anchor="middle">Markdown</text>
+  <text class="mut" x="105" y="152" font-size="12" text-anchor="middle">the one source</text>
+
+  <line class="line acc" x1="182" y1="138" x2="247" y2="138" marker-end="url(#ahAcc)"/>
+  <text class="mut" x="215" y="130" font-size="12" text-anchor="middle">render</text>
+
+  <rect class="box" x="250" y="110" width="150" height="56" rx="6"/>
+  <text x="325" y="134" font-size="15" font-weight="600" text-anchor="middle">Render</text>
+  <text class="mut" x="325" y="152" font-size="12" text-anchor="middle">islands run here</text>
+
+  <line class="line" x1="402" y1="138" x2="467" y2="138" marker-end="url(#ah)"/>
+  <text class="mut" x="435" y="130" font-size="12" text-anchor="middle">build</text>
+
+  <rect class="box" x="470" y="110" width="150" height="56" rx="6"/>
+  <text x="545" y="134" font-size="15" font-weight="600" text-anchor="middle">Page</text>
+  <text class="mut" x="545" y="152" font-size="12" text-anchor="middle">a designed page</text>
+
+  <line class="line" x1="622" y1="138" x2="687" y2="138" marker-end="url(#ah)"/>
+  <text class="mut" x="655" y="130" font-size="12" text-anchor="middle">read</text>
+
+  <rect class="box" x="690" y="110" width="150" height="56" rx="6"/>
+  <text x="765" y="134" font-size="15" font-weight="600" text-anchor="middle">Review</text>
+  <text class="mut" x="765" y="152" font-size="12" text-anchor="middle">comments and edits</text>
+
+  <path class="line dash" d="M765,166 L765,192 L105,192 L105,169" fill="none" marker-end="url(#ah)"/>
+  <text class="mut" x="435" y="214" font-size="13" text-anchor="middle">edits and comments are spliced back into the markdown</text>
+</svg>

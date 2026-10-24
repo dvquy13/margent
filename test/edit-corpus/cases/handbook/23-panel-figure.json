@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "range": "28-30" } },
+    { "panelSelectAll": true },
+    { "type": "![Markdown renders into a page, a reviewer checks the page, and comments and edits go back into the markdown.](assets/margent-loop.svg)\n\n*The loop has one source. A page is never edited by hand, so every change starts in the file.*" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

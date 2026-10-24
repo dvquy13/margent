@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "text": "still changing, not yet reviewed" } },
+    { "panelSelectAll": true },
+    { "type": "| Status | Meaning |\n|---|---|\n| draft | still changing, not reviewed yet |\n| accepted | reviewed, and the plan of record |\n| done | shipped and kept for reference |" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

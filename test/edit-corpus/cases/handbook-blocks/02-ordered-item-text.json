@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "from a clean tree" } },
+    { "type": "from a clean checkout" },
+    { "blur": true }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "doc": "extra-kinds.md",
+  "steps": [
+    {
+      "click": {
+        "text": "one page at a time.",
+        "at": "end"
+      }
+    },
+    {
+      "type": " Retries apply."
+    },
+    {
+      "blur": true
+    }
+  ]
+}

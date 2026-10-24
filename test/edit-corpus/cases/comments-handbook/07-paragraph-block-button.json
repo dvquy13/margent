@@ -1,0 +1,17 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Comment",
+        "near": "Islands run in sandboxed frames"
+      }
+    },
+    {
+      "type": "Name the frame size limit."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

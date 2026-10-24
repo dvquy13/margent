@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+# spike screenshots and generated renders
+*.png
+spikes/s4/out/
+spikes/s1/island/tmp/
+.build/
+!docs/results/**/*.png
+!test/fixtures/**/*.png
+dist/
+.claude/worktrees/

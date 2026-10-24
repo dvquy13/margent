@@ -1,0 +1,10 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "panel": { "range": "80-87" } },
+    { "panelSelectAll": true },
+    { "type": "<!-- island milestone-status -->\n| Milestone | Outcome | Verdict |\n|---|---|---|\n| M1 Render and islands | Pages render with islands in a sandboxed frame | Proceed |\n| M2 Serve and edit | Blocks edit in the page and save to the markdown | Adjust |\n| M3 Comments | Review comments live inline in the markdown | Proceed, Adjust the rail layout |\n| M4 Catalog | Waits for the first public release | Decided to wait for the release |\n| M5 Ship | Local checks pass, the publish steps are still open | Adjust the publish steps |" },
+    { "press": "Meta+S" },
+    { "wait": "save" }
+  ]
+}

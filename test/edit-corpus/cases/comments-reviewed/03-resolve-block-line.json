@@ -1,0 +1,11 @@
+{
+  "doc": "reviewed.md",
+  "steps": [
+    {
+      "control": {
+        "label": "Resolve",
+        "near": "Add the cost row."
+      }
+    }
+  ]
+}

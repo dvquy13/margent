@@ -1,0 +1,8 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    { "select": { "text": "partial" } },
+    { "press": "Meta+B" },
+    { "blur": true }
+  ]
+}

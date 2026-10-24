@@ -1,0 +1,21 @@
+{
+  "doc": "handbook.md",
+  "steps": [
+    {
+      "select": {
+        "text": "read the block kinds page"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Link the block kinds page here."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}
