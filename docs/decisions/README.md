@@ -5,7 +5,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | # | Decision | Status | Date |
 |---|---|---|---|
 | [0001](0001-deterministic-script-renders-pages.md) | A deterministic script renders pages; the LLM designs only islands | accepted | 2026-10-23 |
-| [0002](0002-bespoke-islands-promoted-on-second-use.md) | Bespoke islands, promoted to a catalog on second use | accepted | 2026-10-23 |
+| [0002](0002-bespoke-islands-promoted-on-second-use.md) | Bespoke islands, promoted to a catalog on second use | superseded | 2026-10-23 |
 | [0003](0003-island-data-in-markdown-tables.md) | Island data in markdown tables, YAML when nested | accepted | 2026-10-23 |
 | [0004](0004-contenteditable-per-block-with-splice.md) | Editing uses contenteditable per block, spliced into source lines | accepted | 2026-10-23 |
 | [0005](0005-comments-as-inline-criticmarkup.md) | Comments as inline CriticMarkup | accepted | 2026-10-23 |
@@ -37,6 +37,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0031](0031-first-public-release.md) | First public release, generic fixtures and release-please | accepted | 2026-10-25 |
 | [0032](0032-os-user-name-signs-notes-without-git.md) | The OS user name signs notes when git has no name | accepted | 2026-10-25 |
 | [0033](0033-owner-edits-their-own-notes.md) | The owner edits their own notes from the page | accepted | 2026-10-25 |
+| [0034](0034-no-island-catalog.md) | No island catalog; M4 is cut | accepted | 2026-10-25 |
 
 ## Deferred
 
