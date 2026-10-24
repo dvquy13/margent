@@ -275,7 +275,7 @@ for (const [name, line, message] of A6) {
   test(`check: ${name} fails at ${line} with its message, exit 1`, () => {
     const r = cli(['check', `${ISLANDS_DOCS}/${name}`]);
     assert.equal(r.status, 1, r.stdout);
-    assert.equal(r.stdout, `${ISLANDS_DOCS}/${name}:${line}: ${message}\n`);
+    assert.equal(r.stdout, `${ISLANDS_DOCS}/${name}:${line}: ${message}\n`, `stderr: ${r.stderr}`);
   });
 }
 
