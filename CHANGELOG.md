@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/dvquy13/margent/compare/v0.1.0...v0.2.0) (2026-10-24)
+
+
+### Features
+
+* **comments:** edit your own notes from the page ([0078700](https://github.com/dvquy13/margent/commit/0078700dac634640ca0b02605b4f2b1282cbb6f5))
+* **comments:** type comments, replies and edits inside the card ([96d937e](https://github.com/dvquy13/margent/commit/96d937ec35a97afe18b7ae5e447b580d14cb5e43))
+* **serve:** sign notes with the OS user name when git has none ([08970f7](https://github.com/dvquy13/margent/commit/08970f772a21449ecbecbb16357ca631cb31d62d))
+
+
+### Bug Fixes
+
+* **comments:** a quoted phrase with " in the page matches its stored ' quote ([f1ee18d](https://github.com/dvquy13/margent/commit/f1ee18d7abfe9621cc324d4d4320337e39516c63))
+
 ## 0.1.0 (2026-10-25)
 
 ### Features
