@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/dvquy13/margent/compare/v0.2.0...v0.3.0) (2026-10-24)
+
+
+### Features
+
+* link the header title to the doc index under serve ([#4](https://github.com/dvquy13/margent/issues/4)) ([cbd3d87](https://github.com/dvquy13/margent/commit/cbd3d8753345971b6d2b06fba37ca803cf123744))
+
 ## [0.2.0](https://github.com/dvquy13/margent/compare/v0.1.0...v0.2.0) (2026-10-24)
 
 

@@ -10,9 +10,9 @@ The markdown file is the doc. `margent` renders it into a designed page with a t
 ## Running margent
 
 <!-- x-release-please-start-version -->
-Run `margent --version` once. If it prints `0.2.0`, run every command below as `margent …`.
+Run `margent --version` once. If it prints `0.3.0`, run every command below as `margent …`.
 
-Otherwise run them as `npx -y margent@0.2.0 …`. It needs Node 22 or later, and the first call downloads the package. Don't install anything globally unless the user asks.
+Otherwise run them as `npx -y margent@0.3.0 …`. It needs Node 22 or later, and the first call downloads the package. Don't install anything globally unless the user asks.
 <!-- x-release-please-end -->
 
 The rest of this skill writes `margent` for whichever form applies.
