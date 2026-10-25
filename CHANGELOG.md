@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1](https://github.com/dvquy13/margent/compare/v0.3.0...v0.3.1) (2026-10-25)
+
+
+### Documentation
+
+* agent replies to every comment and only the user resolves (decision 0035) ([f7cf355](https://github.com/dvquy13/margent/commit/f7cf35566307a6cb64a5a8b372acd0355679fb68))
+* cut M4 catalog (decision 0034) ([dce3e54](https://github.com/dvquy13/margent/commit/dce3e54f30d87741b41d1b38de014aebc89e1d8e))
+* the margent skill says when a doc gets a diagram ([11b0d57](https://github.com/dvquy13/margent/commit/11b0d57a8aabb7862843f55c2ec6970ed6ca7256))
+
 ## [0.3.0](https://github.com/dvquy13/margent/compare/v0.2.0...v0.3.0) (2026-10-24)
 
 
