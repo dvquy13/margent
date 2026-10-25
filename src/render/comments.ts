@@ -4,7 +4,7 @@
 // the core rule raises the RenderError with the file line.
 import type { MarkdownIt, StateCore, StateInline, Token } from 'markdown-it';
 import { RenderError } from '../errors.js';
-import { NOTE, splitQuote, type NoteParts, type Thread } from '../comments/syntax.js';
+import { NOTE, noteLines, splitQuote, type NoteParts, type Thread } from '../comments/syntax.js';
 import { escapeHtml, isBlank, lineRange } from './lines.js';
 import { displayPath } from './root.js';
 
@@ -41,8 +41,8 @@ type ThreadMeta = {
 
 // The NOTE grammar, anchored, for one whole note. NOTE itself is global, so it is never tested directly.
 const WHOLE_NOTE = new RegExp(`^(?:${NOTE.source})$`);
-// A note whose head is right but whose text is empty, such as {>>[c1] Quy: <<}.
-const EMPTY_NOTE = /^\{>>\[c[1-9]\d*\] [^:\]\r\n]+:\s*<<\}$/;
+// A note whose head is right but whose text is empty, such as {>>[c1] Quy: <<} or one that is only breaks.
+const EMPTY_NOTE = /^\{>>\[c[1-9]\d*\] [^:\]\r\n]+:(?:\s|<br\s*\/?>)*<<\}$/i;
 // ASCII punctuation, which a backslash escapes in markdown.
 const ASCII_PUNCT = /[!-/:-@[-`{-~]/;
 const ISLAND_MARKER = /^<!--\s*island\b/;
@@ -187,7 +187,8 @@ function noteRule(state: StateInline, silent: boolean): boolean {
   if (highlightDepth(state) > 0) {
     return errorToken(state, at, "a note cannot sit inside a highlight: put it after the ==}", end);
   }
-  if (groups && groups.author.trim() !== '' && groups.text.trim() !== '') {
+  // A text of only breaks and spaces has no words, so it is an empty note.
+  if (groups && groups.author.trim() !== '' && noteLines(groups.text).join('').trim() !== '') {
     const note: NoteParts = { id: groups.id, author: groups.author, text: groups.text };
     const tok = state.push('c_note', 'span', 0);
     tok.meta = { at, note, src: raw } satisfies NoteMeta;
@@ -201,6 +202,11 @@ function noteRule(state: StateInline, silent: boolean): boolean {
 }
 
 // ---- renderer rules -------------------------------------------------------
+
+// A note's text as HTML: each line escaped, and each break shown as a line break.
+function noteHtml(text: string): string {
+  return noteLines(text).map(escapeHtml).join('<br>');
+}
 
 export function registerComments(md: MarkdownIt): void {
   md.inline.ruler.before('emphasis', 'margent_comment_highlight', highlightRule);
@@ -217,8 +223,8 @@ export function registerComments(md: MarkdownIt): void {
       .map((n, i) => {
         const quoted = i === 0 && meta.quote !== undefined;
         const text = quoted
-          ? `<q class="c-quote">${escapeHtml(meta.quote!)}</q> ${escapeHtml(splitQuote(n.text).body)}`
-          : escapeHtml(n.text);
+          ? `<q class="c-quote">${escapeHtml(meta.quote!)}</q> ${noteHtml(splitQuote(n.text).body)}`
+          : noteHtml(n.text);
         return `<span class="c-note"><b class="c-author">${escapeHtml(n.author)}</b> ${text}</span>`;
       })
       .join('');

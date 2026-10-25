@@ -24,7 +24,7 @@ const PLAIN = 'The plain paragraph has one word to mark and a second sentence to
 // as startServer's, runs fn with the open page, and closes everything. `noAuthor` serves with git reading no user.name: the
 // environment is pointed away from every git config while the server starts.
 function scenario(options, fn) {
-  const { fixture = FIXTURE, doc = 'ui.md', noAuthor, ...serveOptions } = options;
+  const { fixture = FIXTURE, doc = 'ui.md', noAuthor, prepare, ...serveOptions } = options;
   return async () => {
     let served;
     if (noAuthor) {
@@ -46,6 +46,8 @@ function scenario(options, fn) {
     } else {
       served = await serveCopy(fixture, serveOptions);
     }
+    // prepare rewrites the served doc before the page opens (an edit test needs a note already holding a break).
+    if (prepare) writeFileSync(join(served.root, doc), prepare(served.read(doc)));
     // The server closes even when the page fails to open: a leaked one keeps this file's process alive.
     try {
       await withBrowser(async (browser) => {
@@ -206,7 +208,27 @@ test(
 );
 
 test(
-  'R5.1: Esc cancels the note: the file stays as it was and the preview clears',full, 
+  '0037: Shift+Enter starts a new line in a note, Enter saves it as <br>, and the rail card shows the break',
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+    await openNote(page);
+    await page.keyboard.type('first');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('second');
+    assert.equal(await page.locator('.comment-box .comment-input').inputValue(), 'first\nsecond');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: first<br>second<<} paragraph')
+    );
+    assert.equal(saves.length, 1, 'one save');
+    const card = page.locator('.c-card[data-c="c3"] .c-text');
+    assert.equal(await card.evaluate((el) => el.innerHTML), 'first<br>second');
+  })
+);
+
+test(
+  'R5.1: Esc cancels the note: the file stays as it was and the preview clears',full,
   scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
     await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
     await openNote(page);
@@ -603,6 +625,71 @@ test(
       reviewed.replace('{>>[c1] Claude: Checked against the API docs.<<}', '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: Agreed, keep it for now.<<}')
     );
     assert.equal(saves.length, 2, 'the reply and its edit are two saves');
+  })
+);
+
+test(
+  '0037: Edit shows a note with a <br> on two lines, and Enter with no change sends no save',full,
+  scenario(
+    {
+      author: 'Quy',
+      fixture: EDIT_DOCS,
+      doc: 'reviewed.md',
+      prepare: (text) => text.replace('Quy: is this still true?', 'Quy: first<br>second'),
+    },
+    async ({ page, served, saves }) => {
+      const reviewed = served.read('reviewed.md');
+      await openCard(page, 'c1');
+      await editButtons(page, 'c1').click();
+      const field = page.locator('.comment-input:visible');
+      await field.waitFor();
+      assert.equal(await field.inputValue(), 'first\nsecond', 'the field shows the break as a line');
+      assert.equal(await page.evaluate(() => window.margent.dirty()), false, 'an unchanged edit is not unsaved text');
+      await page.keyboard.press('Enter');
+      await page.locator('.comment-input:visible').waitFor({ state: 'hidden' });
+      await settle(page);
+      assert.deepEqual(saves, []);
+      assert.equal(served.read('reviewed.md'), reviewed);
+    }
+  )
+);
+
+test(
+  '0037: Shift+Enter in a reply starts a new line, and the reply is saved with a <br>',full,
+  scenario({ author: 'Quy', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page, served, saves }) => {
+    const reviewed = served.read('reviewed.md');
+    await (await threadButton(page, 'c1', 'Reply')).click();
+    await page.locator('.comment-input:visible').waitFor();
+    await page.keyboard.type('First line.');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('Second line.');
+    const reloaded = page.waitForEvent('load');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    await reloaded;
+    assert.equal(
+      served.read('reviewed.md'),
+      reviewed.replace(
+        '{>>[c1] Claude: Checked against the API docs.<<}',
+        '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: First line.<br>Second line.<<}'
+      )
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  '0037: a paste of two lines into a new note is saved as one line with a <br>',full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+    await openNote(page);
+    await page.keyboard.insertText('first\nsecond');
+    assert.equal(await page.locator('.comment-box .comment-input').inputValue(), 'first\nsecond', 'the paste keeps its line');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: first<br>second<<} paragraph')
+    );
+    assert.equal(saves.length, 1, 'one save');
   })
 );
 

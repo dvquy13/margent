@@ -314,3 +314,37 @@ for (const [label, dir] of [
     }
   });
 }
+
+// ---- line breaks in a note (decision 0037): <br> shows as a line break, and only <br> does
+
+function renderNote(text) {
+  const source = `---\ntitle: Breaks\n---\n\n# Breaks\n\nA {==word==}{>>[c1] Quy: ${text}<<}\n`;
+  const r = renderBody(source, { file: join(workdir, 'breaks.md'), root: workdir, outFile: join(workdir, 'breaks.html') });
+  return r.hero + r.main; // the first heading's block is in hero
+}
+
+test('decision 0037: a <br> in a note renders as a line break inside .c-note', () => {
+  const html = renderNote('a<br>b');
+  assert.ok(html.includes('<span class="c-note"><b class="c-author">Quy</b> a<br>b</span>'), html);
+});
+
+test('decision 0037: other HTML in a note stays escaped, and only the break is real', () => {
+  const html = renderNote('<b>x</b><br>y');
+  assert.ok(html.includes('<span class="c-note"><b class="c-author">Quy</b> &lt;b&gt;x&lt;/b&gt;<br>y</span>'), html);
+  assert.ok(!html.includes('<b>x</b>'), html);
+});
+
+test('decision 0037: a note of only breaks is a RenderError at its line, with the no-text message', () => {
+  for (const text of ['<br>', ' <br/> <BR />', '<br><br>']) {
+    let err;
+    try {
+      renderNote(text);
+    } catch (e) {
+      err = e;
+    }
+    assert.ok(err, `${text} rendered, but a RenderError was expected`);
+    assert.equal(err.name, 'RenderError', err.message);
+    assert.equal(err.line, 7);
+    assert.equal(err.detail, 'comment note has no text: write the note after "{author}: "');
+  }
+});

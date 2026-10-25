@@ -82,6 +82,7 @@ Comments are inline CriticMarkup ([0005](decisions/0005-comments-as-inline-criti
 ```
 
 - `data-md` is the exact source of the thread's notes; house turndown writes it back.
+- A note's text is one line in the source, and each `<br>` in it (any spelling: `<br/>`, `<br />`, any case) renders as a `<br>` element; any other HTML stays escaped text. `noteFromField` and `fieldFromNote` in `src/comments/syntax.ts` convert between the comment box's newlines and `<br>`. [0037](decisions/0037-note-line-breaks-as-br.md)
 - A block comment line whose first note starts `"{phrase}" →` renders the phrase as `<q class="c-quote">`, and its record carries `quote` ([0023](decisions/0023-comment-rail-and-quoted-block-comments.md)).
 - `renderDoc` returns `comments`: one `Thread` per thread in document order (`id`, `line`, `kind` inline, point or block, `block` and, for a block comment line, `anchor`, `anchorKind` and `quote`, `highlight`, `notes`). `check`, `comments`, `export --clean` and the `serve` index read it.
 - Slugs and TOC labels skip notes and keep highlighted text, so a commented heading keeps its anchor.

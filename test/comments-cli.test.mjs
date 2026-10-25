@@ -15,6 +15,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = join(REPO, 'dist', 'cli.js');
 const CLI_FIX = 'test/fixtures/comments/cli';
 const ERRORS = 'test/fixtures/comments/errors';
+const BREAKS = 'test/fixtures/comments/breaks';
 const GOLDEN = join(REPO, 'test', 'golden', 'comments');
 
 const workdir = mkdtempSync(join(tmpdir(), 'margent-comments-cli-'));
@@ -297,4 +298,23 @@ test('serve --author with a name the note syntax cannot hold is a usage error, e
   const r = cli(['serve', CLI_FIX, '--author=Quy: dev']);
   assert.equal(r.status, 2);
   assert.match(r.stderr, /must not hold ':'/);
+});
+
+test('decision 0037: comments prints each further line of a note on its own line, under the text (R8)', () => {
+  const r = cli(['comments', `${BREAKS}/two-line.md`]);
+  assert.equal(r.status, 0, r.stderr);
+  // The author "Quy" is 3 letters, so the text starts at column 2 + 3 + 2 = 7.
+  assert.ok(
+    r.stdout.includes(
+      [
+        '  Quy: is that stable across repos?',
+        '       Measured on one repo only.',
+        '       ',
+        '       Check the other three.',
+        '  Claude: Measured on 4 repos.',
+        '',
+      ].join('\n')
+    ),
+    r.stdout
+  );
 });
