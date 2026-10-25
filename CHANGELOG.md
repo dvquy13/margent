@@ -3,6 +3,16 @@
 ## [0.3.1](https://github.com/dvquy13/margent/compare/v0.3.0...v0.3.1) (2026-10-25)
 
 
+### Features
+
+* a note can hold line breaks: Shift+Enter in the comment box ([c78b60e](https://github.com/dvquy13/margent/commit/c78b60e675d9ecd50095efef4dfedf23f997177e))
+
+
+### Bug Fixes
+
+* check fails on a link to a missing file or heading ([b165574](https://github.com/dvquy13/margent/commit/b16557436165b17fcb5f3de5aa83fd8f23435c3e))
+
+
 ### Documentation
 
 * agent replies to every comment and only the user resolves (decision 0035) ([f7cf355](https://github.com/dvquy13/margent/commit/f7cf35566307a6cb64a5a8b372acd0355679fb68))
