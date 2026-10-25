@@ -1,7 +1,8 @@
 ---
 title: Bespoke islands, promoted to a catalog on second use
-status: accepted
-updated: 2026-10-23
+status: superseded
+superseded_by: 0034
+updated: 2026-10-25
 ---
 
 # 0002 Bespoke islands, promoted to a catalog on second use

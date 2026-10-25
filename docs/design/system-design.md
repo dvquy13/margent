@@ -59,7 +59,7 @@ Five spikes tested the preconditions before this design was committed. All five 
 ### What the research added
 
 - **Never re-serialize the whole file.** A round-trip benchmark found no rendered-markdown editor (Milkdown, Tiptap, remark, turndown) that saves an untouched file byte-identical. Only patch-on-save did, which is the splice approach here.
-- **Generated UI stays reusable when it is data against a known component.** Google's A2UI and json-render constrain models to a catalog. Here the catalog grows by promotion instead of being fixed up front.
+- **Generated UI stays reusable when it is data against a known component.** Google's A2UI and json-render constrain models to a catalog. Here there is no fixed catalog: islands are bespoke, and reuse is by copying a module ([0034](../decisions/0034-no-island-catalog.md)).
 - **Fenced blocks are the most robust embed syntax** across Observable, Quarto and MyST, and they degrade to readable text anywhere.
 - **Rich HTML can over-invest in scaffolding.** Every island states its claim in the markdown, so the prose has to say what the visual shows.
 
@@ -169,11 +169,9 @@ S1 island data (v0):
 
 ### Where islands live
 
-1. **Project-local first.** A new island lives in the nearest `islands/` folder above the doc that uses it, usually one at the docs root.
-2. **Promoted on second use.** When a second doc wants the same island, it moves to `margent/catalog/` with its schema and a fixture. Reusing a catalog island costs no design tokens.
-3. **Lookup order:** project, then catalog. A name clash is an error.
+An island lives in the nearest `islands/` folder above the doc that uses it, usually one at the docs root. Another doc under the same root reuses it by name. There is no shared catalog ([0034](../decisions/0034-no-island-catalog.md)): a second project that wants the same island copies the module.
 
-**Freedom stays.** The catalog is never a gate. The agent can always design a new island for a new idea. The catalog only means a good one doesn't have to be designed twice.
+**Freedom stays.** The agent can always design a new island for a new idea.
 
 ## Renderer
 
@@ -217,7 +215,7 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 - **Saving:** every comment operation is an ordinary block save through the M2 save path, with the author taken from git ([0021](../decisions/0021-comment-operations-are-block-saves.md)).
 - **Display:** highlights in the text, notes in the margin or under their block where there is no room, and an open-comment count in the header.
 - **Threads:** replies are further comments with the same ID.
-- **Agent contract:** `margent comments {path}` lists the threads. For each one that needs the agent, make the change and delete the thread when the comment asks for exactly that change, or reply and leave it open for a question, a judgment call, a disagreement or anything that needs you. Finish by reporting how many threads still need the agent and how many need you.
+- **Agent contract:** `margent comments {path}` lists the threads. For each one that needs the agent, make the change when the comment asks for exactly that change, then reply with one line saying what changed and where. Reply too for a question, a judgment call or a disagreement. The thread stays open either way, because only the user resolves it, and the reply is how they see what the agent did (decision 0035). Finish by reporting how many threads still need the agent and how many need you.
 - **Sharing:** `margent export {path} --md --clean` writes a markdown copy with comments and island markers stripped, for sending markdown to someone else.
 
 For detail, see the [M3 spec](../specs/m3-comments.md).
@@ -242,7 +240,7 @@ Each decision has a record in [decisions/README.md](../decisions/README.md).
 | Question | Decision | Record |
 |---|---|---|
 | Who writes the HTML (render path) | A deterministic script. The LLM designs islands, never pages. Rejected: LLM renders on each change, because of double edits and drift (S0). | [0001](../decisions/0001-deterministic-script-renders-pages.md) |
-| Design vocabulary (freedom vs reuse) | Bespoke islands, promoted to a catalog on second use. Rejected: fixed component kit only, which loses the fresh visuals you value. Rejected: typed catalog from day one, which has the same problem, earlier. | [0002](../decisions/0002-bespoke-islands-promoted-on-second-use.md) |
+| Design vocabulary (freedom vs reuse) | Bespoke, project-local islands, no shared catalog. Rejected: fixed component kit only, which loses the fresh visuals you value. Rejected: typed catalog from day one, which has the same problem, earlier. Rejected: promotion to a catalog on second use, cut as unneeded for now. | [0034](../decisions/0034-no-island-catalog.md), superseding [0002](../decisions/0002-bespoke-islands-promoted-on-second-use.md) |
 | Island data format (readability) | Markdown tables first, YAML when nested. Primary facts only. In S3 all three islands needed just one marker line on the original table. Rejected: JSON blocks, which S1 showed to be cryptic and about 2x the input's size. | [0003](../decisions/0003-island-data-in-markdown-tables.md) |
 | Editing engine (write-back) | Contenteditable per block, house turndown, splice into source lines, round-trip gate. Rejected: Milkdown and Tiptap, which rewrite the file on save. Rejected: CodeMirror live preview, which edits a source view, not the rendered page. Kept as the fallback if contenteditable fails in real browsers. | [0004](../decisions/0004-contenteditable-per-block-with-splice.md) |
 | Comment storage (agent visibility) | Inline CriticMarkup with IDs. Rejected: sidecar file with text anchors, which gives cleaner markdown but needs a special read from the agent, and anchors drift. | [0005](../decisions/0005-comments-as-inline-criticmarkup.md) |
@@ -267,7 +265,7 @@ Each decision has a record in [decisions/README.md](../decisions/README.md).
 | Real-browser contenteditable | S2 simulated edits in jsdom. Real browsers add wrapper divs, stray `<br>` and paste markup. | The M2 edit corpus: 40+ scripted edits by keyboard and mouse in Chrome, each checked against an expected file. |
 | CriticMarkup in editable blocks | Comment markup inside a paragraph must survive turndown, or the gate sends the block to the panel. | A house turndown rule for highlights and notes, and M3's gate rate on comment-seeded docs. Fallback: blocks with comments edit in the panel. |
 | Agent and browser edit at once | A save could overwrite the agent's newer text. | The hash check refuses stale saves. Tested with a concurrent write. |
-| Island quality drifts | Modules are code the agent writes once and rarely revisits. | Schema plus fixture per island. Catalog islands get a screenshot test. |
+| Island quality drifts | Modules are code the agent writes once and rarely revisits. | `margent check` renders each island headless at two widths and fails on errors or overflow ([0014](../decisions/0014-check-tests-overflow-at-two-widths.md)). |
 | Islands run as code | Before M5, opening a doc runs its islands with the page's full access, including the write endpoint. That is fine for your own docs and unsafe for a cloned repo. | M5 ships the sandboxed frame, the page script policy and no island code in Node ([0025](../decisions/0025-islands-run-only-in-a-sandboxed-frame.md)). Residual risk: an island that loops freezes its tab, accepted in 0025. The hostile-fixture acceptance check (M5 A2) tests the rest. |
 | Small samples | S0 covers 3 days of one project, and S1 has 3 pairs with one designer each. | Re-measure after a month of real use: render events, islands made and reused, gate failure rate. |
 
@@ -292,7 +290,6 @@ margent/
   skills/docs-serve/SKILL.md        # /docs-serve {docs root}
   skills/docs-review/SKILL.md       # /docs-review {file or folder}: work through open comments
   dist/cli.js                       # the npm bin, built by prepack, not committed
-  catalog/                          # starter islands
   package.json                      # the CLI on npm
 ```
 
@@ -324,9 +321,8 @@ For milestone detail, see the [M1 spec](../specs/m1-render-islands.md), the [M2 
 | M1 Render + islands | Done | Renderer, house shell, island contract v1 and kit, the agent-docs skill and the HTML-read hook. | the first user's m0-report renders from md alone, with two islands built from its tables. |
 | M2 Serve + edit | Done | Local server with a session token, live reload, in-place prose editing behind the gate, side panel, stale-save check. | 40+ scripted edits on the first user's docs in Chrome each give their expected file, with no byte changed outside the edited block. |
 | M3 Comments | Done | Select-to-comment, margin notes, open count, the `comments` command, the agent contract and `export --clean`. | 25+ scripted comment cases in Chrome give their expected files, and the agent resolves or answers every comment on a real review. |
-| M4 Catalog | Planned | Promotion of islands to the catalog with schema and fixture. | a second project reuses a catalog island at no design cost. |
 | M5 Ship | Done | Island sandbox (a frame per island, checks run in the guest), a script policy on every page, no island code run in Node, comments inside islands, `doctor`, and a README section for agents. | everything works on this machine, including a local install from the `npm pack` tarball ([0026](../decisions/0026-m5-done-when-it-works-on-this-machine.md)). |
 
-*M1, M2, M3 and M5 are done. M4 adds depth to what already ships.*
+*M1, M2, M3 and M5 are done. M4 (a shared island catalog) is cut, see [0034](../decisions/0034-no-island-catalog.md).*
 
 Spike evidence is in the pre-public archive.

@@ -109,8 +109,8 @@ When asked to address comments (or `/docs-review`):
 
 1. Run `margent comments {file or folder}`. It lists each thread with its `file:line`, its notes, and whether it `needs agent` or `needs you`. Work only on threads that need the agent.
 2. Read the `.md` again before every edit: the user may have added a comment in the page since you last read it.
-3. When a comment asks for a change you can make exactly as asked, make it and delete the whole thread: every note, and the `{==` and `==}` around the highlighted text, which stays as it was. For a thread on its own line, delete the line and one blank line next to it.
-4. When it asks a question, needs a judgment call, or you disagree or need the user, append a `{>>[c{n}] Claude: …<<}` note directly after the thread's last note, with the same ID, and leave the thread open.
+3. When a comment asks for a change you can make exactly as asked, make it, then append a `{>>[c{n}] Claude: …<<}` note directly after the thread's last note, with the same ID, saying in one line what you changed and where ("Reworded to X in the second sentence"). Leave the thread open: the user resolves it after reading your note, and that is how they see what you did.
+4. When it asks a question, needs a judgment call, or you disagree or need the user, append the same kind of note with your answer or question, and leave the thread open.
 5. Run `margent check` on what you changed, then `margent comments` again, and report how many threads still need the agent and how many need the user.
 
 ## Errors
