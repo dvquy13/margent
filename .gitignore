@@ -9,3 +9,5 @@ spikes/s1/island/tmp/
 !test/fixtures/**/*.png
 dist/
 .claude/worktrees/
+# claude plugin eval runs
+evals/results/

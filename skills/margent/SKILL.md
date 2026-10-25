@@ -57,6 +57,16 @@ Prose, lists, tables, code. Each `##` becomes a section and a table-of-contents 
 - Link other docs with relative `.md` links (`[eval setup](../evals/eval-setup.md#gold-labels)`). The renderer points them at the rendered page.
 - Escape a literal dollar sign as `\$`.
 
+## When a diagram earns its place
+
+Before writing a spec, design note or report, list the structures it describes. Draw one SVG diagram for each structure the reader would otherwise rebuild in their head from prose:
+
+- parts and the boundaries between them: components, processes, trust or ownership lines
+- a flow: a pipeline, a request path, a sequence of messages across processes
+- states and the transitions between them
+
+A doc that adds or changes one of these gets the diagram, placed before the prose that walks through it. Skip it when the structure is a short list of steps or has two parts. Put the file in an `assets/` folder at the top of the docs tree unless the project's docs say otherwise, and give it the same caption test as an island: one italic sentence stating what the reader should take from it.
+
 ## When an island earns its place
 
 An island is a small JS module that draws a visual from data that stays in the markdown, usually a table that is already in the doc. Build one only when the visual shows something the reader can't see at a glance in the table or prose:
