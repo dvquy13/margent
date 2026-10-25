@@ -1,6 +1,6 @@
 ## 09 LLM usage
 
-LLM calls make most of the agent's judgments. This section lists every call, the rules they all run under, and how each is evaluated. Labels, current numbers and known weaknesses live in the [eval setup](../evals/eval-setup.md).
+LLM calls make most of the agent's judgments. This section lists every call, the rules they all run under, and how each is evaluated. Labels, current numbers and known weaknesses live in the eval setup.
 
 <!-- island llm-calls total=3.87 -->
 | Call | What it decides, and when | Model | Cost, average month | Evaluated by |

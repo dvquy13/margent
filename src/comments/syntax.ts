@@ -32,6 +32,26 @@ interface Span {
 
 interface FoundNote extends NoteParts, Span {}
 
+// A line break inside a note's text, as written (`<br>`, `<br/>`, `<br />`, any case). Global, so use it only with
+// split and replace, which reset lastIndex themselves.
+export const BREAK = /<br\s*\/?>/gi;
+
+// The lines of a note's text: the text split on each break. A text without a break is one line.
+export function noteLines(text: string): string[] {
+  return text.split(BREAK);
+}
+
+// The one-line note source for a multi-line field value (decision 0037): CRLF and CR become LF, the whole value is
+// trimmed, and its lines are joined with `<br>`. Empty lines between the others are kept.
+export function noteFromField(value: string): string {
+  return value.replace(/\r\n?/g, '\n').trim().split('\n').join('<br>');
+}
+
+// The field value of a note's text: each break becomes a line feed. The inverse of noteFromField for a one-line text.
+export function fieldFromNote(text: string): string {
+  return text.replace(BREAK, '\n');
+}
+
 // The note text the grammar accepts. A note's text can't hold '<<}', and a note can't hold a line break.
 export function noteSource(n: NoteParts): string {
   if (!/^c[1-9]\d*$/.test(n.id)) {

@@ -22,7 +22,7 @@ If a margent command fails for an environment reason (Chrome not found, no brows
 ## Workflow
 
 1. Write or edit the `.md`.
-2. Run `margent check {file or folder}`. It renders in memory, runs every island headless at phone (390px) and desktop widths, and prints one `file:line: message` per problem, including an island whose content spills outside its box. Fix each one in the source. A clean run prints `ok {n} docs, {m} islands`.
+2. Run `margent check {file or folder}`. It renders in memory, runs every island headless at phone (390px) and desktop widths, and prints one `file:line: message` per problem, including a link to a missing file or heading and an island whose content spills outside its box. Fix each one in the source. A clean run prints `ok {n} docs, {m} islands`.
 3. Run `margent open {file}` to show the user the page. It renders the file and every doc it links to, opens the browser, and prints the page path.
 
 `margent export {path} --out {dir}` writes standalone pages for sending to someone. Add `--clean` to strip review comments, and `--md` to write markdown files instead of pages (with `--clean`, island markup goes too).
@@ -110,7 +110,7 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 {>>[c4] Quy: S1 is missing from this table.<<}
 ```
 
-- A note is `{>>[c{n}] {author}: {text}<<}`: one line of plain text. Notes with the same ID, written directly after each other, are one thread.
+- A note is `{>>[c{n}] {author}: {text}<<}`: one line of plain text in the source. Write `<br>` for a line break inside a note. Notes with the same ID, written directly after each other, are one thread.
 - A thread right after `{==highlighted text==}` is about that text. A thread alone on its own line is about the block above it: this is how tables, code, islands and figures take comments. Never put comment markup inside a table cell or island YAML.
 - A block comment line may start with the phrase it is about: `{>>[c5] Quy: "S1 | Proceed" → is this still right?<<}`. `margent comments` prints the phrase in the thread's head.
 - Sign your notes as `Claude`, exactly. A new thread takes the ID one above the highest in the file.

@@ -3,9 +3,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { NOTE, noteSource, nextId, appendNote, replaceNote, stripThread, stripAll, splitQuote, quotedText } = await import(
-  '../.build/comments/syntax.js'
-);
+const {
+  NOTE,
+  noteSource,
+  nextId,
+  appendNote,
+  replaceNote,
+  stripThread,
+  stripAll,
+  splitQuote,
+  quotedText,
+  noteLines,
+  noteFromField,
+  fieldFromNote,
+} = await import('../.build/comments/syntax.js');
 
 const notesIn = (text) => [...text.matchAll(NOTE)].map((m) => ({ ...m.groups }));
 
@@ -252,4 +263,42 @@ test('T13: a quoted first note still passes noteSource, and a body with <<} is r
 
 test('splitQuote reads a whitespace-only quote as plain text, as quotedText refuses to write one', () => {
   assert.deepEqual(splitQuote('"  " → x'), { body: '"  " → x' });
+});
+
+test('decision 0037: noteLines splits a text on every spelling of a break, in any case', () => {
+  assert.deepEqual(noteLines('a<br>b'), ['a', 'b']);
+  assert.deepEqual(noteLines('a<br/>b<br />c<BR>d<Br/>e'), ['a', 'b', 'c', 'd', 'e']);
+  assert.deepEqual(noteLines('a<br x>b'), ['a<br x>b']);
+  assert.deepEqual(noteLines('no break'), ['no break']);
+  assert.deepEqual(noteLines('<br>'), ['', '']);
+  assert.deepEqual(noteLines('a<br><br>b'), ['a', '', 'b']);
+});
+
+test('decision 0037: noteLines and the other helpers do not share a regex lastIndex between calls', () => {
+  for (let i = 0; i < 3; i++) {
+    assert.deepEqual(noteLines('x<br>y'), ['x', 'y']);
+    assert.equal(fieldFromNote('x<br>y'), 'x\ny');
+  }
+});
+
+test('decision 0037: noteFromField normalizes line endings, trims, and joins lines with <br>', () => {
+  assert.equal(noteFromField('a\nb'), 'a<br>b');
+  assert.equal(noteFromField('a\r\nb'), 'a<br>b');
+  assert.equal(noteFromField('a\rb'), 'a<br>b');
+  assert.equal(noteFromField('  \n a \n\n b \n  '), 'a <br><br> b');
+  assert.equal(noteFromField('one line'), 'one line');
+  assert.equal(noteFromField('\n\n'), '');
+});
+
+test('decision 0037: fieldFromNote turns every break into a line feed, and round-trips through noteFromField', () => {
+  assert.equal(fieldFromNote('a<br>b<BR/>c<br />d'), 'a\nb\nc\nd');
+  assert.equal(fieldFromNote('plain'), 'plain');
+  assert.equal(noteFromField(fieldFromNote('a<br>b')), 'a<br>b');
+});
+
+test('decision 0037: a multi-line note field is still one line of source that NOTE reads back', () => {
+  const src = noteSource({ id: 'c2', author: 'Quy', text: noteFromField('first\r\n\nthird') });
+  assert.equal(src, '{>>[c2] Quy: first<br><br>third<<}');
+  assert.equal(src.split('\n').length, 1);
+  assert.deepEqual(notesIn(src), [{ id: 'c2', author: 'Quy', text: 'first<br><br>third' }]);
 });

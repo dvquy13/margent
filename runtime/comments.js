@@ -85,8 +85,22 @@
       author.remove();
       const head = el('div', 'c-note-head');
       head.append(author);
+      // The text keeps its breaks (decision 0037), so it is built from the nodes left, not from textContent. The spaces
+      // the markup puts at either end go, and a text node that empties goes with them.
+      const text = el('div', 'c-text');
+      text.append(...copy.childNodes);
+      for (let n = text.firstChild; n?.nodeType === Node.TEXT_NODE; n = text.firstChild) {
+        n.data = n.data.trimStart();
+        if (n.data !== '') break;
+        n.remove();
+      }
+      for (let n = text.lastChild; n?.nodeType === Node.TEXT_NODE; n = text.lastChild) {
+        n.data = n.data.trimEnd();
+        if (n.data !== '') break;
+        n.remove();
+      }
       const p = el('p', 'c-note');
-      p.append(head, el('div', 'c-text', copy.textContent.trim()));
+      p.append(head, text);
       card.append(p);
     }
     card.append(el('div', 'c-actions'));

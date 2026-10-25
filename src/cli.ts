@@ -19,6 +19,7 @@ import { openInBrowser } from './cli/opener.js';
 import { runIslandPages, type IslandPage } from './cli/islands-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
+import { linkProblems } from './cli/links.js';
 import { cleanSource } from './comments/clean.js';
 import { startServer } from './serve/server.js';
 
@@ -184,6 +185,7 @@ async function commandCheck(target: string): Promise<number> {
   const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'));
 
   const problems = set.errors.map((e) => e.message);
+  problems.push(...linkProblems(set.docs));
   const withIslands = set.docs.filter((d) => d.rendered.islands.length > 0);
   if (withIslands.length > 0) problems.push(...(await runIslands(withIslands)));
 

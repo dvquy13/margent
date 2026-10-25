@@ -64,7 +64,7 @@ When someone tells you "Install github.com/dvquy13/margent", do this:
 | Command | What it does |
 |---|---|
 | `margent open {file}` | Renders the file and every doc it links to, opens the browser, and prints the page path. |
-| `margent check {path}` | Renders in memory and runs every island headless at phone and desktop widths. Prints one `file:line: message` per problem and exits 1 on any. |
+| `margent check {path}` | Renders in memory, checks every local link and heading anchor, and runs every island headless at phone and desktop widths. Prints one `file:line: message` per problem and exits 1 on any. |
 | `margent comments {path}` | Lists the review comment threads in the docs that `check` walks. |
 | `margent export {path} --out {dir} [--md] [--clean]` | Writes standalone pages (or markdown with `--md`) without opening the browser. `--clean` strips review comments. A folder exports every `.md` under it. |
 | `margent serve {docs root} [--port {n}] [--no-open] [--author {name}]` | Serves the folder locally, reloads pages when a `.md` changes, and lets the reader edit blocks and leave comments. Runs until interrupted. |

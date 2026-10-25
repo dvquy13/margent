@@ -39,6 +39,8 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0033](0033-owner-edits-their-own-notes.md) | The owner edits their own notes from the page | accepted | 2026-10-25 |
 | [0034](0034-no-island-catalog.md) | No island catalog; M4 is cut | accepted | 2026-10-25 |
 | [0035](0035-agent-replies-human-resolves.md) | The agent replies to every comment and only the user resolves | accepted | 2026-10-25 |
+| [0036](0036-check-fails-on-broken-links.md) | `check` fails on broken links | accepted | 2026-10-25 |
+| [0037](0037-note-line-breaks-as-br.md) | A note's line breaks are stored as `<br>` | accepted | 2026-10-25 |
 
 ## Deferred
 

@@ -343,6 +343,65 @@ test('check: a folder keeps going past a broken doc and reports each one', full,
   for (const line of lines) assert.match(line, /^test\/fixtures\/islands\/docs\/[^:]+:\d+: /);
 });
 
+// ---- check: links (decision 0036), no Chrome needed
+
+const LINKS = 'test/fixtures/cli/links';
+
+test('check: a link to a missing heading or a missing file fails at its line, exit 1', () => {
+  const r = cli(['check', 'test/fixtures/accept/links/broken.md'], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    'test/fixtures/accept/links/broken.md:3: link to #missing: no such heading on this page\n' +
+      'test/fixtures/accept/links/broken.md:5: link to guide.md#nope: no heading #nope in test/fixtures/accept/links/guide.md\n',
+  );
+});
+
+test('check: links that resolve, following linked docs, pass with exit 0', () => {
+  const r = cli(['check', 'test/fixtures/accept/links/index.md'], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ok 3 docs, 0 islands\n');
+});
+
+test('check: a link to a missing file fails with no such file', () => {
+  const r = cli(['check', `${LINKS}/missing.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `${LINKS}/missing.md:7: link to gone.md: no such file\n`);
+});
+
+test('check: a link to an existing folder passes', () => {
+  const r = cli(['check', `${LINKS}/folder.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
+test('check: a link to a raw HTML id or <a name> on the target page passes', () => {
+  const r = cli(['check', `${LINKS}/raw-anchor.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ok 2 docs, 0 islands\n');
+});
+
+test('check: a percent-encoded anchor to a non-ASCII heading passes', () => {
+  const r = cli(['check', `${LINKS}/non-ascii.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
+test('check: a link in a figure caption is checked too', () => {
+  const r = cli(['check', `${LINKS}/caption.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `${LINKS}/caption.md:9: link to gone.md: no such file\n`);
+});
+
+test('check: a sub-folder whose link leaves it is checked against the target, and a missing heading there fails', () => {
+  const r = cli(['check', `${LINKS}/out`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${LINKS}/out/inner.md:9: link to ../other.md#nope: no heading #nope in ${LINKS}/other.md\n`,
+  );
+});
+
 // ---- check: islands, headless (needs Chrome)
 
 test('check: a clean folder with islands prints ok and exits 0 (Chrome)', () => {

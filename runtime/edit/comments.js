@@ -5,8 +5,11 @@
 // source is built here from its markdown with the syntax module.
 import {
   appendNote,
+  fieldFromNote,
   NOTE,
   nextId,
+  noteFromField,
+  noteLines,
   noteSource,
   quotedText,
   replaceNote,
@@ -94,8 +97,8 @@ function quoteOf(text) {
   return text.replace(/\s+/g, ' ').trim().replaceAll('"', "'");
 }
 
-// The field: a quiet textarea in the card's type. It holds one line (R1.2): a pasted line break becomes a space, and it
-// grows with its text up to about eight lines, then scrolls (edit.css).
+// The field: a quiet textarea in the card's type. Its lines are saved as one note line joined by `<br>` (decision 0037),
+// and it grows with its text up to about eight lines, then scrolls (edit.css).
 // A field that is not rendered (detached, or in a hidden draft) measures 0, so it keeps its natural one-line height
 // until it is shown; every caller that shows a field fits it then.
 function fitField(field) {
@@ -113,14 +116,7 @@ function makeCompose(placeholder) {
   field.spellcheck = true;
   field.placeholder = placeholder;
   field.setAttribute('aria-label', placeholder || 'Note text');
-  field.addEventListener('input', () => {
-    if (/[\r\n]/.test(field.value)) {
-      const at = field.selectionStart;
-      field.value = field.value.replace(/\r\n?|\n/g, ' ');
-      field.setSelectionRange(at, at);
-    }
-    fitField(field);
-  });
+  field.addEventListener('input', () => fitField(field));
   const view = msgView();
   const cancel = make('button', 'comment-cancel', 'Cancel');
   cancel.type = 'button';
@@ -223,7 +219,7 @@ export function initComments(margent) {
     () =>
       hasText(boxD) ||
       (replyD !== null && hasText(replyD)) ||
-      (editD !== null && editD.editor.value.trim() !== editD.original),
+      (editD !== null && noteFromField(editD.editor.value) !== editD.original),
   );
 
   function setDraftBusy(d, on) {
@@ -351,14 +347,16 @@ export function initComments(margent) {
   });
 
   // Enter saves. An empty new comment or reply sends nothing; an edit that is empty is refused and keeps its field; an
-  // unchanged edit closes without a save. A note without an author says so.
+  // unchanged edit closes without a save. A note without an author says so. The text is in the note's stored form, one
+  // line with `<br>` (decision 0037), so an edit's original is compared in that form too.
   function submit(d) {
     if (!d.active || d.busy) return;
-    const text = d.editor.value.trim();
+    const text = noteFromField(d.editor.value);
+    const empty = noteLines(text).join('').trim() === '';
     if (d.kind === 'edit') {
       if (text === d.original) return d.close(true);
-      if (text === '') return d.view.set(EMPTY_EDIT_MESSAGE, { error: true });
-    } else if (text === '') {
+      if (empty) return d.view.set(EMPTY_EDIT_MESSAGE, { error: true });
+    } else if (empty) {
       return;
     }
     if (state.author === null) {
@@ -386,7 +384,8 @@ export function initComments(margent) {
 
   function attachDraft(d) {
     d.editor.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' || e.isComposing) return;
+      // Shift+Enter, and Enter while composing, keep the field's own newline (decision 0037).
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
       e.preventDefault();
       submit(d);
     });
@@ -627,7 +626,7 @@ export function initComments(margent) {
     if (replyD !== null) replyD.close(false);
     const { id, index, body, range, note, text, button } = info;
     const c = makeCompose('Edit note');
-    c.field.value = body;
+    c.field.value = fieldFromNote(body);
     const d = {
       kind: 'edit',
       active: true,
@@ -642,7 +641,8 @@ export function initComments(margent) {
       id,
       build: (n) => replaceNote(sourceOf(range), id, index, n.text),
       restore: button,
-      original: body.trim(),
+      // In the stored form the field gives back, so a note written with `<br/>` and left unchanged sends no save.
+      original: noteFromField(fieldFromNote(body)),
     };
     d.close = (restore) => {
       d.active = false;

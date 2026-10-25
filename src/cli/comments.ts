@@ -1,6 +1,6 @@
 // The output of `margent comments` (spec R8): one head line per thread with its notes, then a summary line.
 import { displayPath } from '../render/root.js';
-import { splitQuote, type Thread } from '../comments/syntax.js';
+import { noteLines, splitQuote, type Thread } from '../comments/syntax.js';
 import type { RenderedFile } from './collect.js';
 
 function plural(n: number, word: string): string {
@@ -36,9 +36,12 @@ export function commentsReport(docs: RenderedFile[]): string {
       else needsAgent++;
       lines.push(`${file}:${t.line}: [${t.id}] ${state} · ${what(t)}`);
       t.notes.forEach((n, i) => {
-        // A quoted block comment's quote is in the head, so the first note line prints only the body.
+        // A quoted block comment's quote is in the head, so the first note line prints only the body. A note with
+        // breaks goes on one line each, indented to the column where its text starts.
         const text = i === 0 && t.quote !== undefined ? splitQuote(n.text).body : n.text;
-        lines.push(`  ${n.author}: ${text}`);
+        const [first, ...rest] = noteLines(text);
+        lines.push(`  ${n.author}: ${first}`);
+        for (const line of rest) lines.push(`${' '.repeat(2 + n.author.length + 2)}${line}`);
       });
     }
   }
