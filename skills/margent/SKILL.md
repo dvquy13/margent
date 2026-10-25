@@ -22,7 +22,7 @@ If a margent command fails for an environment reason (Chrome not found, no brows
 ## Workflow
 
 1. Write or edit the `.md`.
-2. Run `margent check {file or folder}`. It renders in memory, runs every island headless at phone (390px) and desktop widths, and prints one `file:line: message` per problem, including an island whose content spills outside its box. Fix each one in the source. A clean run prints `ok {n} docs, {m} islands`.
+2. Run `margent check {file or folder}`. It renders in memory, runs every island headless at phone (390px) and desktop widths, and prints one `file:line: message` per problem, including a link to a missing file or heading and an island whose content spills outside its box. Fix each one in the source. A clean run prints `ok {n} docs, {m} islands`.
 3. Run `margent open {file}` to show the user the page. It renders the file and every doc it links to, opens the browser, and prints the page path.
 
 `margent export {path} --out {dir}` writes standalone pages for sending to someone. Add `--clean` to strip review comments, and `--md` to write markdown files instead of pages (with `--clean`, island markup goes too).

@@ -20,6 +20,14 @@ export interface BodyOptions {
   outFile: string; // absolute path of the .html that will be written
 }
 
+// A link that `margent check` verifies: a local path, or a #fragment on this page.
+export interface LinkRef {
+  line: number; // 1-based line of the link in the source
+  href: string; // the link's href as written (markdown-it's normalized form)
+  target: string | null; // absolute path of the local file, or null for a #fragment on this page
+  anchor: string | null; // the decoded text after the #, or null when there is none
+}
+
 export interface BodyResult {
   hero: string;
   toc: string;
@@ -28,6 +36,8 @@ export interface BodyResult {
   title: string;
   links: string[]; // sorted absolute paths of existing .md files inside root that this doc links to
   svgs: string[]; // sorted absolute paths of the SVG files inlined as figures
+  anchors: string[]; // sorted: heading slugs and HTML ids or <a name>s on this page
+  refs: LinkRef[]; // in document order: the local links and #fragment links, for `margent check`
   islands: IslandRecord[]; // in document order
   comments: Thread[]; // in document order
 }
@@ -39,6 +49,8 @@ export interface RenderEnv extends BodyOptions {
   lines: string[];
   links: Set<string>;
   svgs: Set<string>;
+  anchors: Set<string>;
+  refs: LinkRef[];
   frontMatter: DocMeta;
   h1?: string;
   slugger: Slugger;
@@ -51,10 +63,12 @@ interface CoreRule {
   run: (state: StateCore) => void;
 }
 
-// Order matters: each rule sees the output of the ones before it. Islands run after the figure and image rules, and
-// before the source maps, so an island's table gets no data-src of its own.
+// Order matters: each rule sees the output of the ones before it. Link refs run before figures, which turn a
+// caption's inline tokens into HTML, so a caption's links are checked too. Islands run after the figure and image
+// rules, and before the source maps, so an island's table gets no data-src of its own.
 const CORE_RULES: CoreRule[] = [
   { name: 'margent_frontmatter', run: extractFrontMatter },
+  { name: 'margent_link_refs', run: collectLinkRefs },
   { name: 'margent_figures', run: inlineFigures },
   { name: 'margent_comments', run: commentsRule },
   { name: 'margent_local_images', run: checkLocalImages },
@@ -62,6 +76,7 @@ const CORE_RULES: CoreRule[] = [
   { name: 'margent_source_map', run: setSourceMaps },
   { name: 'margent_headings', run: assignHeadings },
   { name: 'margent_gap_marks', run: markListGaps },
+  { name: 'margent_html_anchors', run: collectHtmlAnchors },
 ];
 
 // ---- helpers --------------------------------------------------------------
@@ -250,6 +265,38 @@ function inlineFigures(state: StateCore): void {
   state.tokens = out;
 }
 
+// The text after the first #, decoded. Null when there is no fragment or it is empty.
+function fragmentOf(href: string): string | null {
+  const i = href.indexOf('#');
+  if (i < 0 || i === href.length - 1) return null;
+  const raw = href.slice(i + 1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+// One LinkRef per local link and per #fragment link, with its source line. Only the tokens are read: the renderer still
+// rewrites each link as before. Links inside table cells are inline tokens too, so they are seen here.
+function collectLinkRefs(state: StateCore): void {
+  const env = envOf(state);
+  forEachInline(state.tokens, (inline, line) => {
+    for (const child of inline.children ?? []) {
+      if (child.type !== 'link_open') continue;
+      const href = attr(child, 'href');
+      const local = isLocal(href);
+      if (!local && !href.startsWith('#')) continue;
+      env.refs.push({
+        line,
+        href,
+        target: local ? localTarget(href, env) : null,
+        anchor: fragmentOf(href),
+      });
+    }
+  });
+}
+
 // Every local image that is not a figure must exist. A missing one is an error at the image's line (spec R1.7).
 function checkLocalImages(state: StateCore): void {
   const env = envOf(state);
@@ -275,6 +322,7 @@ function setSourceMaps(state: StateCore): void {
 
 // Slugs for every heading, h1 to h6, in document order. The h1 is the title: it gets a slug id too, so
 // [x](#title-slug) lands, and it reserves its slug before the h2s. A top-level h2 gets its slug on its section.
+// Every slug is also an anchor of the page (env.anchors).
 function assignHeadings(state: StateCore): void {
   const env = envOf(state);
   const tokens = state.tokens;
@@ -285,6 +333,7 @@ function assignHeadings(state: StateCore): void {
     const text = plainText(tokens[i + 1]?.children ?? null);
     // The slug uses the full heading text, so anchors keep working when a number is pulled out for display.
     const slug = env.slugger.unique(text);
+    env.anchors.add(slug);
     if (level === 1) {
       env.h1 ??= text;
       t.attrSet('id', slug);
@@ -294,6 +343,26 @@ function assignHeadings(state: StateCore): void {
     const label = level === 2 ? numberedLabel(state, tokens[i + 1]) : escapeHtml(text);
     t.meta = { slug, label, section };
     if (!section) t.attrSet('id', slug);
+  }
+}
+
+// An id="…" (either quote) on any element, and <a name="…">, in raw HTML.
+const HTML_ID = /\sid\s*=\s*(["'])(.*?)\1/gi;
+const HTML_A_NAME = /<a\s(?:[^>]*?\s)?name\s*=\s*(["'])(.*?)\1/gi;
+
+// Adds the anchors written as raw HTML in the page's html_block and html_inline tokens to env.anchors.
+function collectHtmlAnchors(state: StateCore): void {
+  const env = envOf(state);
+  const addFrom = (html: string): void => {
+    for (const m of html.matchAll(HTML_ID)) env.anchors.add(m[2]);
+    for (const m of html.matchAll(HTML_A_NAME)) env.anchors.add(m[2]);
+  };
+  for (const t of state.tokens) {
+    if (t.type === 'html_block') addFrom(t.content);
+    if (t.type !== 'inline') continue;
+    for (const child of t.children ?? []) {
+      if (child.type === 'html_inline') addFrom(child.content);
+    }
   }
 }
 
@@ -469,6 +538,8 @@ export function renderBody(source: string, opts: BodyOptions): BodyResult {
     lines: source.split('\n'),
     links: new Set(),
     svgs: new Set(),
+    anchors: new Set(),
+    refs: [],
     frontMatter: {},
     slugger: new Slugger(),
     islands: [],
@@ -519,6 +590,8 @@ export function renderBody(source: string, opts: BodyOptions): BodyResult {
     title: fm.title ?? env.h1 ?? basename(opts.file, '.md'),
     links: [...env.links].sort(),
     svgs: [...env.svgs].sort(),
+    anchors: [...env.anchors].sort(),
+    refs: env.refs,
     comments: env.comments,
   };
 }

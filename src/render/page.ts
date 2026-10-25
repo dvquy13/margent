@@ -9,7 +9,7 @@ import kitJs from '../../runtime/kit.js?raw';
 import hostJs from '../../runtime/host.js?raw';
 import guestJs from '../../runtime/guest.js?raw';
 import { VERSION } from '../version.js';
-import { renderBody } from './markdown.js';
+import { renderBody, type LinkRef } from './markdown.js';
 import { displayPath, projectName } from './root.js';
 import { RenderError } from '../errors.js';
 import type { IslandRecord } from '../islands/parse.js';
@@ -37,6 +37,8 @@ export interface RenderDocInput {
 export interface RenderedDoc {
   html: string;
   links: string[]; // sorted absolute paths of existing .md files inside root that this doc links to
+  anchors: string[]; // sorted: the heading slugs and HTML ids of this page (`margent check` reads them)
+  refs: LinkRef[]; // in document order: the local and #fragment links (`margent check` reads them)
   title: string;
   islands: { name: string; kind: string; line: number }[]; // in document order
   deps: string[]; // sorted absolute paths: the .md, each island module used, each inlined SVG
@@ -164,6 +166,8 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   return {
     html: fillShell(shellHtml, values),
     links: body.links,
+    anchors: body.anchors,
+    refs: body.refs,
     title: body.title,
     islands,
     deps: [...new Set(deps)].sort(),
