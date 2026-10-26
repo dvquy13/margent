@@ -91,10 +91,10 @@ function selectionEndRect(range, block) {
   return block.getBoundingClientRect();
 }
 
-// The phrase a block comment from a selection quotes (decision 0023): the selected text, whitespace collapsed and
-// trimmed, each " as '. '' when nothing is selected.
+// The phrase a block comment from a selection quotes (decision 0023), stored by MargentQuote.store (runtime/quote.js, loaded
+// before the edit bundle): the selected text, whitespace collapsed and trimmed, each " as '. '' when nothing is selected.
 function quoteOf(text) {
-  return text.replace(/\s+/g, ' ').trim().replaceAll('"', "'");
+  return window.MargentQuote.store(text);
 }
 
 // The field: a quiet textarea in the card's type. Its lines are saved as one note line joined by `<br>` (decision 0037),

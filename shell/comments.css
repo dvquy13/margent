@@ -84,6 +84,8 @@ mark.c-hl:focus-visible, .c-thread:focus-visible {
   html.c-rail-on p.c-line { display: none; }
   /* A linked block gets a 2px bar 6px outside its left edge, so it never touches the block's own text: an accent strip
      8px out, with a page-coloured strip over its inner 6px. */
+  /* A table, code, figure or island that a block comment is about keeps the bar in the light tint (decision 0039). */
+  html.c-rail-on [data-src].c-commented { box-shadow: -8px 0 0 -2px var(--bg), -10px 0 0 -2px var(--accent-border); }
   html.c-rail-on [data-src].is-linked { box-shadow: -8px 0 0 -2px var(--bg), -10px 0 0 -2px var(--accent); }
 
   html.c-rail-on .c-rail { display: flex; flex-direction: column; gap: var(--gap-sm); }
@@ -99,6 +101,11 @@ mark.c-hl:focus-visible, .c-thread:focus-visible {
   html.c-rail-on .c-card.is-linked { border-left-color: var(--accent); }
   html.c-rail-on .c-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   html.c-rail-on .c-card .c-quote { display: block; margin: 0 0 var(--gap-xs); color: var(--text); font-style: normal; }
+  /* A quote the page cannot find (runtime/comments.js): muted, with a label under it. */
+  html.c-rail-on .c-card .c-quote.c-quote-missing { color: var(--text-muted); }
+  html.c-rail-on .c-card .c-quote-note {
+    display: block; margin: 0 0 var(--gap-xs); font-family: var(--font-ui); font-size: var(--font-xs); color: var(--text-muted);
+  }
   html.c-rail-on .c-card .c-note { max-width: none; margin: 0; }
   html.c-rail-on .c-card .c-note + .c-note { margin-top: 0.4em; }
   html.c-rail-on .c-card .c-author { color: var(--text); font-weight: 600; margin-right: 0.3em; }

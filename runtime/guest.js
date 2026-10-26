@@ -1,6 +1,7 @@
 // The island guest (M5 spec R3). It runs in the island's sandboxed srcdoc frame, after the kit, and talks to the page
 // only through postMessage. It reads the island from #margent-island, checks the module with the checks that moved
-// out of Node (R1.3), renders it into an open shadow root, and reports: state, height, overflow, links, selections.
+// out of Node (R1.3), renders it into an open shadow root, and reports: state, height, overflow, links, selections,
+// and how often a quoted phrase occurs (quote.js, copied into the frame before this script).
 // Plain browser script: no imports, no network, and nothing touches the DOM until the first tokens message.
 (function () {
   'use strict';
@@ -163,61 +164,13 @@
     return { description: describe(outermost.el), side: outermost.past.side, px: outermost.past.px };
   }
 
-  // The text ranges of every occurrence of phrase in the shadow root, for the CSS Highlight API.
-  function findRanges(root, phrase) {
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: function (n) {
-        var p = n.parentElement;
-        return p && (p.tagName === 'STYLE' || p.tagName === 'SCRIPT') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
-      }
-    });
-    var nodes = [];
-    var text = '';
-    var n;
-    while ((n = walker.nextNode())) {
-      nodes.push({ node: n, start: text.length });
-      text += n.data;
-    }
-    var locate = function (offset, isEnd) {
-      for (var i = 0; i < nodes.length; i++) {
-        var s = nodes[i].start;
-        var e = s + nodes[i].node.data.length;
-        if (isEnd ? offset > s && offset <= e : offset >= s && offset < e) {
-          return { node: nodes[i].node, offset: offset - s };
-        }
-      }
-      throw new Error('mark: no text at offset ' + offset);
-    };
-    var ranges = [];
-    // Whitespace is ignored: a quote taken from a selection across elements has a space or line break where the text
-    // nodes have none ("are out HN" against "are out" + "HN"). `at[i]` is the offset in `text` of squeezed character i.
-    // A quote stores ' for each " of the page (quoteOf in runtime/edit/comments.js), so " is read as ' on both sides.
-    var squeezed = '';
-    var at = [];
-    for (var k = 0; k < text.length; k++) {
-      if (/\s/.test(text[k])) continue;
-      squeezed += text[k] === '"' ? "'" : text[k];
-      at.push(k);
-    }
-    var needle = String(phrase || '').replace(/\s+/g, '').replaceAll('"', "'");
-    if (!needle) return ranges;
-    for (var i = squeezed.indexOf(needle); i >= 0; i = squeezed.indexOf(needle, i + needle.length)) {
-      var a = locate(at[i], false);
-      var b = locate(at[i + needle.length - 1] + 1, true);
-      var range = document.createRange();
-      range.setStart(a.node, a.offset);
-      range.setEnd(b.node, b.offset);
-      ranges.push(range);
-    }
-    return ranges;
-  }
-
+  // Marks every occurrence of phrase in the shadow root for the CSS Highlight API (quote.js finds them). Null clears.
   function mark(phrase) {
     if (phrase === null) {
       CSS.highlights.delete('margent-quote');
       return;
     }
-    CSS.highlights.set('margent-quote', new Highlight(...findRanges(state.root, phrase)));
+    CSS.highlights.set('margent-quote', new Highlight(...MargentQuote.find(state.root, phrase)));
   }
 
   // Theme tokens: the first message renders, later ones refresh the sheet and run the onTheme callbacks.
@@ -280,6 +233,10 @@
     if (msg.type === 'tokens') onTokens(msg);
     else if (msg.type === 'mark') mark(msg.phrase);
     else if (msg.type === 'measure') post({ type: 'overflow', id: msg.id, overflow: overflowOf() });
+    else if (msg.type === 'find') {
+      // null when the guest has not started (no shadow root yet): the host reads that as "no island to search".
+      post({ type: 'found', id: msg.id, count: state.root ? MargentQuote.find(state.root, msg.phrase).length : null });
+    }
   });
 
   // Selections: the text inside the island and its rect in frame coordinates, on pointerup.

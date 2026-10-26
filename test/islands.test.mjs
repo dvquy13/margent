@@ -452,3 +452,22 @@ test('S3: A, B and C render in Chrome with no errors or clipping, and no horizon
     }
   });
 });
+
+test('M5 R6: margentIslands.find counts a phrase inside a rendered island, and 0 for a phrase it lacks', full, async () => {
+  const dir = join(workdir, 'find');
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, 'mismatch.html');
+  writeFileSync(file, render('mismatch.md').html);
+  await withBrowser(async (browser) => {
+    const { page, errors, close } = await openPage(browser, file);
+    try {
+      const count = (phrase) => page.evaluate((p) => window.margentIslands.find(document.querySelector('agent-island'), p), phrase);
+      assert.equal(await count('Proceed'), 1);
+      assert.equal(await count('Maybe proceed'), 1);
+      assert.equal(await count('no such phrase in the island'), 0);
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  });
+});

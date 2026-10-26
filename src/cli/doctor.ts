@@ -7,7 +7,7 @@ import { resolveAuthor } from '../serve/author.js';
 import { VERSION } from '../version.js';
 import { findChrome } from './chrome.js';
 import { cacheRoot, renderOne } from './collect.js';
-import { runIslandPages } from './islands-run.js';
+import { runPages } from './pages-run.js';
 import { openerCommand, openerResolves } from './opener.js';
 
 const MIN_NODE_MAJOR = 22;
@@ -124,7 +124,7 @@ async function checkIslands(): Promise<Check> {
     const html = join(dir, 'sample.html');
     const rendered = renderOne(file, dir, html);
     writeFileSync(html, rendered.html);
-    const problems = await runIslandPages([{ file: 'margent doctor sample', html, islands: rendered.islands }]);
+    const problems = await runPages([{ file: 'margent doctor sample', html, islands: rendered.islands, quotes: [] }]);
     if (problems.length > 0) return { status: 'fail', line: `fail islands: ${problems[0]}` };
     return { status: 'ok', line: 'ok islands: a sample island rendered in its sandboxed frame' };
   } catch (err) {

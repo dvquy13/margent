@@ -30,7 +30,7 @@ function pageFile(name, source) {
   return { html, url: pathToFileURL(path).href };
 }
 
-const FIXTURES = ['all-kinds.md', 'quoted.md', 'quoted-table.md', 'tall-table.md'];
+const FIXTURES = ['all-kinds.md', 'block-prose.md', 'quoted.md', 'quoted-repeat.md', 'quoted-table.md', 'tall-table.md'];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
 let browser;
@@ -320,6 +320,56 @@ test('R4.3: a quoted phrase that is not in its block marks only the block', full
   }
 });
 
+test('0039: a phrase that occurs twice in its block is marked at both places, always and on hover', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-repeat.md']);
+  try {
+    const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
+    assert.deepEqual(always, ['beta gate', 'beta gate'], 'both matches carry the always-on tint');
+    await page.locator('.c-card[data-c="c1"]').hover();
+    const hovered = await page.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
+    assert.deepEqual(hovered, ['beta gate', 'beta gate'], 'hovering the card marks both matches');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('0039: a block comment with no quote tints its paragraph\'s text, and a table\'s comment keeps a light bar', async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['block-prose.md']);
+  try {
+    const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
+    assert.deepEqual(always, ['The sync job copies the vault every night.'], 'the paragraph is tinted without hover');
+    await page.locator('.c-card[data-c="c1"]').hover();
+    const hovered = await page.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
+    assert.deepEqual(hovered, ['The sync job copies the vault every night.'], 'hovering the card tints it more strongly');
+    const table = page.locator('[data-src].c-commented');
+    assert.equal(await table.count(), 1, 'only the table takes the bar');
+    assert.match(await table.evaluate((n) => n.querySelector('table') ? 'table' : n.localName), /table/);
+    assert.match(await table.evaluate((n) => getComputedStyle(n).boxShadow), /, /, 'the bar shows without hover');
+    assert.equal(await page.locator('.c-quote-missing').count(), 0, 'an unquoted comment is never missing');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('0039: a quote the page cannot find is muted and labelled on its card, and quoteReport says so', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted.md']);
+  try {
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('q.c-quote.c-quote-missing').count(), 1, 'the quote is marked missing');
+    assert.equal(await card.locator('q.c-quote + .c-quote-note').textContent(), 'not found in the page');
+    assert.equal(await page.locator('.c-card[data-c="c2"] .c-quote-missing').count(), 0, 'a highlight is never marked missing');
+    // c2 is an inline thread: its highlight is in the source, so only the block comment's quote is reported.
+    const report = await page.evaluate(() => window.margentComments.quoteReport());
+    assert.deepEqual(report, [{ id: 'c1', found: false }]);
+    assert.equal(await card.locator('.c-quote-note').count(), 1, 'the label is not added twice');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
 // The UI stores a quote with ' for each " (quoteOf), so a phrase taken from text that has " in it must still be found.
 test('0023: a phrase taken from a table cell with " in it is marked, though its quote stores \' for "', async () => {
   const { page, errors, close } = await open(1280, 'light', urls['quoted-table.md']);
@@ -431,7 +481,8 @@ test('0023: every quoted phrase is marked without hover, and a click on one open
   const { page, errors, close } = await open(1280, 'light', urls['tall-table.md']);
   try {
     const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
-    assert.deepEqual(always.sort(), ['Row 7', 'marked phrase'], 'every quoted phrase is marked before any hover');
+    // The inline thread's "marked phrase" is tinted by its own <mark>, so it is not in the quote highlight.
+    assert.deepEqual(always, ['Row 7'], 'every quoted phrase is marked before any hover');
     assert.equal(await page.evaluate(() => CSS.highlights.has('margent-quote')), false, 'no card is linked yet');
     const point = await page.evaluate(() => {
       const row7 = [...CSS.highlights.get('margent-quotes')].find((r) => r.toString() === 'Row 7');

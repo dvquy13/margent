@@ -209,53 +209,55 @@
 
   // ---- linking: the highlight or point marker, the card and (for a block) the block, marked together -------------------
 
-  // Finds the text in one root (a block) and returns a Range over it, or null. The phrase may run across text nodes
-  // (two list items, or text around bold), and whitespace is ignored on both sides: a quote is stored with its whitespace
-  // collapsed, and one taken from an island before 2026-10-24 has none at block boundaries ("gate.Spread"). A quote
-  // stores ' for each " of the page (quoteOf in runtime/edit/comments.js), so " is read as ' on both sides.
-  function findText(root, text) {
-    const wanted = text.replace(/\s+/g, '').replaceAll('"', "'");
-    if (wanted === '') return null;
-    const chars = []; // each non-space character of the root's text, with its text node and offset
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const value = node.nodeValue;
-      for (let i = 0; i < value.length; i++) if (!/\s/.test(value[i])) chars.push({ node, i, c: value[i].replace('"', "'") });
-    }
-    const at = chars.map((x) => x.c).join('').indexOf(wanted);
-    if (at < 0) return null;
-    const first = chars[at];
-    const last = chars[at + wanted.length - 1];
-    const range = document.createRange();
-    range.setStart(first.node, first.i);
-    range.setEnd(last.node, last.i + 1);
-    return range;
-  }
-
   const isIsland = (el) => el.localName === 'agent-island';
   // Marks a phrase in one island's frame, or clears it with null. Without margentIslands there is no island to mark.
   function markInIsland(el, phrase) {
     if (window.margentIslands) window.margentIslands.mark(el, phrase);
   }
 
-  // Quoted phrases (decision 0023) are marked with the Custom Highlight API, so the DOM never changes: all of them
-  // always, in the highlight tint, and the linked card's one in the stronger tint. A phrase that isn't found in one text
-  // node of its block is not marked, and its card links to the whole block. Browsers without the API mark blocks only.
-  // An island's text is in its frame, which the page cannot search: a phrase quoted from an island is marked inside the
-  // frame, on hover or focus, through margentIslands.mark (M5 R6.2). It has no always-on tint.
-  const quoteRanges = new Map();
+  // Quoted phrases (decision 0023) are marked with the Custom Highlight API, so the DOM never changes: all of their
+  // matches always, in the highlight tint, and the linked card's ones in the stronger tint. The ranges come from
+  // MargentQuote.find (runtime/quote.js), whether or not the API exists, since the miss state needs them. A phrase that
+  // isn't found in its block is not marked, its card links to the whole block, and the card says so (markMissing).
+  // Browsers without the API mark blocks only. An island's text is in its frame, which the page cannot search: a phrase
+  // quoted from an island is marked inside the frame, on hover or focus, through margentIslands.mark (M5 R6.2). It has
+  // no always-on tint, and its miss state comes from margentIslands.find in quoteReport.
+  // A block comment with no quote is about its whole block (decision 0039). A prose block is marked like a phrase, all
+  // of its text; a table, code, a figure or an island would be one large tint, so it takes c-commented, a light bar.
+  const PROSE = ':is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote)';
+  const markRanges = new Map(); // id -> the Range[] its card marks: its quote's matches, or its prose block's text
   function markQuotes() {
-    if (!('highlights' in CSS)) return;
-    quoteRanges.clear();
-    for (const [id, quote] of quotes) {
+    markRanges.clear();
+    for (const [id, card] of cards) {
+      if (card.dataset.kind !== 'block') continue;
       const anchor = anchors.get(id);
-      if (isIsland(anchor)) continue;
-      const range = findText(anchor, quote);
-      if (range) quoteRanges.set(id, range);
+      if (quotes.has(id)) {
+        if (isIsland(anchor)) continue;
+        const ranges = MargentQuote.find(anchor, quotes.get(id));
+        if (ranges.length > 0) markRanges.set(id, ranges);
+      } else if (anchor.matches(PROSE) && 'highlights' in CSS) {
+        const range = document.createRange();
+        range.selectNodeContents(anchor);
+        markRanges.set(id, [range]);
+      } else {
+        anchor.classList.add('c-commented');
+      }
     }
-    CSS.highlights.set(QUOTES_HIGHLIGHT, new Highlight(...quoteRanges.values()));
+    if ('highlights' in CSS) CSS.highlights.set(QUOTES_HIGHLIGHT, new Highlight(...[...markRanges.values()].flat()));
   }
   markQuotes();
+
+  // A quote the page cannot find: its card's quote is muted and a label under it says so. Applied once per card.
+  function markMissing(id) {
+    const q = cards.get(id).querySelector(':scope > q.c-quote');
+    if (q.classList.contains('c-quote-missing')) return;
+    q.classList.add('c-quote-missing');
+    q.after(el('span', 'c-quote-note', 'not found in the page'));
+  }
+  // An inline thread's text is its highlight, so only a block comment's quote can be missing.
+  for (const id of quotes.keys()) {
+    if (cards.get(id).dataset.kind === 'block' && !isIsland(anchors.get(id)) && !markRanges.has(id)) markMissing(id);
+  }
 
   function markQuote(id, on) {
     const anchor = anchors.get(id);
@@ -264,12 +266,12 @@
       return;
     }
     if (!('highlights' in CSS)) return;
-    const range = on ? quoteRanges.get(id) : undefined;
-    if (range === undefined) {
+    const ranges = on ? markRanges.get(id) : undefined;
+    if (ranges === undefined) {
       CSS.highlights.delete(QUOTE_HIGHLIGHT);
       return;
     }
-    const highlight = new Highlight(range);
+    const highlight = new Highlight(...ranges);
     highlight.priority = 1; // drawn over the always-on tint
     CSS.highlights.set(QUOTE_HIGHLIGHT, highlight);
   }
@@ -277,18 +279,19 @@
   // A click on a marked phrase opens its card, as a click on a highlight does. Only blocks that are not edited in place
   // take it (a quote sits in a table, an island, a figure or code), so it never competes with starting an edit.
   document.addEventListener('click', (e) => {
-    if (quoteRanges.size === 0 || !document.caretPositionFromPoint) return;
+    if (markRanges.size === 0 || !document.caretPositionFromPoint) return;
     const block = e.target.closest && e.target.closest('[data-src]');
     if (!block || block.getAttribute('data-gate') === 'pass') return;
     const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
     if (!pos) return;
-    for (const [id, range] of quoteRanges) {
-      let hit = false;
-      try {
-        hit = range.isPointInRange(pos.offsetNode, pos.offset);
-      } catch {
-        hit = false; // a point in another tree than the range
-      }
+    for (const [id, ranges] of markRanges) {
+      const hit = ranges.some((range) => {
+        try {
+          return range.isPointInRange(pos.offsetNode, pos.offset);
+        } catch {
+          return false; // a point in another tree than the range
+        }
+      });
       if (!hit) continue;
       const card = window.margentComments.reveal(id);
       card.focus();
@@ -379,10 +382,33 @@
     });
   }
 
+  // Every quoted block comment, in document order: { id, found }. found is true or false for a quote the page can search
+  // or an island that has rendered (margentIslands.find), and null for an island that has not rendered. A false marks its
+  // card. An inline thread's text is its highlight, which is in the source, so it is never reported.
+  function quoteReport() {
+    const blockQuotes = [...quotes.keys()].filter((id) => cards.get(id).dataset.kind === 'block');
+    return Promise.all(blockQuotes.map((id) => {
+      const anchor = anchors.get(id);
+      if (!isIsland(anchor)) {
+        const found = markRanges.has(id);
+        if (!found) markMissing(id);
+        return { id, found };
+      }
+      if (anchor.getAttribute('data-state') !== 'rendered') return { id, found: null };
+      return window.margentIslands.find(anchor, quotes.get(id)).then((n) => {
+        if (n === null) return { id, found: null };
+        const found = n > 0;
+        if (!found) markMissing(id);
+        return { id, found };
+      });
+    }));
+  }
+
   // The hook for the edit runtime. reveal opens the drawer below 1100px, so a card's buttons can be reached.
   window.margentComments = {
     cards,
     relayout,
+    quoteReport,
     reveal(id) {
       if (!wide.matches) setOpen(true);
       return cards.get(id);

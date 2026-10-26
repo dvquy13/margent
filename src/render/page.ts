@@ -4,6 +4,7 @@ import shellCss from '../../shell/shell.css?raw';
 import islandCss from '../../runtime/island.css?raw';
 import commentsCss from '../../shell/comments.css?raw';
 import commentsJs from '../../runtime/comments.js?raw';
+import quoteJs from '../../runtime/quote.js?raw';
 import themeJs from '../../runtime/theme.js?raw';
 import kitJs from '../../runtime/kit.js?raw';
 import hostJs from '../../runtime/host.js?raw';
@@ -72,14 +73,15 @@ function scriptsHtml(islands: IslandRecord[], texts: string[]): string {
     texts.push(script);
   }
   if (islands.length > 0) {
-    for (const [label, src] of [['kit.js', kitJs], ['host.js', hostJs], ['guest.js', guestJs]] as const) {
+    for (const [label, src] of [['kit.js', kitJs], ['quote.js', quoteJs], ['host.js', hostJs], ['guest.js', guestJs]] as const) {
       if (/<\/script/i.test(src) || src.includes('<!--')) throw new Error(`runtime/${label} would break an inline script`);
     }
     parts.push(
       `<script type="text/plain" id="margent-guest-kit">${kitJs}</script>`,
+      `<script type="text/plain" id="margent-guest-quote">${quoteJs}</script>`,
       `<script type="text/plain" id="margent-guest-runtime">${guestJs}</script>`,
     );
-    texts.push(kitJs, guestJs);
+    texts.push(kitJs, quoteJs, guestJs);
     parts.push(inlineScript(texts, `\n${kitJs}`), inlineScript(texts, `\n${hostJs}`));
   }
   parts.push(inlineScript(texts, `\n${themeJs}`));
@@ -126,6 +128,9 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   const hasComments = body.comments.length > 0;
   const withRail = hasComments || edit !== undefined;
   if (/<\/style/i.test(commentsCss)) throw new Error('shell/comments.css contains "</style"');
+  if (/<\/script/i.test(quoteJs) || quoteJs.includes('<!--')) {
+    throw new Error('runtime/quote.js contains "</script" or "<!--", which would break the page');
+  }
   if (/<\/script/i.test(commentsJs) || commentsJs.includes('<!--')) {
     throw new Error('runtime/comments.js contains "</script" or "<!--", which would break the page');
   }
@@ -143,7 +148,7 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   // Every executable inline script, and every script text a guest runs, in document order: the policy lists their hashes.
   const texts: string[] = [];
   let scripts = scriptsHtml(body.islands, texts);
-  if (withRail) scripts += `\n${inlineScript(texts, `\n${commentsJs}`)}`;
+  if (withRail) scripts += `\n${inlineScript(texts, `\n${quoteJs}`)}\n${inlineScript(texts, `\n${commentsJs}`)}`;
   if (edit) scripts += `\n${editStateScript(edit.state)}\n${inlineScript(texts, `\n${edit.js}`)}`;
   const policy = pagePolicy(texts, edit ? 'serve' : 'file');
 

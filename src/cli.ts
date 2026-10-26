@@ -17,7 +17,7 @@ import {
   type RenderSet,
 } from './cli/collect.js';
 import { openInBrowser } from './cli/opener.js';
-import { runIslandPages, type IslandPage } from './cli/islands-run.js';
+import { runPages, type CheckPage } from './cli/pages-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
 import { linkProblems } from './cli/links.js';
@@ -147,18 +147,25 @@ function commandComments(target: string): number {
   return 0;
 }
 
-// Runs the islands of the given docs in one headless Chrome. Each doc is rendered again into a temp dir, because the
-// pages are only needed for this run. The dir is removed afterwards.
-async function runIslands(docs: RenderedFile[]): Promise<string[]> {
+// Runs the pages of the given docs in one headless Chrome: the docs with islands or a quoted block comment (decision
+// 0039). Each doc is rendered again into a temp dir, because the pages are only needed for this run. The dir is removed
+// afterwards.
+async function runPagesOf(docs: RenderedFile[]): Promise<string[]> {
   const dir = mkdtempSync(join(tmpdir(), 'margent-check-'));
   try {
-    const pages: IslandPage[] = docs.map((doc, i) => {
+    const pages: CheckPage[] = docs.map((doc, i) => {
       const html = join(dir, `${i}.html`);
       const rendered = renderOne(doc.file, doc.root, html);
       writeFileSync(html, rendered.html);
-      return { file: displayPath(doc.file), html, islands: rendered.islands };
+      const quotes = rendered.comments.flatMap((t) => {
+        if (t.quote === undefined) return [];
+        // Only a block comment line carries a quote, and every one has an anchor kind.
+        if (t.anchorKind === undefined) throw new Error(`${displayPath(doc.file)}:${t.line}: quoted comment ${t.id} has no anchor kind`);
+        return [{ id: t.id, line: t.line, quote: t.quote, anchorKind: t.anchorKind }];
+      });
+      return { file: displayPath(doc.file), html, islands: rendered.islands, quotes };
     });
-    return await runIslandPages(pages);
+    return await runPages(pages);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -180,15 +187,17 @@ function sortProblems(lines: string[]): string[] {
   return keyed.map((k) => k.text);
 }
 
-// margent check {path}: renders in memory, then runs every island headless. Exit 1 on any problem.
+// margent check {path}: renders in memory, then runs every island and quoted comment headless. Exit 1 on any problem.
 async function commandCheck(target: string): Promise<number> {
   // In memory: the sibling .html is only named here, for the image paths, and nothing is written there.
   const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'));
 
   const problems = set.errors.map((e) => e.message);
   problems.push(...linkProblems(set.docs));
-  const withIslands = set.docs.filter((d) => d.rendered.islands.length > 0);
-  if (withIslands.length > 0) problems.push(...(await runIslands(withIslands)));
+  const withPage = set.docs.filter(
+    (d) => d.rendered.islands.length > 0 || d.rendered.comments.some((t) => t.quote !== undefined)
+  );
+  if (withPage.length > 0) problems.push(...(await runPagesOf(withPage)));
 
   if (problems.length > 0) {
     for (const line of sortProblems(problems)) process.stdout.write(`${line}\n`);
