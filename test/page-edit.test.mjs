@@ -28,7 +28,7 @@ function input(extra = {}) {
 const state = { path: 'all-blocks.md', hash: 'h', source: readFileSync(ALL, 'utf8'), author: null };
 const STATE_RE = /<script type="application\/json" id="margent-state">([\s\S]*?)<\/script>/;
 
-test('edit adds exactly the comment rail (CSS and script), the CSS, the state script and the bundle script to the plain page', () => {
+test('edit adds exactly the comment rail (CSS and scripts), the CSS, the state script and the bundle script to the plain page', () => {
   const plain = renderDoc(input()).html;
   const edited = renderDoc(input({ edit: { state, js: '/*EDITJS*/', css: '/*EDITCSS*/' } })).html;
 
@@ -38,14 +38,16 @@ test('edit adds exactly the comment rail (CSS and script), the CSS, the state sc
   const bundle = '\n<script>\n/*EDITJS*/</script>';
   // A served page always carries the comment rail, so the first note's draft can sit in it (decision 0023).
   const railCss = `${readFileSync(join(repo, 'shell', 'comments.css'), 'utf8')}\n`;
-  const railJs = `\n<script>\n${readFileSync(join(repo, 'runtime', 'comments.js'), 'utf8')}</script>`;
+  const quoteJs = readFileSync(join(repo, 'runtime', 'quote.js'), 'utf8');
+  const commentsJs = readFileSync(join(repo, 'runtime', 'comments.js'), 'utf8');
+  const railJs = `\n<script>\n${quoteJs}</script>\n<script>\n${commentsJs}</script>`;
 
   assert.ok(edited.includes(`${css}\n</style>`), 'the CSS is the last thing in the one style element');
   for (const insertion of [css, stateScript, bundle, railCss, railJs]) {
     assert.equal(edited.split(insertion).length, 2, `exactly one occurrence of ${JSON.stringify(insertion)}`);
   }
   // The policy meta differs by design (M5 R2.4): a served page may fetch from its own server, and it lists the hashes of
-  // the comment rail and the edit bundle. Every other directive is the same as the plain page's.
+  // the comment rail (quote.js and comments.js) and the edit bundle. Every other directive is the same as the plain page's.
   const policyMeta = (html) => /<meta http-equiv="Content-Security-Policy" content="[^"]*">/.exec(html)[0];
   const directives = (html) => {
     const content = /content="([^"]*)"/.exec(policyMeta(html))[1];
@@ -56,8 +58,8 @@ test('edit adds exactly the comment rail (CSS and script), the CSS, the state sc
   const editPolicy = directives(edited);
   assert.deepEqual(
     [...editPolicy['script-src']].sort(),
-    [...plainPolicy['script-src'], hash(`\n${readFileSync(join(repo, 'runtime', 'comments.js'), 'utf8')}`), hash('\n/*EDITJS*/')].sort(),
-    'script-src adds exactly the comment rail and the edit bundle'
+    [...plainPolicy['script-src'], hash(`\n${quoteJs}`), hash(`\n${commentsJs}`), hash('\n/*EDITJS*/')].sort(),
+    'script-src adds exactly the comment rail (quote.js, comments.js) and the edit bundle'
   );
   assert.deepEqual(plainPolicy['connect-src'], ["'none'"]);
   assert.deepEqual(editPolicy['connect-src'], ["'self'"], 'a served page may fetch from its own server');

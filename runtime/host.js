@@ -39,13 +39,16 @@
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 
-  // The frame's document (M5 R3.2): its own policy, the page's font link, the island's data and module, then the kit and
-  // guest runtime exactly as the page carries them (the page's policy lists their hashes). "<" is escaped in the JSON,
-  // so the module text cannot close its element.
+  // The frame's document (M5 R3.2): its own policy, the page's font link, the island's data and module, then the kit,
+  // quote and guest runtime exactly as the page carries them (the page's policy lists their hashes). "<" is escaped in
+  // the JSON, so the module text cannot close its element.
   function srcdocFor(name, path, kind, payload, module) {
     var kitEl = document.getElementById('margent-guest-kit');
+    var quoteEl = document.getElementById('margent-guest-quote');
     var guestEl = document.getElementById('margent-guest-runtime');
-    if (!kitEl || !guestEl) throw new Error('the page has no guest runtime (#margent-guest-kit, #margent-guest-runtime)');
+    if (!kitEl || !quoteEl || !guestEl) {
+      throw new Error('the page has no guest runtime (#margent-guest-kit, #margent-guest-quote, #margent-guest-runtime)');
+    }
     var fonts = document.querySelector('link[rel="stylesheet"][href^="https://fonts.googleapis.com/"]');
     if (!fonts) throw new Error('the page has no Google Fonts stylesheet link for island frames');
     var json = JSON.stringify({ name: name, path: path, kind: kind, data: payload.data, rowLines: payload.rowLines, module: module })
@@ -59,6 +62,7 @@
       '</head><body>' +
       '<script type="application/json" id="margent-island">' + json + '<\/script>' +
       '<script>' + kitEl.textContent + '<\/script>' +
+      '<script>' + quoteEl.textContent + '<\/script>' +
       '<script>' + guestEl.textContent + '<\/script>' +
       '</body></html>';
   }
@@ -215,6 +219,11 @@
           isl.measures[msg.id](msg.overflow);
         }
         break;
+      case 'found':
+        if (isl.finds[msg.id]) {
+          isl.finds[msg.id](msg.count);
+        }
+        break;
       case 'selection':
         onSelection(isl, msg);
         break;
@@ -233,7 +242,7 @@
       var mount = document.createElement('div');
       mount.className = 'island-mount';
       this.appendChild(mount);
-      var isl = { el: this, name: name, mount: mount, frame: null, ready: false, failed: false, measures: {} };
+      var isl = { el: this, name: name, mount: mount, frame: null, ready: false, failed: false, measures: {}, finds: {} };
       // Per page path, island position, name and width: the same island at the same width reads the same height back.
       isl.heightKey = 'margent-island-height:' + location.pathname + ':' + islands.length + ':' + name + ':' +
         Math.round(this.getBoundingClientRect().width);
@@ -314,6 +323,23 @@
     });
   }
 
+  // Asks one rendered guest how many times a phrase occurs in it. A null count means the guest had no island to search.
+  function find(isl, phrase) {
+    return new Promise(function (resolve, reject) {
+      var id = String(++measureSeq);
+      var timer = setTimeout(function () {
+        delete isl.finds[id];
+        reject(new Error('island ' + isl.name + ': no find reply within ' + MEASURE_WAIT_MS / 1000 + 's'));
+      }, MEASURE_WAIT_MS);
+      isl.finds[id] = function (count) {
+        clearTimeout(timer);
+        delete isl.finds[id];
+        resolve(count);
+      };
+      isl.frame.contentWindow.postMessage({ type: 'find', id: id, phrase: phrase }, '*');
+    });
+  }
+
   // Every island's state and overflow, in document order. Waits (bounded) for every island to report a state, then
   // measures the rendered ones at the frame's current width. An island that never reports has state null.
   function report() {
@@ -353,5 +379,14 @@
     isl.frame.contentWindow.postMessage({ type: 'mark', phrase: phrase === undefined ? null : phrase }, '*');
   }
 
-  window.margentIslands = { report: report, mark: mark };
+  // Counts the occurrences of a phrase inside one rendered island (the quote check of the comment rail). Resolves to the
+  // count, or to null when the island has not rendered.
+  function findIn(el, phrase) {
+    var isl = byEl.get(el);
+    if (!isl) throw new Error('margentIslands.find: the element is not an <agent-island> of this page');
+    if (!isl.frame) throw new Error('island ' + isl.name + ': it has no frame to search');
+    return find(isl, phrase);
+  }
+
+  window.margentIslands = { report: report, mark: mark, find: findIn };
 })();

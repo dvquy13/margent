@@ -305,8 +305,8 @@ test('check: an island whose guest never reports fails with did not report, afte
   const at = text.indexOf(marker, start);
   assert.ok(start >= 0 && at > start, 'the page carries the guest runtime');
   writeFileSync(html, text.slice(0, at) + "'use strict'; " + text.slice(at + marker.length));
-  const { runIslandPages } = await import('../.build/cli/islands-run.js');
-  const problems = await runIslandPages([{ file: doc, html, islands: [{ name: 'scroller', line: 5 }] }]);
+  const { runPages } = await import('../.build/cli/pages-run.js');
+  const problems = await runPages([{ file: doc, html, islands: [{ name: 'scroller', line: 5 }], quotes: [] }]);
   assert.deepEqual(problems, [`${doc}:5: island scroller: did not report within 10s`]);
 });
 
@@ -341,6 +341,61 @@ test('check: a folder keeps going past a broken doc and reports each one', full,
   const lines = r.stdout.trim().split('\n');
   assert.ok(lines.length > 5, r.stdout);
   for (const line of lines) assert.match(line, /^test\/fixtures\/islands\/docs\/[^:]+:\d+: /);
+});
+
+// ---- check: quoted block comments (decision 0039)
+
+const QUOTES = 'test/fixtures/cli/quotes';
+
+test('check: an unquoted block comment on a doc with no islands launches no Chrome and passes', () => {
+  const r = cli(['check', `${QUOTES}/unquoted.md`], { env: { MARGENT_CHROME: '/nonexistent/chrome' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
+test('check: a quoted phrase that is not in the table it is anchored to fails at the comment line (Chrome)', () => {
+  const r = cli(['check', `${QUOTES}/plain-table.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/plain-table.md:10: comment c1: quoted phrase "Review" is not in the table it is anchored to\n`
+  );
+});
+
+test('check: a quote with markdown in it fails, since the page shows the words without the backticks', full, () => {
+  const r = cli(['check', `${QUOTES}/markdown-quote.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/markdown-quote.md:7: comment c1: quoted phrase "\`beta gate\`" is not in the table it is anchored to\n`
+  );
+});
+
+test('check: a quote of a phrase whose page text holds a double quote passes (the quote stores it as a single quote)', full, () => {
+  const r = cli(['check', `${QUOTES}/quote-apostrophe.md`]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
+test('check: a matching quote in a doc with no islands passes without margentIslands', full, () => {
+  const r = cli(['check', `${QUOTES}/no-islands.md`]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
+test('check: a quote of text inside an island passes (Chrome)', full, () => {
+  const r = cli(['check', `${QUOTES}/island-quote.md`]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 1 islands\n');
+});
+
+test('check: a quote of text the island does not show fails, anchored to the island (Chrome)', full, () => {
+  const r = cli(['check', `${QUOTES}/island-quote-missing.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/island-quote-missing.md:8: comment c1: quoted phrase "Stage beta ships" is not in the island it is anchored to\n`
+  );
 });
 
 // ---- check: links (decision 0036), no Chrome needed

@@ -76,7 +76,7 @@ Design: [Security before a second user](../design/system-design.md#security-befo
 | `ready` | guest to page | none | the guest is listening; the page answers with `tokens`, and the guest renders on the first `tokens` |
 | `state` | guest to page | `state` (`rendered` or `error`), `error` (the `check` message), `mismatches` (`[{row, column, text}]`) | after render or failure, and again as `error` when the island throws later (a timer, a handler) |
 | `height` | guest to page | `px` | from a ResizeObserver on the guest's content |
-| `overflow` | guest to page | `id`, `overflow`: `{description, px, side}` or `null` | the answer to `measure`, with the spill rule `src/cli/islands-run.ts` used before M5 |
+| `overflow` | guest to page | `id`, `overflow`: `{description, px, side}` or `null` | the answer to `measure`, with the spill rule `check` used before M5 |
 | `hover` | guest to page | `inside: true` | the pointer entered the frame. The page can't see `:hover` over a sandboxed frame, so the host sets `data-hover` for the edit controls, and clears it on the page's next `pointerover` outside the frame |
 | `open` | guest to page | `url` | a click on a link |
 | `selection` | guest to page | `text`, `rect` (frame coordinates) or `null` | text selected in the island (R6) |
@@ -99,7 +99,7 @@ Design: [Security before a second user](../design/system-design.md#security-befo
 
 ### R5 check
 
-1. `src/cli/islands-run.ts` waits, with a bound, until every `<agent-island>` has `data-state`, at 390px and 1280px. An island that never reports fails as `{file}:{line}: island {name}: did not report within {n}s`.
+1. `check`'s page run (`src/cli/pages-run.ts`) waits, with a bound, until every `<agent-island>` has `data-state`, at 390px and 1280px. An island that never reports fails as `{file}:{line}: island {name}: did not report within {n}s`.
 2. It reads `data-error`, `data-mismatches` and `data-overflow`, and prints the same lines as before M5:
    - `{error}`, the island's `data-error` as is (each text already names the island, as before M5);
    - `island {name}: cell "{text}" does not match {column} pattern` at the row's line, from `rowLines`;

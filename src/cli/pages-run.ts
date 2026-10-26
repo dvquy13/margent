@@ -1,13 +1,16 @@
-// The headless island run for `margent check` (spec R4, R5). Each island page is loaded once and measured at two
-// widths: 390px (phone) and 1280px (desktop). The page answers for its islands (window.margentIslands.report, host.js):
-// each island's state, error, mismatches and overflow. Every problem is a `{file}:{line}: ...` line.
+// The headless page run for `margent check` (spec R4, R5). Each page with islands or quoted comments is loaded once and
+// measured at two widths: 390px (phone) and 1280px (desktop). The page answers for its islands (window.margentIslands.report,
+// host.js): each island's state, error, mismatches and overflow. A page with quoted comments answers for each quote
+// (window.margentComments.quoteReport, decision 0039): whether its phrase is in the block it is anchored to. Every problem
+// is a `{file}:{line}: ...` line.
 import { pathToFileURL } from 'node:url';
 import { launchChrome, type ChromeSession } from './chrome.js';
 
-export interface IslandPage {
+export interface CheckPage {
   file: string; // display path of the .md, for messages
   html: string; // absolute path of the page written for this doc
   islands: { name: string; line: number }[]; // in document order, as renderDoc reports them
+  quotes: { id: string; line: number; quote: string; anchorKind: string }[]; // in document order (decision 0039)
 }
 
 const WIDTHS = [390, 1280] as const;
@@ -16,12 +19,22 @@ const STATE_WAIT_S = 10; // host.js STATE_WAIT_MS
 
 // The page's report (host.js): it waits up to 10s for every island's state, then measures each rendered island (up to
 // 5s each, in parallel). One call covers that with a margin. A rejection (an island that did not answer its overflow
-// measure) comes back as a value, so its message is not wrapped by the evaluate call.
+// measure) comes back as a value, so its message is not wrapped by the evaluate call. The quote report waits on the
+// islands the same way, so it shares the bound.
 const REPORT_CALL_MS = 20000;
 const REPORT = `(() => {
   if (!window.margentIslands || typeof window.margentIslands.report !== 'function') return { missing: true };
   return window.margentIslands.report().then(
     (reports) => ({ reports }),
+    (err) => ({ failure: err instanceof Error ? err.message : String(err) }));
+})()`;
+
+// The quote report of every quoted thread, in document order: { id, found } with found true, false, or null (its island
+// has not rendered). A page without window.margentComments is a failure of the check itself.
+const QUOTES = `(() => {
+  if (!window.margentComments || typeof window.margentComments.quoteReport !== 'function') return { missing: true };
+  return window.margentComments.quoteReport().then(
+    (report) => ({ report }),
     (err) => ({ failure: err instanceof Error ? err.message : String(err) }));
 })()`;
 
@@ -42,6 +55,12 @@ interface Answered {
 }
 type Pass = Answered | { failure: string };
 
+interface QuoteFound {
+  id: string;
+  found: boolean | null;
+}
+type QuotePass = { report: QuoteFound[] } | { failure: string };
+
 // One width's report, from the page. A page without window.margentIslands is a failure of the check itself.
 async function reportAt(chrome: ChromeSession, file: string): Promise<Pass> {
   const pass = (await chrome.evaluate(REPORT, true, REPORT_CALL_MS)) as Pass | { missing: true };
@@ -51,50 +70,82 @@ async function reportAt(chrome: ChromeSession, file: string): Promise<Pass> {
   return pass;
 }
 
-// Loads the page once, then measures it at each width. The 390px pass comes first, before the viewport changes.
-// rowLines[i][r] is the source line of table row r of island i.
+// The page's quote report. A page with quoted comments but no window.margentComments is a failure of the check itself.
+async function quotesAt(chrome: ChromeSession, file: string): Promise<QuotePass> {
+  const pass = (await chrome.evaluate(QUOTES, true, REPORT_CALL_MS)) as QuotePass | { missing: true };
+  if ('missing' in pass) {
+    throw new Error(`${file}: the page has quoted comments but no window.margentComments, so its quotes cannot be checked`);
+  }
+  return pass;
+}
+
+// Loads the page once, then measures it at each width. The 390px pass comes first, before the viewport changes. A page
+// without islands has no margentIslands, so it is not asked for islands. rowLines[i][r] is the source line of table row
+// r of island i.
 async function measurePage(
   chrome: ChromeSession,
   url: string,
-  file: string
-): Promise<{ passes: Map<number, Pass>; rowLines: number[][] }> {
+  page: CheckPage
+): Promise<{ passes: Map<number, Pass>; rowLines: number[][]; quotes: QuotePass | null }> {
   const passes = new Map<number, Pass>();
   let rowLines: number[][] = [];
+  let quotes: QuotePass | null = null;
   for (const width of WIDTHS) {
     await chrome.setViewport(width, HEIGHT);
     if (width === WIDTHS[0]) {
       await chrome.navigate(url);
       rowLines = (await chrome.evaluate(ROW_LINES)) as number[][];
     }
-    passes.set(width, await reportAt(chrome, file));
+    if (page.islands.length > 0) passes.set(width, await reportAt(chrome, page.file));
+    if (width === WIDTHS[0] && page.quotes.length > 0) quotes = await quotesAt(chrome, page.file);
   }
-  return { passes, rowLines };
+  return { passes, rowLines, quotes };
 }
 
 // The line of a message about an island: the island it names ("island {name}: "), else line 1.
-function lineOfMessage(page: IslandPage, message: string): number {
+function lineOfMessage(page: CheckPage, message: string): number {
   const named = /^island ([^:]+): /.exec(message);
   const island = named ? page.islands.find((i) => i.name === named[1]) : undefined;
   return island ? island.line : 1;
 }
 
 // Returns one problem line per island that did not report or failed, per cell that does not match its column pattern
-// (once, from the first pass that answered), per overflow at each width, and per uncaught page exception. Throws when
-// Chrome is missing or a page cannot be loaded or read: those are failures of the check itself.
-export async function runIslandPages(pages: IslandPage[]): Promise<string[]> {
+// (once, from the first pass that answered), per overflow at each width, per uncaught page exception, and per quoted
+// phrase the page does not find in its block (decision 0039). Throws when Chrome is missing or a page cannot be loaded or
+// read: those are failures of the check itself.
+export async function runPages(pages: CheckPage[]): Promise<string[]> {
   const problems: string[] = [];
   if (pages.length === 0) return problems;
   const chrome = await launchChrome();
   try {
     for (const page of pages) {
-      const { passes, rowLines } = await measurePage(chrome, pathToFileURL(page.html).href, page.file);
+      const { passes, rowLines, quotes } = await measurePage(chrome, pathToFileURL(page.html).href, page);
       for (const message of chrome.pageExceptions()) problems.push(`${page.file}:1: page error: ${message}`);
 
       const failures = new Set<string>();
       for (const pass of passes.values()) {
         if ('failure' in pass) failures.add(pass.failure);
       }
+      if (quotes !== null && 'failure' in quotes) failures.add(quotes.failure);
       for (const message of failures) problems.push(`${page.file}:${lineOfMessage(page, message)}: ${message}`);
+
+      if (quotes !== null && 'report' in quotes) {
+        const { report } = quotes;
+        const ids = page.quotes.map((q) => q.id);
+        if (report.length !== ids.length || report.some((r, i) => r.id !== ids[i])) {
+          throw new Error(
+            `${page.file}: the page answers for quotes ${report.map((r) => r.id).join(', ') || 'none'}, ` +
+              `but the doc has quoted comments ${ids.join(', ')}`
+          );
+        }
+        page.quotes.forEach((q, i) => {
+          // null: the quote's island has not rendered, so there is nothing to check.
+          if (report[i].found !== false) return;
+          problems.push(
+            `${page.file}:${q.line}: comment ${q.id}: quoted phrase "${q.quote}" is not in the ${q.anchorKind} it is anchored to`
+          );
+        });
+      }
 
       const first = WIDTHS.map((w) => passes.get(w)).find((p): p is Answered => p !== undefined && 'reports' in p);
       if (first === undefined) continue;

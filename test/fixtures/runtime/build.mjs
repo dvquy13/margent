@@ -128,6 +128,7 @@ export function buildPage({ title = 'Runtime fixture', islands = [] } = {}) {
     return `<script type="text/plain" class="island-module" data-name="${n}" data-path="islands/${n}.island.js">${script}</script>`;
   }).join('\n');
   const guest = `<script type="text/plain" id="margent-guest-kit">${readRuntime('kit.js')}</script>
+<script type="text/plain" id="margent-guest-quote">${readRuntime('quote.js')}</script>
 <script type="text/plain" id="margent-guest-runtime">${readRuntime('guest.js')}</script>`;
   const runtime = ['kit.js', 'host.js', 'theme.js'].map((f) => {
     const src = readRuntime(f);
