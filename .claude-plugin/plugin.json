@@ -1,6 +1,6 @@
 {
   "name": "margent",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Render markdown docs into designed pages with data-driven islands.",
   "license": "MIT",
   "author": {

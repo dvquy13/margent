@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/dvquy13/margent/compare/v0.3.1...v0.4.0) (2026-10-26)
+
+
+### Features
+
+* serve says when margent changed on disk and needs a restart ([8dccb7b](https://github.com/dvquy13/margent/commit/8dccb7bfa1b3e2ab37654e7212f4ec0bfb37a193))
+
 ## [0.3.1](https://github.com/dvquy13/margent/compare/v0.3.0...v0.3.1) (2026-10-25)
 
 
