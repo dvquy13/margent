@@ -4,7 +4,8 @@
 // first (or `npm test`).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { islandFrameByName, islandsSettled, withBrowser } from './helpers/browser.mjs';
@@ -213,6 +214,30 @@ test('R7.1: a save reloads the saving page once: the change event for its own wr
     await page.waitForTimeout(1000);
     assert.equal(navigations, 1);
     assert.equal(served.read('panel.md'), ORIGINAL.replace(INTRO, `${INTRO} Saved once.`));
+    assert.deepEqual(errors, []);
+  });
+});
+
+test('decision 0038: a changed margent script shows the out-of-date banner without reloading the page', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'margent-self-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const self = join(dir, 'cli.js');
+  writeFileSync(self, 'v1\n');
+  const served = await serveCopy(FIXTURE, { self });
+  t.after(() => served.close());
+  await withBrowser(async (browser) => {
+    const { page, errors, close } = await openServedPage(browser, served, 'panel.md');
+    t.after(close);
+    await setMarker(page);
+    writeFileSync(self, 'v2\n');
+    const banner = page.locator('.edit-banner[data-kind="outdated"]');
+    await banner.waitFor({ timeout: 5000 });
+    assert.equal(
+      await banner.textContent(),
+      'margent was updated after this server started, so this page shows the old version. Restart margent serve, then reload the page.'
+    );
+    assert.equal(await banner.getAttribute('role'), 'status');
+    assert.equal(await page.evaluate(() => window.__marker), 'survives-if-no-reload');
     assert.deepEqual(errors, []);
   });
 });

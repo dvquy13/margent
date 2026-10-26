@@ -2,6 +2,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, type Stats } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { VERSION } from './version.js';
 import { displayPath, findDocsRoot } from './render/root.js';
 import { renderDoc } from './render/page.js';
@@ -277,7 +278,7 @@ async function commandServe(rest: string[]): Promise<number> {
   const { target, port, open, author } = parseServe(rest);
   const root = resolve(target);
   if (!statOrFail(target).isDirectory()) throw new Error(`not a folder: ${target}`);
-  const handle = await startServer({ root, port, author });
+  const handle = await startServer({ root, port, author, self: fileURLToPath(import.meta.url) });
   let stop = (): void => {};
   const stopped = new Promise<number>((done) => {
     stop = (): void => {
