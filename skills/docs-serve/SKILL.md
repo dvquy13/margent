@@ -3,12 +3,12 @@ name: docs-serve
 description: Serve a docs folder with margent so the user can review and edit pages in the browser
 argument-hint: <docs root>
 # x-release-please-start-version
-allowed-tools: Bash(margent serve:*), Bash(npx -y margent@0.4.0 serve:*), Bash(margent --version)
+allowed-tools: Bash(margent serve:*), Bash(npx -y margent@0.5.0 serve:*), Bash(margent --version)
 disable-model-invocation: true
 ---
 
-Run `margent --version` first. If it prints `0.4.0`, use `margent` as written below;
-otherwise replace `margent` with `npx -y margent@0.4.0` in every command.
+Run `margent --version` first. If it prints `0.5.0`, use `margent` as written below;
+otherwise replace `margent` with `npx -y margent@0.5.0` in every command.
 <!-- x-release-please-end -->
 
 Run `margent serve $ARGUMENTS --no-open` with the Bash tool in the background (`run_in_background: true`). It runs until stopped.

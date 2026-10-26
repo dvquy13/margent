@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/dvquy13/margent/compare/v0.4.0...v0.5.0) (2026-10-26)
+
+
+### Features
+
+* check fails on a quoted phrase not found in its block, and block comments show without hover ([0a0479e](https://github.com/dvquy13/margent/commit/0a0479e46d19338f00c63718dfd11715fd9d2193))
+
 ## [0.4.0](https://github.com/dvquy13/margent/compare/v0.3.1...v0.4.0) (2026-10-26)
 
 
