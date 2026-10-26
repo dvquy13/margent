@@ -5,7 +5,7 @@ import editCss from '../../runtime/edit/edit.css?raw';
 import shellCss from '../../shell/shell.css?raw';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { readFileSync, realpathSync, statSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync, unwatchFile, watchFile } from 'node:fs';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { RenderError } from '../errors.js';
 import { renderDoc } from '../render/page.js';
@@ -24,6 +24,9 @@ export interface ServeOptions {
   port?: number; // 0 or undefined picks a free port
   // `serve --author`. Absent, the author comes from `git config user.name` in root, else the OS user (see resolveAuthor).
   author?: string;
+  // The file the running margent was loaded from. When its bytes change, open pages are told the server is out of
+  // date. Absent, nothing is watched.
+  self?: string;
 }
 
 export interface ServeHandle {
@@ -200,6 +203,15 @@ function saveShapeErrors(body: unknown): string[] {
   return errors;
 }
 
+// The hash of margent's own script as it is on disk now (decision 0038). A failure names the file and is never swallowed.
+function hashSelf(file: string): string {
+  try {
+    return hash(readFileSync(file));
+  } catch (err) {
+    throw new Error(`cannot read margent's own script ${file}: ${(err as Error).message}`, { cause: err });
+  }
+}
+
 // Starts the server. Resolves once it listens on 127.0.0.1. A port in use rejects with the port in the message.
 export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   const root = resolve(opts.root);
@@ -207,6 +219,9 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   const requestedPort = opts.port ?? 0;
   const token = randomBytes(16).toString('hex');
   const { author, source: authorSource, reason: authorReason } = resolveAuthor(opts.author, root);
+  // Read before any watcher starts, so a failure here leaves nothing open.
+  const self = opts.self;
+  const selfHash = self === undefined ? '' : hashSelf(self);
 
   // Per page path (posix, relative to the root): the files it depends on, and its open SSE clients, each with the hash
   // of the .md its page was rendered from.
@@ -295,6 +310,28 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   };
 
   const watcher = watchTree(root, onFileEvent, (err) => logError(`watcher error: ${err.message}`));
+
+  // ---- out of date: margent itself changed on disk (decision 0038)
+
+  // The modules this server runs were loaded at startup. When the file they came from changes, the server is out of
+  // date: every open page is told, and so is each page opened after that.
+  const outdatedEvent = 'event: outdated\ndata: {}\n\n';
+  let outdated = false;
+  if (self !== undefined) {
+    watchFile(self, { interval: 1000 }, (cur) => {
+      if (outdated || cur.mtimeMs === 0) return; // gone mid-install: the next change brings it back
+      let now: string;
+      try {
+        now = hash(readFileSync(self));
+      } catch {
+        return; // vanished between the stat and the read: the next poll retries
+      }
+      if (now === selfHash) return; // same bytes (a reinstall, a touch)
+      outdated = true;
+      logError(`margent changed on disk since this server started (${self}); restart margent serve to use the new version`);
+      for (const set of clients.values()) for (const res of set.keys()) res.write(outdatedEvent);
+    });
+  }
 
   // ---- pages
 
@@ -429,6 +466,8 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     clients.set(page, set);
     // A write between the page's render and this stream would otherwise never reach it.
     if (rendered !== mdHashNow(page)) res.write('event: changed\ndata: {}\n\n');
+    // A page opened after the change still learns of it.
+    if (outdated) res.write(outdatedEvent);
     // The response closes when the client goes away. The request's own 'close' fires once its body is read, which for
     // a GET is at once, so it cannot end the stream.
     res.on('close', () => {
@@ -533,6 +572,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   await new Promise<void>((ok, fail) => {
     const onError = (err: NodeJS.ErrnoException): void => {
       watcher.close();
+      if (self !== undefined) unwatchFile(self);
       fail(err.code === 'EADDRINUSE' ? new Error(`port ${requestedPort} is in use`) : err);
     };
     server.once('error', onError);
@@ -558,6 +598,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
         for (const pending of timers.values()) clearTimeout(pending);
         timers.clear();
         watcher.close();
+        if (self !== undefined) unwatchFile(self);
         for (const set of clients.values()) for (const res of set.keys()) res.end();
         clients.clear();
         server.close((err) => (err ? fail(err) : ok()));

@@ -5,11 +5,14 @@
 // Sets margent.reload() (reload now, or hold it while dirty()), margent.idle() (run a held reload once the text is
 // settled) and margent.stale(range, text). While dirty() a beforeunload guard asks before any other navigation, so a
 // link or a closed tab cannot discard unsaved text. The page's own reloads skip the guard (`leaving`).
+// An `outdated` event (margent itself changed on disk, decision 0038) shows a banner that says the server must restart.
 
 const EVENT_PANEL = 'margent:panel';
 
 const CHANGED_TEXT =
   'This file changed on disk. Saving your edit now will be refused as stale. Cancel the edit to reload the file.';
+const OUTDATED_TEXT =
+  'margent was updated after this server started, so this page shows the old version. Restart margent serve, then reload the page.';
 const CONNECTION_TEXT = 'Live reload lost its connection, so this page will not update until it reconnects.';
 const CONNECTION_CLOSED_TEXT = 'Live reload stopped, so this page will not update. Reload the page once margent serve is running.';
 
@@ -50,7 +53,7 @@ export function initReload(margent) {
         node = document.createElement('p');
         node.className = 'edit-banner';
         node.dataset.kind = kind;
-        node.setAttribute('role', kind === 'changed' ? 'status' : 'alert');
+        node.setAttribute('role', kind === 'changed' || kind === 'outdated' ? 'status' : 'alert');
         banners.set(kind, node);
       }
       node.textContent = message;
@@ -152,6 +155,8 @@ export function initReload(margent) {
   es.addEventListener('open', () => setBanner('connection', null));
   // Through margent.reload, the one reload entry point, so a stub of it (the edit corpus) also covers this event.
   es.addEventListener('changed', () => margent.reload());
+  // Decision 0038: it never clears, since a restarted server is a new process that sends no such event.
+  es.addEventListener('outdated', () => setBanner('outdated', OUTDATED_TEXT));
   // EventSource retries by itself. Each failure is shown and logged, and the banner clears when the stream reopens.
   es.addEventListener('error', () => {
     const closed = es.readyState === EventSource.CLOSED;

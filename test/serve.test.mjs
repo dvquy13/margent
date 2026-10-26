@@ -560,6 +560,39 @@ test('R7.1: /_events without the hash the page was rendered from gets 400', asyn
   assert.match(r.text, /hash=\{the hash it was rendered from\}/);
 });
 
+test('decision 0038: a changed margent script sends outdated to open streams and to new ones; the same bytes send nothing', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'margent-self-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const self = join(dir, 'cli.js');
+  writeFileSync(self, 'v1\n');
+  const root = join(dir, 'docs');
+  cpSync(FIXTURE, root, { recursive: true });
+  const h = await startServer({ root, port: 0, self });
+  t.after(() => h.close());
+  const cookie = `margent-${h.port}=${h.token}`;
+  const hashOf = () => sha(readFileSync(join(root, 'valid.md')));
+  const sse = openEvents(h.port, cookie, 'valid.md', hashOf());
+  t.after(() => sse.close());
+  assert.equal((await sse.ready).status, 200);
+  writeFileSync(self, 'v1\n');
+  await new Promise((ok) => setTimeout(ok, 2500));
+  assert.ok(!sse.events.includes('outdated'), 'same bytes must not send outdated');
+  writeFileSync(self, 'v2\n');
+  await sse.next('outdated', 5000);
+  const late = openEvents(h.port, cookie, 'valid.md', hashOf());
+  t.after(() => late.close());
+  assert.equal((await late.ready).status, 200);
+  await late.next('outdated', 1000);
+});
+
+test('decision 0038: a self script that cannot be read fails startup loudly, naming the file, with nothing left open', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'margent-self-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const root = join(dir, 'docs');
+  cpSync(FIXTURE, root, { recursive: true });
+  await assert.rejects(startServer({ root, port: 0, self: join(dir, 'missing.js') }), /cannot read margent's own script .*missing\.js/);
+});
+
 // ---- the serve command
 
 function runServe(args) {
