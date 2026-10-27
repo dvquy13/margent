@@ -264,6 +264,15 @@
     });
   });
 
+  // The comment shortcut (Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere) is typed in the frame, where the page cannot see
+  // it. The guest takes the key and says so; host.js raises it on the island. e.code, not e.key: Option+M types µ.
+  var isMac = /Mac/.test(navigator.platform);
+  document.addEventListener('keydown', function (e) {
+    if (e.code !== 'KeyM' || !e.altKey || e.shiftKey || !(isMac ? e.metaKey : e.ctrlKey)) return;
+    e.preventDefault();
+    post({ type: 'shortcut', name: 'comment' });
+  });
+
   // The page never sees :hover over a sandboxed frame (the hover chain stops at the frame), so the guest says when the
   // pointer enters. The host mirrors it as data-hover, which the edit controls show on, and clears it itself: the frame
   // gets no event when the pointer leaves, while the page gets one as soon as the pointer is over its own content.

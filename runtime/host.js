@@ -231,6 +231,10 @@
       case 'hover':
         if (msg.inside === true) isl.el.setAttribute('data-hover', '');
         break;
+      case 'shortcut':
+        // A key the guest took (the comment shortcut): raised on the island, as the selection is.
+        isl.el.dispatchEvent(new CustomEvent('margent:island-shortcut', { bubbles: true, detail: { name: msg.name } }));
+        break;
     }
   });
 

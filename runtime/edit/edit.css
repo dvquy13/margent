@@ -218,6 +218,8 @@ agent-island.edit-block > .comment-control {
   transition: color var(--fade), border-color var(--fade);
 }
 .comment-tool:hover { color: var(--accent); border-color: var(--accent); }
+/* The shortcut hint in the pill: smaller and muted, so the word "Comment" still reads first. */
+.comment-tool-key { margin-left: 6px; font-size: var(--font-xs); color: var(--text-muted); }
 
 /* ---- a note: a header row (the author, and Edit for an owner's note), then its text ---- */
 

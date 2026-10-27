@@ -18,6 +18,16 @@ import {
 } from '../../src/comments/syntax.ts';
 
 const PENDING = 'margent-pending';
+
+// The comment shortcut: Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere (as Google Docs). The island's guest matches the same
+// keys (guest.js). e.code, not e.key: Option+M types µ on a Mac.
+const IS_MAC = /Mac/.test(navigator.platform);
+const SHORTCUT = IS_MAC
+  ? { keys: 'Meta+Alt+M', label: '⌥⌘M' }
+  : { keys: 'Control+Alt+M', label: 'Ctrl+Alt+M' };
+const isCommentShortcut = (e) =>
+  e.code === 'KeyM' && e.altKey && !e.shiftKey && (IS_MAC ? e.metaKey : e.ctrlKey);
+
 const AUTHOR_MESSAGE =
   'No author is set, so notes cannot be saved. Start margent serve with --author {name}, or set git config user.name {name}, then reload this page.';
 const EMPTY_EDIT_MESSAGE = "A note can't be empty. Resolve removes the thread.";
@@ -175,10 +185,16 @@ export function initComments(margent) {
   box.append(boxQuote, boxHead, boxC.body);
   document.body.append(box);
 
-  // The Comment control at a selection. It is shown only while nothing is being typed.
+  // The Comment control at a selection. It is shown only while nothing is being typed. Its label shows the shortcut: a
+  // muted hint the screen reader skips, and the same words as its title and aria-keyshortcuts.
   const tool = make('button', 'comment-tool', 'Comment');
   tool.type = 'button';
   tool.hidden = true;
+  tool.title = `Comment (${SHORTCUT.label})`;
+  tool.setAttribute('aria-keyshortcuts', SHORTCUT.keys);
+  const toolKey = make('span', 'comment-tool-key', SHORTCUT.label);
+  toolKey.setAttribute('aria-hidden', 'true');
+  tool.append(toolKey);
   tool.addEventListener('mousedown', keepPress);
   tool.addEventListener('click', onTool);
   document.body.append(tool);
@@ -431,9 +447,15 @@ export function initComments(margent) {
 
   // Places the Comment control under the selection's end. It is hidden while a draft is open, while the mouse is down
   // (a drag), and when the selection is not inside one block.
-  function update() {
+  // The block the Comment control is for now, or null: none while a draft, reply or edit is open or the mouse is down.
+  // The control and the comment shortcut both read it.
+  function commentBlock() {
     const drafting = boxD.active || replyD !== null || editD !== null;
-    const el = !drafting && !dragging ? selectedBlock() : null;
+    return !drafting && !dragging ? selectedBlock() : null;
+  }
+
+  function update() {
+    const el = commentBlock();
     if (el === null) {
       tool.hidden = true;
       return;
@@ -515,6 +537,18 @@ export function initComments(margent) {
     }
     openBlockComment(el, quoteOf(window.getSelection().toString()));
   }
+
+  // The comment shortcut runs the control's path in the states where the control shows, and lets the key through
+  // otherwise, so typing in a block being edited is unchanged. An island's copy arrives as a page event (host.js), since
+  // its key was typed in the frame.
+  document.addEventListener('keydown', (e) => {
+    if (!isCommentShortcut(e) || commentBlock() === null) return;
+    e.preventDefault();
+    onTool();
+  });
+  document.addEventListener('margent:island-shortcut', () => {
+    if (commentBlock() !== null) onTool();
+  });
 
   // The selection touches a thread that already marks text (R5.5). The message points to that thread's Reply.
   function notifyOverlap(id) {
