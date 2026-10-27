@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0](https://github.com/dvquy13/margent/compare/v0.7.0...v0.8.0) (2026-10-27)
+
+
+### Features
+
+* margent update finds every install and updates the ones behind ([a0610b8](https://github.com/dvquy13/margent/commit/a0610b885d9fdb90dcf7cc0967ede0912bd48159))
+* the margent skill tells the user once when the CLI and skills versions differ, and how to update ([c59acb9](https://github.com/dvquy13/margent/commit/c59acb980439ebc2c24f351abc89bdfbe179cdf3))
+
+
+### Documentation
+
+* close M6, distill its plan into the spec, CLAUDE.md and the deferred list ([5077346](https://github.com/dvquy13/margent/commit/5077346e688e6c73066ba118e689bdf1381ec47a))
+* M6 released in 0.7.0 ([3e4fcfc](https://github.com/dvquy13/margent/commit/3e4fcfcb424c23173ffb8b935e7e1cfa05d23d1a))
+* README says how to find and update each kind of install ([eefae20](https://github.com/dvquy13/margent/commit/eefae20785ea694fee5d0100b32a9e75b626c2c7))
+
 ## [0.7.0](https://github.com/dvquy13/margent/compare/v0.6.0...v0.7.0) (2026-10-27)
 
 
