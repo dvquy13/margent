@@ -202,6 +202,30 @@ test('T13: an inline note whose text starts with "x" → y renders as plain note
   );
 });
 
+// ---- quote occurrences (decision 0041): "keep" #2 names the second match in the block
+
+const OCCURRENCE = join(FIX, 'quoted-occurrence.md');
+
+test('0041: a quote with #n records the occurrence on the thread; a quote without one records none', () => {
+  const r = render(OCCURRENCE);
+  const [withN, withoutN] = r.comments;
+  assert.equal(withN.id, 'c1');
+  assert.equal(withN.kind, 'block');
+  assert.equal(withN.anchorKind, 'table');
+  assert.equal(withN.quote, 'keep');
+  assert.equal(withN.occurrence, 2);
+  assert.equal(withoutN.id, 'c2');
+  assert.equal(withoutN.quote, 'gate');
+  assert.equal('occurrence' in withoutN, false, 'no occurrence key without #n');
+});
+
+test('0041: the page marks the quote with data-occurrence, and a quote without #n has no attribute', () => {
+  const body = bodyDump(render(OCCURRENCE));
+  assert.ok(body.includes('<q class="c-quote" data-occurrence="2">keep</q> why keep this?'), body);
+  assert.ok(body.includes('<q class="c-quote">gate</q> is it final?'), body);
+  assert.equal(body.split('data-occurrence').length - 1, 1, 'only the #n quote carries the attribute');
+});
+
 // ---- headings (R2.2, A5)
 
 test('A5: a commented heading keeps its slug and its TOC label', () => {

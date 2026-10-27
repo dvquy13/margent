@@ -37,6 +37,7 @@ type ThreadMeta = {
   notes: NoteParts[];
   md: string; // the exact source of the notes, concatenated
   quote?: string; // a block comment's quoted phrase: the first note shows it, and its text (the body) follows
+  occurrence?: number; // the match of the quote the comment means, when the quote names one (decision 0041)
 }
 
 // The NOTE grammar, anchored, for one whole note. NOTE itself is global, so it is never tested directly.
@@ -222,8 +223,9 @@ export function registerComments(md: MarkdownIt): void {
     const notes = meta.notes
       .map((n, i) => {
         const quoted = i === 0 && meta.quote !== undefined;
+        const occurrence = meta.occurrence === undefined ? '' : ` data-occurrence="${meta.occurrence}"`;
         const text = quoted
-          ? `<q class="c-quote">${escapeHtml(meta.quote!)}</q> ${noteHtml(splitQuote(n.text).body)}`
+          ? `<q class="c-quote"${occurrence}>${escapeHtml(meta.quote!)}</q> ${noteHtml(splitQuote(n.text).body)}`
           : noteHtml(n.text);
         return `<span class="c-note"><b class="c-author">${escapeHtml(n.author)}</b> ${text}</span>`;
       })
@@ -394,8 +396,9 @@ export function commentsRule(state: StateCore): void {
       paragraph!.attrSet('data-anchor', anchor);
       t.children = meaningful;
       const thread = threads[0];
-      const { quote } = splitQuote(thread.notes[0].text);
+      const { quote, occurrence } = splitQuote(thread.notes[0].text);
       if (quote !== undefined) metaOf<ThreadMeta>(clineToken).quote = quote;
+      if (occurrence !== undefined) metaOf<ThreadMeta>(clineToken).occurrence = occurrence;
       const record: Thread = {
         id: thread.id,
         line: lineAt(thread.firstAt),
@@ -406,6 +409,7 @@ export function commentsRule(state: StateCore): void {
         notes: thread.notes,
       };
       if (quote !== undefined) record.quote = quote;
+      if (occurrence !== undefined) record.occurrence = occurrence;
       env.comments.push(record);
       continue;
     }

@@ -265,6 +265,59 @@ test('splitQuote reads a whitespace-only quote as plain text, as quotedText refu
   assert.deepEqual(splitQuote('"  " → x'), { body: '"  " → x' });
 });
 
+// ---- quote occurrences (decision 0041): "quote" #n → body
+
+test('0041: splitQuote reads #n after the closing quote as the occurrence', () => {
+  assert.deepEqual(splitQuote('"keep" #2 → why keep this?'), { quote: 'keep', occurrence: 2, body: 'why keep this?' });
+  assert.deepEqual(splitQuote('"keep" #1 → first'), { quote: 'keep', occurrence: 1, body: 'first' });
+  assert.deepEqual(splitQuote('"keep" #12 → twelfth'), { quote: 'keep', occurrence: 12, body: 'twelfth' });
+  assert.deepEqual(splitQuote('"keep" → no number'), { quote: 'keep', body: 'no number' });
+});
+
+test('0041: splitQuote keeps a quote with #n out of the quote itself, and an occurrence is never "0"', () => {
+  assert.deepEqual(splitQuote('"a #2 b" → body'), { quote: 'a #2 b', body: 'body' });
+  assert.deepEqual(splitQuote('"keep" #2 → x #3 → y'), { quote: 'keep', occurrence: 2, body: 'x #3 → y' });
+});
+
+test('0041: splitQuote reads these forms as plain text, so the whole note is the body', () => {
+  const plain = [
+    '"keep" #0 → zero is not a match',
+    '"keep" #02 → leading zero',
+    '"keep" #2→ no space before the arrow',
+    '"keep" # 2 → space after the hash',
+    '"keep" #-1 → negative',
+    '"keep" #2 - body with ASCII arrow',
+    '"keep" #2 body with no arrow',
+    '"keep"#2 → no space before the hash',
+  ];
+  for (const text of plain) {
+    assert.deepEqual(splitQuote(text), { body: text }, JSON.stringify(text));
+  }
+});
+
+test('0041: quotedText writes #n and round-trips through splitQuote', () => {
+  const text = quotedText('keep', 'why keep this?', 2);
+  assert.equal(text, '"keep" #2 → why keep this?');
+  assert.deepEqual(splitQuote(text), { quote: 'keep', occurrence: 2, body: 'why keep this?' });
+  assert.equal(quotedText('keep', 'body', 1), '"keep" #1 → body');
+  assert.equal(quotedText('keep', 'body'), '"keep" → body', 'no occurrence, the old form');
+});
+
+test('0041: quotedText throws on an occurrence that is not a positive integer', () => {
+  for (const occurrence of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(
+      () => quotedText('keep', 'body', occurrence),
+      (err) => err instanceof Error && err.message === `quotedText: the occurrence ${occurrence} must be a positive integer`,
+      String(occurrence)
+    );
+  }
+});
+
+test('0041: replaceNote keeps the occurrence of a quoted first note on a block comment line', () => {
+  const line = '{>>[c1] Ada: "keep" #2 → old<<}';
+  assert.equal(replaceNote(`Para.\n\n${line}`, 'c1', 0, 'new'), 'Para.\n\n{>>[c1] Ada: "keep" #2 → new<<}');
+});
+
 test('decision 0037: noteLines splits a text on every spelling of a break, in any case', () => {
   assert.deepEqual(noteLines('a<br>b'), ['a', 'b']);
   assert.deepEqual(noteLines('a<br/>b<br />c<BR>d<Br/>e'), ['a', 'b', 'c', 'd', 'e']);

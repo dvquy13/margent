@@ -152,6 +152,15 @@ test('comments: a quoted block comment names its quote in the head, and the note
   );
 });
 
+test('0041: a quote with #n names its occurrence in the head line, after the quote', () => {
+  const r = cli(['comments', 'test/fixtures/comments/quoted-occurrence.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(
+    r.stdout,
+    /^test\/fixtures\/comments\/quoted-occurrence\.md:14: \[c1\] needs you · block comment on the table at line 9, at "keep" #2\n/
+  );
+});
+
 test('comments: one thread in one doc uses the singular in both places (R8.2)', () => {
   const dir = scratch('one');
   writeFileSync(join(dir, 'one.md'), '---\ntitle: One\n---\n\nA point.{>>[c1] Quy: Check this.<<}\n');
