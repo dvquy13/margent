@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/dvquy13/margent/compare/v0.5.0...v0.6.0) (2026-10-27)
+
+
+### Features
+
+* margent init and teardown write a margent block into the nearest AGENTS.md or CLAUDE.md ([8347faa](https://github.com/dvquy13/margent/commit/8347faa5dba1f3a6681464ffe3f38be5c77db323))
+
 ## [0.5.0](https://github.com/dvquy13/margent/compare/v0.4.0...v0.5.0) (2026-10-26)
 
 
