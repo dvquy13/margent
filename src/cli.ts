@@ -1,6 +1,6 @@
-// The margent CLI (spec R4): open, check, export, --version. Built into dist/cli.js.
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, type Stats } from 'node:fs';
-import { tmpdir } from 'node:os';
+// The margent CLI (spec R4): open, check, export, init, teardown, --version. Built into dist/cli.js.
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync, type Stats } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VERSION } from './version.js';
@@ -23,6 +23,8 @@ import { commandDoctor } from './cli/doctor.js';
 import { linkProblems } from './cli/links.js';
 import { cleanSource } from './comments/clean.js';
 import { startServer } from './serve/server.js';
+import { writeAtomic } from './serve/splice.js';
+import { agentsFilesOn, applyBlock, gitRoot, initTargets, removeBlock, walkFolders } from './cli/agents-block.js';
 
 const USAGE = `usage:
   margent open {file}
@@ -30,6 +32,8 @@ const USAGE = `usage:
   margent doctor
   margent comments {path}
   margent export {path} --out {dir} [--md] [--clean]
+  margent init {path}
+  margent teardown {path}
   margent serve {docs root} [--port {n}] [--no-open] [--author {name}]
   margent --version`;
 
@@ -317,6 +321,70 @@ async function commandServe(rest: string[]): Promise<number> {
   return stopped;
 }
 
+// The folder a {path} argument starts a walk from: the folder itself, or a file's folder. Real paths, as git prints them.
+function startFolder(target: string): string {
+  const abs = resolve(target);
+  return realpathSync(statOrFail(target).isDirectory() ? abs : dirname(abs));
+}
+
+// The git root of a start folder. Outside a repository it throws, with the reason the command needs one.
+function gitRootOf(start: string, target: string, reason: string): string {
+  const root = gitRoot(start);
+  if (root === null) throw new Error(`${target} is not in a git repository: ${reason}`);
+  return root;
+}
+
+// margent init {path}: writes the margent block into the AGENTS.md or CLAUDE.md that colleagues' agents read. Every
+// text is made before any file is written, so a malformed block in one file leaves them all as they were.
+function commandInit(target: string): number {
+  const start = startFolder(target);
+  const root = gitRootOf(start, target, "init writes the AGENTS.md that colleagues' agents read");
+  const files = initTargets(walkFolders(start, root), root);
+  const home = realpathSync(homedir());
+  for (const file of files) {
+    if (dirname(file) === home) throw new Error(`refusing to write ${file}: it is in your home directory`);
+  }
+  const edits = files.map((file) => {
+    const source = existsSync(file) ? readFileSync(file, 'utf8') : '';
+    return { file, ...applyBlock(source, file) };
+  });
+  for (const edit of edits) {
+    if (edit.change !== 'unchanged') writeAtomic(edit.file, edit.text);
+    process.stdout.write(`${edit.change} ${displayPath(edit.file)}\n`);
+  }
+  return 0;
+}
+
+// margent teardown {path}: removes the margent block from the nearest folder on the walk to the git root whose AGENTS.md
+// or CLAUDE.md holds one, and stops there, so a monorepo's root block stays for the other packages. A file left empty is
+// deleted. Every file in that folder is parsed before any is changed.
+function commandTeardown(target: string): number {
+  const start = startFolder(target);
+  const root = gitRootOf(start, target, 'teardown removes the block from the AGENTS.md that init wrote');
+  let edits: { file: string; text: string }[] = [];
+  for (const folder of walkFolders(start, root)) {
+    edits = agentsFilesOn([folder]).flatMap((file) => {
+      const text = removeBlock(readFileSync(file, 'utf8'), file);
+      return text === null ? [] : [{ file, text }];
+    });
+    if (edits.length > 0) break;
+  }
+  if (edits.length === 0) {
+    process.stdout.write(`no margent block between ${displayPath(start)} and ${displayPath(root)}\n`);
+    return 0;
+  }
+  for (const edit of edits) {
+    if (edit.text.trim() === '') {
+      rmSync(edit.file);
+      process.stdout.write(`deleted ${displayPath(edit.file)}\n`);
+    } else {
+      writeAtomic(edit.file, edit.text);
+      process.stdout.write(`removed ${displayPath(edit.file)}\n`);
+    }
+  }
+  return 0;
+}
+
 // Arguments of a command that takes exactly one {path}.
 function singlePath(command: string, rest: string[]): string {
   if (rest.length !== 1 || rest[0].startsWith('-')) throw new UsageError(`${command} needs exactly one {path}`);
@@ -340,6 +408,10 @@ async function main(argv: string[]): Promise<number> {
       return commandCheck(singlePath(command, rest));
     case 'comments':
       return commandComments(singlePath(command, rest));
+    case 'init':
+      return commandInit(singlePath(command, rest));
+    case 'teardown':
+      return commandTeardown(singlePath(command, rest));
     case 'doctor':
       if (rest.length > 0) throw new UsageError('doctor takes no arguments');
       return commandDoctor();
