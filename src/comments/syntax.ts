@@ -22,6 +22,7 @@ export interface Thread {
   anchorKind?: string; // kind 'block': what the block above is (paragraph, table, island, figure, ...)
   highlight?: string;
   quote?: string; // kind 'block': the quoted phrase the first note starts with, if any
+  occurrence?: number; // kind 'block': the 1-based match of that quote the comment means, when the quote names one (0041)
   notes: NoteParts[];
 }
 
@@ -140,22 +141,31 @@ function highlightBefore(block: string, noteStart: number): Span | null {
 }
 
 // A quoted phrase at the start of a block comment's first note: "quote" → body, with U+2192 and one space each side.
-// The quote needs a non-space character, as quotedText does. Anything that doesn't match exactly is plain text, so
-// this never throws.
-const QUOTED = /^"([^"\r\n]*[^"\s][^"\r\n]*)" → (.+)$/;
+// The quote needs a non-space character, as quotedText does. An optional #n after the closing quote says which match
+// of the phrase in the block the comment means, 1-based, with one space each side (decision 0041). Anything that doesn't
+// match exactly is plain text, so this never throws: #0, #02, #2→ and # 2 are plain text.
+const QUOTED = /^"([^"\r\n]*[^"\s][^"\r\n]*)"(?: #([1-9]\d*))? → (.+)$/;
 
-export function splitQuote(text: string): { quote?: string; body: string } {
+// The quote, its occurrence (only when #n is written) and the body of a block comment's first note. Text that doesn't
+// match is the body alone.
+export function splitQuote(text: string): { quote?: string; occurrence?: number; body: string } {
   const m = QUOTED.exec(text);
-  return m ? { quote: m[1], body: m[2] } : { body: text };
+  if (!m) return { body: text };
+  return m[2] === undefined ? { quote: m[1], body: m[3] } : { quote: m[1], occurrence: Number(m[2]), body: m[3] };
 }
 
-// The first note's text for a quoted block comment. Throws on a quote splitQuote could not read back.
-export function quotedText(quote: string, body: string): string {
+// The first note's text for a quoted block comment, with #n when an occurrence is given (decision 0041). Throws on a
+// quote or an occurrence that splitQuote could not read back.
+export function quotedText(quote: string, body: string, occurrence?: number): string {
   if (quote.trim() === '') throw new Error('quotedText: the quote is empty');
   if (/["\r\n]/.test(quote)) throw new Error(`quotedText: the quote ${JSON.stringify(quote)} must not hold '"' or a line break`);
   if (quote.includes('<<}')) throw new Error(`quotedText: the quote ${JSON.stringify(quote)} must not hold '<<}'`);
   if (body.trim() === '') throw new Error('quotedText: the body is empty');
-  return `"${quote}" → ${body}`;
+  if (occurrence === undefined) return `"${quote}" → ${body}`;
+  if (!Number.isSafeInteger(occurrence) || occurrence < 1) {
+    throw new Error(`quotedText: the occurrence ${occurrence} must be a positive integer`);
+  }
+  return `"${quote}" #${occurrence} → ${body}`;
 }
 
 // Appends a note after the last note with this ID in the block.
@@ -167,7 +177,8 @@ export function appendNote(block: string, id: string, n: NoteParts): string {
 }
 
 // The block with the index-th note of thread `id` (0-based, source order among that id's notes) rewritten to `text`.
-// The note keeps its author, and a quoted first note of a block comment line keeps its `"phrase" → ` prefix.
+// The note keeps its author, and a quoted first note of a block comment line keeps its `"phrase" → ` prefix, with its
+// `#n` when it has one (decision 0041).
 export function replaceNote(block: string, id: string, index: number, text: string): string {
   const notes = findNotes(block).filter((note) => note.id === id);
   if (!Number.isInteger(index) || index < 0 || index >= notes.length) {
@@ -177,8 +188,8 @@ export function replaceNote(block: string, id: string, index: number, text: stri
   // A block comment line holds one thread and nothing else; the renderer reads its quote from notes[0].
   const lineStart = block.lastIndexOf('\n', note.start - 1) + 1;
   const onBlockLine = index === 0 && block.slice(lineStart, note.start) === '';
-  const quote = onBlockLine ? splitQuote(note.text).quote : undefined;
-  const body = quote === undefined ? text : quotedText(quote, text);
+  const { quote, occurrence } = onBlockLine ? splitQuote(note.text) : { quote: undefined, occurrence: undefined };
+  const body = quote === undefined ? text : quotedText(quote, text, occurrence);
   return block.slice(0, note.start) + noteSource({ id, author: note.author, text: body }) + block.slice(note.end);
 }
 

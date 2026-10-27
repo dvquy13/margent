@@ -342,12 +342,16 @@ test('the index lists every doc with its title, status and updated from frontmat
   assert.match(r.text, /<span class="fact">draft<\/span><span class="fact">updated 2026-10-24<\/span>/);
   assert.match(r.text, /<a href="valid\.html">Valid doc<\/a>/, 'first heading is the title');
   assert.match(r.text, /<a href="sub\/nested\.html">/, 'a subfolder doc links with its folder');
+  for (const path of ['framed.md', 'valid.md', 'figure.md', 'broken.md', 'sub/nested.md']) {
+    assert.ok(r.text.includes(`<span class="entry-path">${path}</span>`), `entry shows ${path}`);
+  }
 });
 
 test('the index shows a doc with bad frontmatter with its file:line, never drops it', async (t) => {
   const s = await site(t);
   const r = await request(s.port, { path: '/', headers: { Cookie: s.cookie } });
   assert.match(r.text, /<a href="bad-meta\.html">/);
+  assert.match(r.text, /<span class="entry-path">bad-meta\.md<\/span>/, 'the entry with bad frontmatter shows its path');
   assert.match(r.text, /bad-meta\.md:3: invalid frontmatter YAML: Flow sequence/);
 });
 
@@ -362,6 +366,8 @@ test('the index on the frozen margent docs lists every .md that markdownUnder fi
   for (const file of files) {
     const rel = relative(MARGENT_CORPUS, file).split('/').map(encodeURIComponent).join('/').replace(/\.md$/, '.html');
     assert.ok(r.text.includes(`href="${rel}"`), `index links ${rel}`);
+    const shown = relative(MARGENT_CORPUS, file);
+    assert.ok(r.text.includes(`<span class="entry-path">${shown}</span>`), `index shows the path ${shown}`);
   }
 });
 

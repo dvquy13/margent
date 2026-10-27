@@ -41,6 +41,9 @@
   const cards = new Map(); // id -> card
   const anchors = new Map(); // id -> the element the card lines up with
   const quotes = new Map(); // id -> the quoted text, for a block comment that has one
+  const occurrences = new Map(); // id -> the match the quote names (`"phrase" #n`, decision 0041), when it names one
+  const textMores = new Map(); // id -> the "Show more" button of a card with fewer than four notes (measureMore)
+  let expanded = null; // the one expanded card, or null (expand)
 
   for (const thread of threads) {
     const id = thread.dataset.c;
@@ -65,18 +68,28 @@
     card.dataset.c = id;
     card.dataset.kind = kind;
     card.tabIndex = 0;
+    // The head row carries the thread's ID (c5), so a reader can name the thread in chat. It sits above the quote.
+    const cardHead = el('div', 'c-card-head');
+    cardHead.append(el('span', 'c-id', id));
+    card.append(cardHead);
 
     let quote = null;
+    let occurrence;
     if (kind === 'inline') quote = mark.textContent;
     if (kind === 'block') {
       const quoted = thread.querySelector('q.c-quote');
-      if (quoted) quote = quoted.textContent;
+      if (quoted) {
+        quote = quoted.textContent;
+        if ('occurrence' in quoted.dataset) occurrence = Number(quoted.dataset.occurrence);
+      }
     }
     if (quote !== null) {
       card.append(el('q', 'c-quote', quote));
       quotes.set(id, quote);
+      if (occurrence !== undefined) occurrences.set(id, occurrence);
     }
     // A note is a header row (its author; the edit runtime adds Edit to an owner's) and its text below it.
+    const noteEls = [];
     for (const note of thread.querySelectorAll('.c-note')) {
       const copy = note.cloneNode(true);
       for (const q of copy.querySelectorAll('q.c-quote')) q.remove();
@@ -102,6 +115,29 @@
       const p = el('p', 'c-note');
       p.append(head, text);
       card.append(p);
+      noteEls.push(p);
+    }
+    // A thread of four or more notes folds its middle notes at rest (a class, so expanding shows them again), behind a
+    // button after the first note. A shorter thread gets a "Show more" button at its end, shown only when some of its
+    // text is clipped (measureMore). Either way, an expanded card has no button (CSS).
+    if (noteEls.length >= 4) {
+      const folded = noteEls.slice(1, -1);
+      for (const p of folded) p.classList.add('is-folded');
+      const more = el('button', 'c-more', `Show ${folded.length} more replies`);
+      more.type = 'button';
+      // A press does not focus the button. Focus would expand the card on mousedown and hide the button under the press,
+      // so the click would land on the card, which below 1100px closes the drawer. The click expands the card instead.
+      more.addEventListener('mousedown', (e) => e.preventDefault());
+      more.addEventListener('click', () => expand(id));
+      noteEls[0].after(more);
+    } else {
+      const more = el('button', 'c-more', 'Show more');
+      more.type = 'button';
+      more.hidden = true;
+      more.addEventListener('mousedown', (e) => e.preventDefault()); // as above: the click expands the card
+      more.addEventListener('click', () => expand(id));
+      card.append(more);
+      textMores.set(id, more);
     }
     card.append(el('div', 'c-actions'));
 
@@ -151,8 +187,20 @@
 
   // ---- placement: each card's top is its anchor's top, pushed down when the card above reaches it -------------------
 
+  // The "Show more" button of a short thread shows only while some of its text is clipped at rest. A clipped element has
+  // scrollHeight above clientHeight. This is measured on every relayout, since the rail's width and the fonts move the
+  // line breaks. The drawer is measured too: its closed state is only visibility, so it still lays out.
+  function measureMore() {
+    for (const [id, btn] of textMores) {
+      const clipped = [...cards.get(id).querySelectorAll(':scope > q.c-quote, :scope > .c-note > .c-text')]
+        .some((e) => e.scrollHeight > e.clientHeight);
+      btn.hidden = !clipped;
+    }
+  }
+
   function relayout() {
     main.style.minHeight = '';
+    measureMore();
     if (!wide.matches) {
       for (const card of cards.values()) card.style.top = '';
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
@@ -195,6 +243,25 @@
     });
   }
 
+  // ---- expanding: a card is compact at rest and shows everything once expanded ----------------------------------------
+  // A card at rest clamps its quote and notes and folds a long thread's middle (CSS, on .c-card:not(.is-expanded)). Only
+  // one card is expanded at a time, so the rail never holds two tall cards at once. The card grew, so the rail relays out.
+  function expand(id) {
+    const card = cards.get(id);
+    if (expanded === card) return card;
+    if (expanded !== null) expanded.classList.remove('is-expanded');
+    expanded = card;
+    card.classList.add('is-expanded');
+    schedule();
+    return card;
+  }
+  function collapse() {
+    if (expanded === null) return;
+    expanded.classList.remove('is-expanded');
+    expanded = null;
+    schedule();
+  }
+
   relayout();
   window.addEventListener('resize', schedule);
   wide.addEventListener('change', schedule);
@@ -210,9 +277,10 @@
   // ---- linking: the highlight or point marker, the card and (for a block) the block, marked together -------------------
 
   const isIsland = (el) => el.localName === 'agent-island';
-  // Marks a phrase in one island's frame, or clears it with null. Without margentIslands there is no island to mark.
-  function markInIsland(el, phrase) {
-    if (window.margentIslands) window.margentIslands.mark(el, phrase);
+  // Marks a phrase in one island's frame, or clears it with a null phrase. occurrence picks one match (null: all of them).
+  // Without margentIslands there is no island to mark.
+  function markInIsland(el, phrase, occurrence) {
+    if (window.margentIslands) window.margentIslands.mark(el, phrase, occurrence ?? null);
   }
 
   // Quoted phrases (decision 0023) are marked with the Custom Highlight API, so the DOM never changes: all of their
@@ -224,8 +292,11 @@
   // no always-on tint, and its miss state comes from margentIslands.find in quoteReport.
   // A block comment with no quote is about its whole block (decision 0039). A prose block is marked like a phrase, all
   // of its text; a table, code, a figure or an island would be one large tint, so it takes c-commented, a light bar.
+  // A quote that names its match (decision 0041) marks only that one. A quote that occurs more than once, and names none,
+  // marks every match, and its card says how many places it matches.
   const PROSE = ':is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote)';
   const markRanges = new Map(); // id -> the Range[] its card marks: its quote's matches, or its prose block's text
+  const counts = new Map(); // id -> how many matches its quote has in its block (page blocks only)
   function markQuotes() {
     markRanges.clear();
     for (const [id, card] of cards) {
@@ -233,8 +304,15 @@
       const anchor = anchors.get(id);
       if (quotes.has(id)) {
         if (isIsland(anchor)) continue;
-        const ranges = MargentQuote.find(anchor, quotes.get(id));
-        if (ranges.length > 0) markRanges.set(id, ranges);
+        const matches = MargentQuote.find(anchor, quotes.get(id));
+        counts.set(id, matches.length);
+        const occurrence = occurrences.get(id);
+        if (occurrence === undefined) {
+          if (matches.length > 0) markRanges.set(id, matches);
+          if (matches.length > 1) quoteNote(id, `matches ${matches.length} places`);
+        } else if (matches[occurrence - 1] !== undefined) {
+          markRanges.set(id, [matches[occurrence - 1]]);
+        }
       } else if (anchor.matches(PROSE) && 'highlights' in CSS) {
         const range = document.createRange();
         range.selectNodeContents(anchor);
@@ -247,12 +325,18 @@
   }
   markQuotes();
 
+  // A label under a card's quote (the class is c-quote-note). Applied once per card.
+  function quoteNote(id, text) {
+    const q = cards.get(id).querySelector(':scope > q.c-quote');
+    if (q.nextElementSibling?.classList.contains('c-quote-note')) return;
+    q.after(el('span', 'c-quote-note', text));
+  }
   // A quote the page cannot find: its card's quote is muted and a label under it says so. Applied once per card.
   function markMissing(id) {
     const q = cards.get(id).querySelector(':scope > q.c-quote');
     if (q.classList.contains('c-quote-missing')) return;
     q.classList.add('c-quote-missing');
-    q.after(el('span', 'c-quote-note', 'not found in the page'));
+    quoteNote(id, 'not found in the page');
   }
   // An inline thread's text is its highlight, so only a block comment's quote can be missing.
   for (const id of quotes.keys()) {
@@ -262,7 +346,7 @@
   function markQuote(id, on) {
     const anchor = anchors.get(id);
     if (isIsland(anchor)) {
-      if (quotes.has(id)) markInIsland(anchor, on ? quotes.get(id) : null);
+      if (quotes.has(id)) markInIsland(anchor, on ? quotes.get(id) : null, occurrences.get(id));
       return;
     }
     if (!('highlights' in CSS)) return;
@@ -349,14 +433,27 @@
     setOpen(false);
     toggle.focus();
   });
+  // Escape closes the drawer first, as before. With the drawer shut it collapses the card the focus is in, unless the
+  // focus is in a field, where Escape cancels the field's edit. The focus goes to the card, which may have just hidden it.
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) {
+    if (e.key !== 'Escape') return;
+    if (isOpen()) {
       setOpen(false);
       toggle.focus();
+      return;
+    }
+    const focus = document.activeElement;
+    if (expanded !== null && expanded.contains(focus) && !focus.matches('textarea, input')) {
+      const card = expanded;
+      collapse();
+      card.focus();
     }
   });
   document.addEventListener('pointerdown', (e) => {
     if (isOpen() && !rail.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+    // A press outside the expanded card collapses it. A press in another card, or in the note box (a draft card), does
+    // not: that card's own expansion, or the note box, takes over.
+    if (expanded !== null && !e.target.closest('.c-card, .comment-box')) collapse();
   });
 
   // A click on a card (below 1100px) closes the drawer and scrolls the anchor into view. The card is marked until the
@@ -371,48 +468,72 @@
     document.addEventListener('pointerdown', clear, true);
     document.addEventListener('keydown', clear, true);
   }
+  // Paths into expanded: a click on the card (a link inside it still just follows), Enter on the focused card, the
+  // "Show more" button, and focus moving to a control inside the card. Below 1100px a click on the card still closes
+  // the drawer and shows its anchor, so only the other paths expand a card there.
   for (const [id, card] of cards) {
     card.addEventListener('click', (e) => {
+      if (e.target.closest('a[href]')) return;
+      if (wide.matches) {
+        expand(id);
+        return;
+      }
       // A press in a button or the field of a draft is not a click on the card (below 1100px it would close the drawer).
-      if (wide.matches || e.target.closest('button, textarea')) return;
+      if (e.target.closest('button, textarea')) return;
       card.blur();
       anchors.get(id).scrollIntoView({ block: 'center' });
       setOpen(false);
       flash(id);
     });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target === card) expand(id);
+    });
+    // Focus on the card itself does not expand it; focus on anything inside it (Reply, Edit, a composer) does.
+    card.addEventListener('focusin', (e) => {
+      if (e.target !== card) expand(id);
+    });
   }
 
-  // Every quoted block comment, in document order: { id, found }. found is true or false for a quote the page can search
-  // or an island that has rendered (margentIslands.find), and null for an island that has not rendered. A false marks its
-  // card. An inline thread's text is its highlight, which is in the source, so it is never reported.
+  // Every quoted block comment, in document order: { id, count }. count is how many matches the phrase has in its block
+  // (page blocks from counts, islands from margentIslands.find), or null for an island that has not rendered. A quote is
+  // missing (its card is marked, and the card says "not found in the page") when count is 0 or the occurrence it names is
+  // past the last match. An ambiguous island quote (more than one match, no #n) gets the "matches {count} places" label,
+  // as a page quote does at load. An inline thread's text is its highlight, which is in the source, so it is never reported.
   function quoteReport() {
     const blockQuotes = [...quotes.keys()].filter((id) => cards.get(id).dataset.kind === 'block');
+    const missingIf = (id, count) => {
+      const occurrence = occurrences.get(id);
+      if (count === 0 || (occurrence !== undefined && occurrence > count)) markMissing(id);
+      else if (occurrence === undefined && count > 1) quoteNote(id, `matches ${count} places`);
+    };
     return Promise.all(blockQuotes.map((id) => {
       const anchor = anchors.get(id);
       if (!isIsland(anchor)) {
-        const found = markRanges.has(id);
-        if (!found) markMissing(id);
-        return { id, found };
+        const count = counts.get(id);
+        missingIf(id, count);
+        return { id, count };
       }
-      if (anchor.getAttribute('data-state') !== 'rendered') return { id, found: null };
-      return window.margentIslands.find(anchor, quotes.get(id)).then((n) => {
-        if (n === null) return { id, found: null };
-        const found = n > 0;
-        if (!found) markMissing(id);
-        return { id, found };
+      if (anchor.getAttribute('data-state') !== 'rendered') return { id, count: null };
+      return window.margentIslands.find(anchor, quotes.get(id)).then((count) => {
+        if (count === null) return { id, count: null };
+        missingIf(id, count);
+        return { id, count };
       });
     }));
   }
 
-  // The hook for the edit runtime. reveal opens the drawer below 1100px, so a card's buttons can be reached.
+  // The hook for the edit runtime. reveal opens the drawer below 1100px, so a card's buttons can be reached, and expands
+  // the card, so its whole thread is there to act on.
   window.margentComments = {
     cards,
     relayout,
     quoteReport,
     reveal(id) {
       if (!wide.matches) setOpen(true);
-      return cards.get(id);
+      return expand(id);
     },
+    expand,
+    collapse,
     showDraft,
     hideDraft,
     close() {

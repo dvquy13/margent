@@ -30,7 +30,18 @@ function pageFile(name, source) {
   return { html, url: pathToFileURL(path).href };
 }
 
-const FIXTURES = ['all-kinds.md', 'block-prose.md', 'quoted.md', 'quoted-repeat.md', 'quoted-table.md', 'tall-table.md'];
+const FIXTURES = [
+  'all-kinds.md',
+  'block-prose.md',
+  'quoted.md',
+  'quoted-repeat.md',
+  'quoted-occurrence-page.md',
+  'quoted-occurrence-past.md',
+  'quoted-table.md',
+  'tall-table.md',
+  'links-in-highlight.md',
+  'long-thread.md',
+];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
 let browser;
@@ -320,14 +331,53 @@ test('R4.3: a quoted phrase that is not in its block marks only the block', full
   }
 });
 
-test('0039: a phrase that occurs twice in its block is marked at both places, always and on hover', full, async () => {
+test('0041: a phrase that occurs twice in its block and names no #n is marked at both places, always and on hover, and its card says so', full, async () => {
   const { page, errors, close } = await open(1280, 'light', urls['quoted-repeat.md']);
   try {
     const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
     assert.deepEqual(always, ['beta gate', 'beta gate'], 'both matches carry the always-on tint');
-    await page.locator('.c-card[data-c="c1"]').hover();
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('q.c-quote + .c-quote-note').textContent(), 'matches 2 places', 'the card says how many places');
+    assert.equal(await card.locator('.c-quote-missing').count(), 0, 'an ambiguous quote is found, not missing');
+    await card.hover();
     const hovered = await page.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
     assert.deepEqual(hovered, ['beta gate', 'beta gate'], 'hovering the card marks both matches');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+// The start offsets of the marked ranges in their text nodes, in order. "beta gate, then beta gate again" has its second
+// match at lastIndexOf.
+const markedStarts = (page, name) =>
+  page.evaluate((name) => [...(CSS.highlights.get(name) ?? [])].map((r) => r.startOffset), name);
+
+test('0041: a quote that names its match (#2) marks only that match, always and on hover, with no label', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-occurrence-page.md']);
+  try {
+    const text = 'beta gate, then beta gate again';
+    const second = text.lastIndexOf('beta gate');
+    assert.deepEqual(await markedStarts(page, 'margent-quotes'), [second], 'only the second match carries the always-on tint');
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('.c-quote-note').count(), 0, 'a named match has no label');
+    await card.hover();
+    assert.deepEqual(await markedStarts(page, 'margent-quote'), [second], 'hovering the card marks only the second match');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('0041: a quote that names a match past the last one (#3) marks nothing, and its card says not found in the page', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-occurrence-past.md']);
+  try {
+    assert.deepEqual(await markedStarts(page, 'margent-quotes'), [], 'no match is marked');
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('q.c-quote.c-quote-missing').count(), 1, 'the quote is marked missing');
+    assert.equal(await card.locator('q.c-quote + .c-quote-note').textContent(), 'not found in the page');
+    await card.hover();
+    assert.deepEqual(await markedStarts(page, 'margent-quote'), [], 'hovering the card marks nothing');
     assert.deepEqual(errors, []);
   } finally {
     await close();
@@ -362,7 +412,7 @@ test('0039: a quote the page cannot find is muted and labelled on its card, and 
     assert.equal(await page.locator('.c-card[data-c="c2"] .c-quote-missing').count(), 0, 'a highlight is never marked missing');
     // c2 is an inline thread: its highlight is in the source, so only the block comment's quote is reported.
     const report = await page.evaluate(() => window.margentComments.quoteReport());
-    assert.deepEqual(report, [{ id: 'c1', found: false }]);
+    assert.deepEqual(report, [{ id: 'c1', count: 0 }]);
     assert.equal(await card.locator('.c-quote-note').count(), 1, 'the label is not added twice');
     assert.deepEqual(errors, []);
   } finally {
@@ -521,5 +571,266 @@ test('0023: a quote that runs across two island lines is marked in the frame on 
     } finally {
       await close();
     }
+  }
+});
+
+// F2: a link inside a highlight keeps its own colour, so it still stands apart from the tinted text around it. The
+// Custom Highlight colours can't be read from getComputedStyle, so the glyphs are read from painted pixels: each box's
+// background is its most common colour, and its glyph is the pixel farthest in luminance from that background.
+const F2_CASES = [
+  { para: 'The plan', link: 'the spec', plain: 'follows' },
+  { para: 'see the decision', link: 'the decision', plain: 'see' },
+  { para: 'The review found', link: 'sourced claim', plain: 'review found' },
+];
+const F2_MIN_GAP = 40;
+
+// The rectangle of the first match of `text` under `root`, scrolled into view and inset a pixel so the edges are clear.
+async function f2Box(page, para, root, text) {
+  return page.locator('p:not(article p):not(.c-line)', { hasText: para }).evaluate((p, { root, text }) => {
+    p.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const scope = root === 'link' ? p.querySelector('a') : p;
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    for (let node; (node = walker.nextNode()); ) {
+      const at = node.data.indexOf(text);
+      if (at < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + text.length);
+      const r = range.getBoundingClientRect();
+      return { x: r.x + 1, y: r.y + 1, width: r.width - 2, height: r.height - 2 };
+    }
+    throw new Error(`F2: "${text}" not found in ${root}`);
+  }, { root, text });
+}
+
+// The painted glyph colour of a PNG: the background is the most common colour, the glyph the pixel farthest from it in
+// luminance (darkest on a light tint, brightest on a dark one). Decoded in the page with an Image and a canvas.
+async function f2Glyph(page, png) {
+  return page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, img.width, img.height).data;
+    const lum = (i) => 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const counts = new Map();
+    for (let i = 0; i < d.length; i += 4) {
+      const key = `${d[i]},${d[i + 1]},${d[i + 2]}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const [bgKey] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    const [br, bg, bb] = bgKey.split(',').map(Number);
+    const bgLum = 0.2126 * br + 0.7152 * bg + 0.0722 * bb;
+    let best = -1;
+    let glyph = null;
+    for (let i = 0; i < d.length; i += 4) {
+      const gap = Math.abs(lum(i) - bgLum);
+      if (gap > best) {
+        best = gap;
+        glyph = [d[i], d[i + 1], d[i + 2]];
+      }
+    }
+    return { background: bgKey.split(',').map(Number), glyph };
+  }, `data:image/png;base64,${png.toString('base64')}`);
+}
+
+test('F2: a link inside a highlight keeps its colour apart from the tinted text, in light and dark', async () => {
+  for (const scheme of ['light', 'dark']) {
+    const { page, errors, close } = await open(1280, scheme, urls['links-in-highlight.md']);
+    try {
+      for (const c of F2_CASES) {
+        const link = await f2Box(page, c.para, 'link', c.link);
+        const plain = await f2Box(page, c.para, 'para', c.plain);
+        const linkPng = await page.screenshot({ clip: link });
+        const plainPng = await page.screenshot({ clip: plain });
+        const linkInk = await f2Glyph(page, linkPng);
+        const plainInk = await f2Glyph(page, plainPng);
+        const gap = Math.max(...[0, 1, 2].map((k) => Math.abs(linkInk.glyph[k] - plainInk.glyph[k])));
+        assert.ok(
+          gap >= F2_MIN_GAP,
+          `${scheme} "${c.link}": link glyph ${linkInk.glyph} on ${linkInk.background}, plain "${c.plain}" glyph ${plainInk.glyph} on ${plainInk.background}; channel gap ${gap} is below ${F2_MIN_GAP}`
+        );
+      }
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  }
+});
+
+// ---- F3 the rail's card head, width, compact cards and expanding (T8, T9) -----------------------------------------------
+
+// The notes of a card that the layout shows (a folded note is display: none).
+function shownNotes(page, id) {
+  return page.evaluate((c) => [...document.querySelectorAll(`.c-card[data-c="${c}"] .c-note`)]
+    .filter((n) => getComputedStyle(n).display !== 'none').length, id);
+}
+// The label of a card's button when the layout shows it, or null.
+function shownMore(page, id) {
+  return page.evaluate((c) => {
+    const more = document.querySelector(`.c-card[data-c="${c}"] > .c-more, .c-card[data-c="${c}"] .c-note + .c-more`);
+    return more && getComputedStyle(more).display !== 'none' ? more.textContent : null;
+  }, id);
+}
+const cardHeight = (page, id) => page.locator(`.c-card[data-c="${id}"]`).evaluate((e) => e.getBoundingClientRect().height);
+const isExpanded = (page, id) => page.locator(`.c-card[data-c="${id}"]`).evaluate((e) => e.classList.contains('is-expanded'));
+const expandedCount = (page) => page.locator('.c-card.is-expanded').count();
+// Two animation frames: the rail relays out in the frame after an expand or collapse, so a layout read waits for it.
+const settle = (page) => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+
+test('F3: the card head shows each thread ID in the mono face, and the ID is the thread\'s', full, async () => {
+  const { page, errors, close } = await open(1280, 'light');
+  try {
+    const cards = await page.evaluate(() => [...document.querySelectorAll('.c-card')].map((card) => {
+      const id = card.querySelector('.c-card-head .c-id');
+      return {
+        data: card.dataset.c,
+        text: id && id.textContent,
+        family: id && getComputedStyle(id).fontFamily,
+        head: card.firstElementChild.className,
+      };
+    }));
+    assert.ok(cards.length > 0, 'there are cards');
+    for (const c of cards) {
+      assert.equal(c.text, c.data, `card ${c.data} shows its own ID`);
+      assert.equal(c.head, 'c-card-head', `card ${c.data} opens with the head row`);
+      assert.match(c.family, /monospace$/, `card ${c.data}'s ID is in the mono stack (${c.family})`);
+    }
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: the rail is 380px at 1440 and 280px at 1180 and 1100, and the column keeps 900px at 1440', full, async () => {
+  const rail = {};
+  for (const width of [1100, 1180, 1440]) {
+    const { page, errors, close } = await open(width, 'light', urls['long-thread.md']);
+    try {
+      rail[width] = await page.locator('.c-rail').evaluate((e) => Math.round(e.getBoundingClientRect().width));
+      const state = await layout(page);
+      assert.ok(state.scroll <= state.inner, `${width}px: no horizontal overflow (${state.scroll} > ${state.inner})`);
+      if (width === 1440) assert.equal(Math.round(state.contentRight - state.contentLeft), 900, 'the column is 900px');
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  }
+  assert.deepEqual(rail, { 1100: 280, 1180: 280, 1440: 380 });
+});
+
+test('F3: at rest a long thread shows its first and last notes and a button, and a long note is clamped', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    assert.equal(await shownNotes(page, 'c1'), 2, 'c1 shows its first and last notes');
+    assert.equal(await shownMore(page, 'c1'), 'Show 8 more replies');
+    assert.equal(await shownNotes(page, 'c4'), 1, 'c4 shows its one note');
+    assert.equal(await shownMore(page, 'c4'), 'Show more', 'the clipped note of c4 gets Show more');
+    assert.equal(await shownMore(page, 'c2'), null, 'c2 has no button');
+    assert.equal(await shownMore(page, 'c3'), null, 'c3 has no button');
+    assert.ok((await cardHeight(page, 'c1')) <= 260, 'c1 is at most 260px at rest');
+    assert.ok((await cardHeight(page, 'c4')) <= 260, 'c4 is at most 260px at rest');
+    await settle(page);
+    assertWideLayout(await layout(page), 'long thread at rest');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: a click expands a card, one card at a time, and a press on blank space collapses it', async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    const rest = await cardHeight(page, 'c1');
+    await page.locator('.c-card[data-c="c1"] .c-card-head').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'a click in c1 expands it');
+    assert.equal(await shownNotes(page, 'c1'), 10, 'all ten notes show');
+    assert.equal(await shownMore(page, 'c1'), null, 'an expanded card has no button');
+    assert.ok((await cardHeight(page, 'c1')) > rest, 'c1 is taller expanded than at rest');
+    await settle(page);
+    assertWideLayout(await layout(page), 'c1 expanded');
+
+    await page.locator('.c-card[data-c="c4"] .c-card-head').click();
+    assert.equal(await isExpanded(page, 'c4'), true, 'a click in c4 expands it');
+    assert.equal(await isExpanded(page, 'c1'), false, 'c1 collapses');
+    assert.equal(await expandedCount(page), 1, 'one card is expanded');
+    await settle(page);
+    assertWideLayout(await layout(page), 'c4 expanded');
+
+    await page.mouse.click(20, 700);
+    assert.equal(await isExpanded(page, 'c4'), false, 'a press on blank space collapses c4');
+    assert.equal(await expandedCount(page), 0);
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: Enter expands the focused card, Escape collapses it, and Tab from it reaches its button', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-card[data-c="c1"]').focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await isExpanded(page, 'c1'), true, 'Enter expands c1');
+    await page.keyboard.press('Escape');
+    assert.equal(await isExpanded(page, 'c1'), false, 'Escape collapses c1');
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.c), 'c1', 'the focus stays on the card');
+    await page.keyboard.press('Tab');
+    const focused = await page.evaluate(() => document.activeElement.className);
+    assert.equal(focused, 'c-more', 'Tab goes to the button inside c1');
+    assert.equal(await isExpanded(page, 'c1'), true, 'focus inside c1 expands it');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: the button expands its card: "Show 8 more replies" in c1, "Show more" in c4', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-card[data-c="c1"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'the replies button expands c1');
+    assert.equal(await shownNotes(page, 'c1'), 10);
+    await page.locator('.c-card[data-c="c4"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c4'), true, 'the Show more button expands c4');
+    assert.equal(await isExpanded(page, 'c1'), false, 'and c1 collapses');
+    await settle(page);
+    assertWideLayout(await layout(page), 'after the buttons');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: hovering a card links it and leaves its height unchanged', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    const before = await cardHeight(page, 'c1');
+    await page.locator('.c-card[data-c="c1"] .c-card-head').hover();
+    assert.equal(await linked(page, '.c-card[data-c="c1"]'), true, 'the card is linked');
+    assert.equal(await isExpanded(page, 'c1'), false, 'hover does not expand');
+    assert.equal(await cardHeight(page, 'c1'), before, 'hover does not change its height');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: at 390px the drawer\'s card button expands its card, with no horizontal overflow', full, async () => {
+  const { page, errors, close } = await open(390, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-toggle').click();
+    await page.locator('.c-card[data-c="c1"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'the button expands c1 in the drawer');
+    assert.equal(await page.locator('.c-rail').evaluate((e) => e.classList.contains('is-open')), true, 'the drawer stays open');
+    const state = await layout(page);
+    assert.ok(state.scroll <= state.inner, `no horizontal overflow (${state.scroll} > ${state.inner})`);
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
   }
 });

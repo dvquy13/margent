@@ -61,8 +61,10 @@ function entryFor(file: string, root: string): IndexEntry {
   }
 }
 
+// The entry shows the doc's path under the root too: agents print paths, and the browser's find then finds the doc.
 function entryHtml(entry: IndexEntry): string {
   const href = entry.rel.split('/').map(encodeURIComponent).join('/') + '.html';
+  const path = `<span class="entry-path">${escapeHtml(`${entry.rel}.md`)}</span>`;
   const facts = [
     entry.meta.status,
     entry.meta.updated ? `updated ${entry.meta.updated}` : undefined,
@@ -72,7 +74,7 @@ function entryHtml(entry: IndexEntry): string {
     .map((v) => `<span class="fact">${escapeHtml(v)}</span>`)
     .join('');
   const error = entry.error ? `<p class="entry-error"><code>${escapeHtml(entry.error)}</code></p>` : '';
-  return `<li><a href="${escapeHtml(href)}">${escapeHtml(entry.title)}</a>${facts}${error}</li>`;
+  return `<li><a href="${escapeHtml(href)}">${escapeHtml(entry.title)}</a>${facts}${path}${error}</li>`;
 }
 
 const INDEX_CSS = `
@@ -82,7 +84,8 @@ const INDEX_CSS = `
 .index-list li { padding: var(--gap-sm) 0; border-top: 1px solid var(--border); }
 .index-list a { color: var(--text); font-weight: 600; text-decoration: none; }
 .index-list a:hover { color: var(--accent); }
-.index-list .fact { margin-left: var(--gap-sm); font-size: var(--font-sm); color: var(--text-muted); }
+.index-list .fact { margin-left: var(--gap-sm); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.index-list .entry-path { display: block; margin-top: var(--gap-xs); font-family: var(--mono); font-size: var(--font-sm); color: var(--text-muted); overflow-wrap: anywhere; }
 .entry-error { margin: var(--gap-xs) 0 0; color: var(--red); font-size: var(--font-sm); }
 .entry-error code { font-family: var(--mono); white-space: pre-wrap; }
 `;

@@ -398,6 +398,41 @@ test('check: a quote of text the island does not show fails, anchored to the isl
   );
 });
 
+// ---- check: a quote that names its match, or does not say which one (decision 0041)
+
+test('check: a quote with no #n that occurs twice in its table fails, and says how to name the match', () => {
+  const r = cli(['check', `${QUOTES}/ambiguous.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/ambiguous.md:8: comment c1: quoted phrase "beta gate" occurs 2 times in the table it is anchored to; add #n after the quote to say which\n`
+  );
+});
+
+test('check: a quote with #3 where its table has two matches fails, and says how many there are', full, () => {
+  const r = cli(['check', `${QUOTES}/out-of-range.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/out-of-range.md:8: comment c1: quoted phrase "beta gate" #3: the table it is anchored to has only 2\n`
+  );
+});
+
+test('check: a quote with #2 whose phrase is not in its table fails, with the number in the message', full, () => {
+  const r = cli(['check', `${QUOTES}/not-found-occurrence.md`]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${QUOTES}/not-found-occurrence.md:8: comment c1: quoted phrase "Review" #2 is not in the table it is anchored to\n`
+  );
+});
+
+test('check: a quote with #2 for a repeated phrase, and #1 for a phrase that occurs once, passes', full, () => {
+  const r = cli(['check', `${QUOTES}/occurrence-in-range.md`]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, 'ok 1 docs, 0 islands\n');
+});
+
 // ---- check: links (decision 0036), no Chrome needed
 
 const LINKS = 'test/fixtures/cli/links';

@@ -166,7 +166,8 @@
     window.open(parsed.href, '_blank', 'noopener');
   }
 
-  // The selection event (R6 consumes it): text and rect in page viewport coordinates, or an empty selection.
+  // The selection event (R6 consumes it): text and rect in page viewport coordinates, which match of the island's text it
+  // is (occurrence of count, 0 and 0 for an empty selection), or an empty selection.
   function onSelection(isl, msg) {
     var rect = null;
     if (msg.rect) {
@@ -182,7 +183,7 @@
     }
     isl.el.dispatchEvent(new CustomEvent('margent:island-selection', {
       bubbles: true,
-      detail: { text: msg.text, rect: rect }
+      detail: { text: msg.text, rect: rect, occurrence: msg.occurrence, count: msg.count }
     }));
   }
 
@@ -229,6 +230,10 @@
         break;
       case 'hover':
         if (msg.inside === true) isl.el.setAttribute('data-hover', '');
+        break;
+      case 'shortcut':
+        // A key the guest took (the comment shortcut): raised on the island, as the selection is.
+        isl.el.dispatchEvent(new CustomEvent('margent:island-shortcut', { bubbles: true, detail: { name: msg.name } }));
         break;
     }
   });
@@ -371,12 +376,17 @@
       });
   }
 
-  // Marks the quoted phrase inside one island (R6). A null phrase clears the marks.
-  function mark(el, phrase) {
+  // Marks the quoted phrase inside one island (R6). A null phrase clears the marks. occurrence picks one match (1-based,
+  // decision 0041); absent or null marks every match.
+  function mark(el, phrase, occurrence) {
     var isl = byEl.get(el);
     if (!isl) throw new Error('margentIslands.mark: the element is not an <agent-island> of this page');
     if (!isl.frame) throw new Error('island ' + isl.name + ': it has no frame to mark');
-    isl.frame.contentWindow.postMessage({ type: 'mark', phrase: phrase === undefined ? null : phrase }, '*');
+    isl.frame.contentWindow.postMessage({
+      type: 'mark',
+      phrase: phrase === undefined ? null : phrase,
+      occurrence: occurrence === undefined ? null : occurrence
+    }, '*');
   }
 
   // Counts the occurrences of a phrase inside one rendered island (the quote check of the comment rail). Resolves to the

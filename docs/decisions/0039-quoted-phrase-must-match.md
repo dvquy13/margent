@@ -1,6 +1,7 @@
 ---
 title: A quoted phrase must be found in its block
 status: accepted
+amended_by: 0041
 updated: 2026-10-26
 ---
 

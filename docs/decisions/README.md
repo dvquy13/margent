@@ -42,8 +42,9 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0036](0036-check-fails-on-broken-links.md) | `check` fails on broken links | accepted | 2026-10-25 |
 | [0037](0037-note-line-breaks-as-br.md) | A note's line breaks are stored as `<br>` | accepted | 2026-10-25 |
 | [0038](0038-serve-tells-pages-when-margent-changed.md) | `serve` tells open pages when margent changed on disk | accepted | 2026-10-26 |
-| [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted | 2026-10-26 |
+| [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted, amended by [0041](0041-quote-names-its-occurrence.md) | 2026-10-26 |
 | [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted | 2026-10-27 |
+| [0041](0041-quote-names-its-occurrence.md) | A quoted phrase names its occurrence when it repeats (amends 0039) | accepted | 2026-10-27 |
 
 ## Deferred
 

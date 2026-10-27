@@ -165,7 +165,7 @@ async function runPagesOf(docs: RenderedFile[]): Promise<string[]> {
         if (t.quote === undefined) return [];
         // Only a block comment line carries a quote, and every one has an anchor kind.
         if (t.anchorKind === undefined) throw new Error(`${displayPath(doc.file)}:${t.line}: quoted comment ${t.id} has no anchor kind`);
-        return [{ id: t.id, line: t.line, quote: t.quote, anchorKind: t.anchorKind }];
+        return [{ id: t.id, line: t.line, quote: t.quote, occurrence: t.occurrence, anchorKind: t.anchorKind }];
       });
       return { file: displayPath(doc.file), html, islands: rendered.islands, quotes };
     });

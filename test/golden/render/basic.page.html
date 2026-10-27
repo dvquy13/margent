@@ -23,6 +23,8 @@
   --accent: #0062a8;
   --accent-light: #e0f0ff;
   --accent-border: #b3d9f5;
+  /* Link underlines are drawn relative to the text, so they show on the page and inside a comment tint alike. */
+  --link-underline: color-mix(in srgb, currentColor 35%, transparent);
   --green: #059669;
   --amber: #b45309;
   --red: #b91c1c;
@@ -166,7 +168,7 @@ strong { color: var(--text); font-weight: 600; }
 em { font-style: italic; }
 s, del { color: var(--text-muted); text-decoration-color: var(--text-muted); }
 a {
-  color: var(--text); text-decoration: underline; text-decoration-color: var(--border);
+  color: var(--text); text-decoration: underline; text-decoration-color: var(--link-underline);
   text-decoration-thickness: 1px; text-underline-offset: 3px;
   transition: color var(--fade), text-decoration-color var(--fade);
 }

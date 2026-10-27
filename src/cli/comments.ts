@@ -12,7 +12,8 @@ function what(t: Thread): string {
   if (t.kind === 'inline') return `"${t.highlight ?? ''}"`;
   if (t.kind === 'point') return 'point comment';
   if (t.anchor === undefined || t.anchorKind === undefined) throw new Error(`comments: block thread ${t.id} has no anchor`);
-  const quoted = t.quote === undefined ? '' : `, at "${t.quote}"`;
+  const occurrence = t.occurrence === undefined ? '' : ` #${t.occurrence}`;
+  const quoted = t.quote === undefined ? '' : `, at "${t.quote}"${occurrence}`;
   return `block comment on the ${t.anchorKind} at line ${Number(t.anchor.split('-')[0])}${quoted}`;
 }
 

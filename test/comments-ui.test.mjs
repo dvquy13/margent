@@ -16,6 +16,9 @@ const REFUSAL = join(REPO, 'test', 'fixtures', 'comments', 'ui-refusal', 'docs')
 const ORIGINAL = readFileSync(join(FIXTURE, 'ui.md'), 'utf8');
 const ISLAND = join(REPO, 'test', 'fixtures', 'comments', 'ui-island', 'docs');
 const ISLAND_ORIGINAL = readFileSync(join(ISLAND, 'island.md'), 'utf8');
+const REPEAT = join(REPO, 'test', 'fixtures', 'comments', 'ui-repeat', 'docs');
+const REPEAT_ORIGINAL = readFileSync(join(REPEAT, 'repeat.md'), 'utf8');
+const REPEAT_ISLAND = join(REPO, 'test', 'fixtures', 'comments', 'ui-island-repeat', 'docs');
 // The screenshots go to the folder UPDATE_SHOTS names, never into docs/: the test is skipped without one.
 const SHOTS = process.env.UPDATE_SHOTS && process.env.UPDATE_SHOTS !== '1' ? process.env.UPDATE_SHOTS : null;
 const PLAIN = 'The plain paragraph has one word to mark and a second sentence to leave alone.';
@@ -89,10 +92,11 @@ async function pointAt(page, spec) {
   throw new Error(`${JSON.stringify(spec.text)} is not in the page or in any island`);
 }
 
-// The point in one target's text (the page, or a frame), or null when the target does not have the text.
-async function measurePoint(target, { text, index }) {
+// The point in one target's text (the page, or a frame), or null when the target does not have the text. `nth` (1-based,
+// in document order) picks one of several occurrences, even two in one text node; without it the text must occur once.
+async function measurePoint(target, { text, index, nth }) {
   return target.evaluate(
-    ([text, index]) => {
+    ([text, index, nth]) => {
       const hits = [];
       // Rendered text only: not the page's embedded source (a script), not our own controls, and not the rail's cards,
       // which repeat the notes' text (decision 0023).
@@ -104,15 +108,15 @@ async function measurePoint(target, { text, index }) {
             (n.parentElement.closest('script, style, agent-island, .comment-box, .edit-panel, .c-rail') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
         });
         for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-          if (n.data.includes(text)) hits.push(n);
+          for (let at = n.data.indexOf(text); at >= 0; at = n.data.indexOf(text, at + text.length)) hits.push({ node: n, i: at });
         }
         for (const el of root.querySelectorAll('*')) if (el.shadowRoot) scan(el.shadowRoot);
       };
       scan(document.body);
       if (hits.length === 0) return null;
-      if (hits.length !== 1) throw new Error(`${JSON.stringify(text)} occurs in ${hits.length} text nodes, not 1`);
-      const node = hits[0];
-      const i = node.data.indexOf(text);
+      if (nth === undefined && hits.length !== 1) throw new Error(`${JSON.stringify(text)} occurs in ${hits.length} places, not 1`);
+      if (nth !== undefined && hits.length < nth) throw new Error(`${JSON.stringify(text)} occurs in ${hits.length} places, not ${nth}`);
+      const { node, i } = hits[(nth ?? 1) - 1];
       const r = document.createRange();
       if (index < text.length) {
         r.setStart(node, i + index);
@@ -125,7 +129,7 @@ async function measurePoint(target, { text, index }) {
       const b = r.getBoundingClientRect();
       return { x: b.right - 1, y: (b.top + b.bottom) / 2 };
     },
-    [text, index]
+    [text, index, nth]
   );
 }
 
@@ -269,6 +273,88 @@ test(
   })
 );
 
+// ---- F4 the comment shortcut: Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere --------------------------------------------
+
+const SHORTCUT_KEYS = process.platform === 'darwin' ? 'Meta+Alt+KeyM' : 'Control+Alt+KeyM';
+
+test(
+  'F4: the comment shortcut on a phrase selected in a paragraph opens the new-comment card, and Enter saves an inline comment',
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+    assert.equal(await selectedText(page), 'plain');
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), 'plain', 'the quote shows before anything is typed');
+    await page.keyboard.type('Check the wording.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: Check the wording.<<} paragraph')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut on a phrase selected in a table cell opens a quoted block comment',
+  full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'Proceed', index: 0 }, { text: 'Proceed', index: 7 });
+    assert.equal(await selectedText(page), 'Proceed');
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), 'Proceed', 'the quote shows before anything is typed');
+    await page.keyboard.type('Table note.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3] Ada: "Proceed" → Table note.<<}\n')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut on a phrase selected inside an island opens a quoted block comment',
+  full,
+  scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served, saves }) => {
+    const phrase = 'Forum and Wiki are out';
+    await drag(page, { text: phrase, index: 0 }, { text: phrase, index: phrase.length });
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), phrase, 'the quote shows before anything is typed');
+    await page.keyboard.type('Island note.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('island.md'),
+      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut with no selection does nothing and types nothing',
+  full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    // A click into the paragraph starts its in-place edit, with a collapsed caret and no selection.
+    const p = await pointAt(page, { text: 'plain', index: 2 });
+    await page.mouse.click(p.x, p.y);
+    const editing = page.locator('[data-editing]');
+    await editing.waitFor();
+    const before = await editing.textContent();
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await settle(page);
+    assert.equal(await page.locator('.comment-box').isVisible(), false, 'no comment card opens');
+    assert.equal(await editing.textContent(), before, 'the shortcut types nothing into the paragraph');
+    assert.equal(await page.evaluate(() => window.margent.dirty()), false, 'the paragraph is not changed');
+    await page.mouse.click(990, 880); // blur: an unchanged edit closes without a save
+    await settle(page);
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
 // ---- R5.2 snapping and the preview -----------------------------------------------------------------------------
 
 test(
@@ -326,6 +412,43 @@ test(
     );
     assert.equal(saves.length, 1, 'one save');
   })
+);
+
+// A phrase dragged in one cell of a table that repeats it (`nth` is which occurrence, in document order). The stored quote
+// names that occurrence (decision 0041), and after the reload the page marks only that one table row.
+function repeatedKeep({ nth }) {
+  return scenario({ author: 'Ada', fixture: REPEAT, doc: 'repeat.md' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'keep', index: 0, nth }, { text: 'keep', index: 4, nth });
+    assert.equal(await selectedText(page), 'keep');
+    await openNote(page);
+    await page.keyboard.type('Table note.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('repeat.md'),
+      REPEAT_ORIGINAL.replace('| Parser | keep |\n', `| Parser | keep |\n\n{>>[c1] Ada: "keep" #${nth} → Table note.<<}\n`)
+    );
+    assert.equal(saves.length, 1, 'one save');
+    // The save reloads the page, and the rail draws the reloaded card before the marks are read.
+    await page.locator('article.c-card[data-c="c1"]').waitFor({ state: 'attached', timeout: 5000 });
+    // Each range's body row (1-based), or null when the range is outside the table's body.
+    const ranges = await page.evaluate(() => {
+      const set = CSS.highlights.get('margent-quotes');
+      return set ? [...set].map((r) => {
+        const tr = r.startContainer.parentElement.closest('tr');
+        return tr && tr.parentElement.tagName === 'TBODY' ? tr.sectionRowIndex + 1 : null;
+      }) : [];
+    });
+    const where = `the highlight holds ${ranges.length} range(s), in body row(s) ${ranges.map((row) => row ?? 'outside the table').join(', ') || 'none'}`;
+    assert.equal(ranges.length, 1, where);
+    assert.deepEqual(ranges, [nth === 1 ? 2 : 6], where);
+  });
+}
+
+test('F5: "keep" dragged in row 2 of a table that repeats it is stored as #1 and only row 2 is marked', repeatedKeep({ nth: 1 }));
+
+test(
+  'F5: "keep" dragged in row 6 of a table that repeats it is stored as #2 and only row 6 is marked',full,
+  repeatedKeep({ nth: 2 })
 );
 
 test(
@@ -395,7 +518,44 @@ test(
 );
 
 test(
-  'R5.4: the block control on a table adds a line after it, and a second one goes after the first',full, 
+  'F5: a phrase dragged at its second place inside an island is stored as #2',full,
+  scenario({ author: 'Ada', fixture: REPEAT_ISLAND, doc: 'island.md' }, async ({ page, served, saves }) => {
+    // "quorum" occurs twice in one line the island draws, and nowhere else on the page: the drag picks the second.
+    await drag(page, { text: 'quorum', index: 0, nth: 2 }, { text: 'quorum', index: 6, nth: 2 });
+    await openNote(page);
+    await page.keyboard.type('Second quorum.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.ok(
+      served.read('island.md').includes('{>>[c1] Ada: "quorum" #2 → Second quorum.<<}'),
+      served.read('island.md')
+    );
+    assert.equal(saves.length, 1, 'one save');
+    // The save reloads the page: the rail draws the card, the island renders, then hovering the card marks the phrase
+    // inside the frame. The mark must be the second match alone (decision 0041).
+    await page.locator('article.c-card[data-c="c1"]').waitFor({ state: 'attached', timeout: 5000 });
+    await page.locator('agent-island[data-state="rendered"]').waitFor({ state: 'attached', timeout: 10000 });
+    await openCard(page, 'c1');
+    const frame = page.frames().find((f) => f !== page.mainFrame());
+    await frame.waitForFunction(() => CSS.highlights.has('margent-quote'), null, { timeout: 5000 });
+    const marked = await frame.evaluate(() => {
+      const host = [...document.body.children].find((el) => el.shadowRoot);
+      const matches = MargentQuote.find(host.shadowRoot, 'quorum');
+      const which = (r) => matches.findIndex((m) => m.startContainer === r.startContainer && m.startOffset === r.startOffset) + 1;
+      return {
+        matches: matches.length,
+        ranges: [...CSS.highlights.get('margent-quote')].map((r) => ({ text: r.toString(), which: which(r) })),
+      };
+    });
+    const where = `the highlight holds ${marked.ranges.length} range(s) of ${marked.matches} match(es): ` +
+      marked.ranges.map((r) => `${JSON.stringify(r.text)} is match ${r.which || 'none'}`).join(', ');
+    assert.equal(marked.ranges.length, 1, where);
+    assert.equal(marked.ranges[0].text, 'quorum', where);
+    assert.equal(marked.ranges[0].which, 2, where);
+  })
+);
+
+test(
+  'R5.4: the block control on a table adds a line after it, and a second one goes after the first',full,
   scenario({ author: 'Ada' }, async ({ page, served }) => {
     const control = await blockControl(page, 'table');
     await control.click();
@@ -1042,4 +1202,30 @@ test(
       }
     });
   }
+);
+
+// ---- F3 a folded thread (T9): Reply expands the card, and the reply saves --------------------------------------------
+
+const LONG = join(REPO, 'test', 'fixtures', 'comments', 'ui-long', 'docs');
+const LONG_ORIGINAL = readFileSync(join(LONG, 'long.md'), 'utf8');
+
+test(
+  'F3: Reply on a folded thread expands its card, and the reply saves',
+  full,
+  scenario({ author: 'Ada', fixture: LONG, doc: 'long.md' }, async ({ page, served }) => {
+    const card = page.locator('.c-card[data-c="c1"]');
+    await (await threadButton(page, 'c1', 'Reply')).click();
+    await page.locator('.comment-input:visible').waitFor();
+    assert.equal(await card.evaluate((e) => e.classList.contains('is-expanded')), true, 'Reply expands the card');
+    assert.equal(await card.locator('p.c-note:visible').count(), 5, 'all five notes show (the draft is a div)');
+    await page.keyboard.type('Ada reply on the folded thread.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('long.md'),
+      LONG_ORIGINAL.replace(
+        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}',
+        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}{>>[c1] Ada: Ada reply on the folded thread.<<}'
+      )
+    );
+  })
 );

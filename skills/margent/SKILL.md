@@ -121,8 +121,9 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 - A note is `{>>[c{n}] {author}: {text}<<}`: one line of plain text in the source. Write `<br>` for a line break inside a note. Notes with the same ID, written directly after each other, are one thread.
 - A thread right after `{==highlighted text==}` is about that text. A thread alone on its own line is about the block above it: this is how tables, code, islands and figures take comments. Never put comment markup inside a table cell or island YAML.
 - A comment about words in a paragraph, heading or list item highlights those words, so the page marks them. Keep a thread on its own line for tables, code, islands and figures, and for a remark about a whole block.
-- A block comment line may start with the phrase it is about: `{>>[c5] Quy: "Proceed" → is this still right?<<}`. The phrase is the text as the page shows it, with no markdown (no backticks, `**` or `|`), and it must appear in that block, or `margent check` fails. `margent comments` prints the phrase in the thread's head.
+- A block comment line may start with the phrase it is about: `{>>[c5] Quy: "Proceed" → is this still right?<<}`. The phrase is the text as the page shows it, with no markdown (no backticks, `**` or `|`), and it must appear in that block, or `margent check` fails. When the phrase occurs more than once in the block, add which one, counting in reading order: `"keep" #2 → …` is the second. `check` fails on a repeated phrase without `#n`. `margent comments` prints the phrase, and its `#n`, in the thread's head.
 - Sign your notes as `Claude`, exactly. A new thread takes the ID one above the highest in the file.
+- A thread ID belongs in its notes and in what you tell the user, never in the doc's own text ("see c3", "as discussed in c5"). Resolve deletes the thread, so such a reference would point at nothing. Write the substance into the doc, and say in your reply note where it went.
 
 When asked to address comments (or `/docs-review`):
 

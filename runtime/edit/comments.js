@@ -18,6 +18,16 @@ import {
 } from '../../src/comments/syntax.ts';
 
 const PENDING = 'margent-pending';
+
+// The comment shortcut: Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere (as Google Docs). The island's guest matches the same
+// keys (guest.js). e.code, not e.key: Option+M types µ on a Mac.
+const IS_MAC = /Mac/.test(navigator.platform);
+const SHORTCUT = IS_MAC
+  ? { keys: 'Meta+Alt+M', label: '⌥⌘M' }
+  : { keys: 'Control+Alt+M', label: 'Ctrl+Alt+M' };
+const isCommentShortcut = (e) =>
+  e.code === 'KeyM' && e.altKey && !e.shiftKey && (IS_MAC ? e.metaKey : e.ctrlKey);
+
 const AUTHOR_MESSAGE =
   'No author is set, so notes cannot be saved. Start margent serve with --author {name}, or set git config user.name {name}, then reload this page.';
 const EMPTY_EDIT_MESSAGE = "A note can't be empty. Resolve removes the thread.";
@@ -175,10 +185,16 @@ export function initComments(margent) {
   box.append(boxQuote, boxHead, boxC.body);
   document.body.append(box);
 
-  // The Comment control at a selection. It is shown only while nothing is being typed.
+  // The Comment control at a selection. It is shown only while nothing is being typed. Its label shows the shortcut: a
+  // muted hint the screen reader skips, and the same words as its title and aria-keyshortcuts.
   const tool = make('button', 'comment-tool', 'Comment');
   tool.type = 'button';
   tool.hidden = true;
+  tool.title = `Comment (${SHORTCUT.label})`;
+  tool.setAttribute('aria-keyshortcuts', SHORTCUT.keys);
+  const toolKey = make('span', 'comment-tool-key', SHORTCUT.label);
+  toolKey.setAttribute('aria-hidden', 'true');
+  tool.append(toolKey);
   tool.addEventListener('mousedown', keepPress);
   tool.addEventListener('click', onTool);
   document.body.append(tool);
@@ -270,7 +286,8 @@ export function initComments(margent) {
     if (next.preview) CSS.highlights.set(PENDING, new Highlight(next.preview));
     if (next.islandPreview) {
       // The island's frame draws the phrase, as the page's pending highlight would (R6.2, the same mark a hover uses).
-      window.margentIslands.mark(next.islandPreview.el, next.islandPreview.phrase);
+      // Only the selected match, when the note names one (decision 0041).
+      window.margentIslands.mark(next.islandPreview.el, next.islandPreview.phrase, next.islandPreview.occurrence);
       markedIsland = next.islandPreview.el;
     }
     const parts = [next.msg, next.form && state.author === null ? AUTHOR_MESSAGE : null].filter(Boolean);
@@ -430,9 +447,15 @@ export function initComments(margent) {
 
   // Places the Comment control under the selection's end. It is hidden while a draft is open, while the mouse is down
   // (a drag), and when the selection is not inside one block.
-  function update() {
+  // The block the Comment control is for now, or null: none while a draft, reply or edit is open or the mouse is down.
+  // The control and the comment shortcut both read it.
+  function commentBlock() {
     const drafting = boxD.active || replyD !== null || editD !== null;
-    const el = !drafting && !dragging ? selectedBlock() : null;
+    return !drafting && !dragging ? selectedBlock() : null;
+  }
+
+  function update() {
+    const el = commentBlock();
     if (el === null) {
       tool.hidden = true;
       return;
@@ -469,6 +492,12 @@ export function initComments(margent) {
     // A quote from an island's selection: its rect is the frame's report, and the phrase is marked in the frame.
     const inFrame = quote && islandSel !== null && islandSel.el === el ? islandSel : null;
     const picked = quote && !inFrame ? selectionRange() : null;
+    // Which match of the quote the selection is (decision 0041). The quote names it only when the block repeats the
+    // phrase; a selection that reaches no match (n 0) writes no #n, and the quote then marks every match.
+    let at = null;
+    if (inFrame) at = { n: inFrame.occurrence, count: inFrame.count };
+    else if (picked) at = window.MargentQuote.occurrence(el, quote, picked);
+    const occurrence = at !== null && at.count > 1 && at.n > 0 ? at.n : undefined;
     const top = () => {
       if (inFrame) return islandRect(inFrame).top;
       const box = picked ? selectionEndRect(picked, el) : null;
@@ -479,9 +508,9 @@ export function initComments(margent) {
       quote: quote || undefined,
       place: { top },
       preview: picked ?? undefined, // the selected phrase stays marked while the note is typed, as for an inline comment
-      islandPreview: inFrame ? { el, phrase: quote } : undefined,
+      islandPreview: inFrame ? { el, phrase: quote, occurrence } : undefined,
       range,
-      build: (n) => `${sourceOf(range)}\n\n${noteSource(quote ? { ...n, text: quotedText(quote, n.text) } : n)}`,
+      build: (n) => `${sourceOf(range)}\n\n${noteSource(quote ? { ...n, text: quotedText(quote, n.text, occurrence) } : n)}`,
     });
   }
 
@@ -508,6 +537,18 @@ export function initComments(margent) {
     }
     openBlockComment(el, quoteOf(window.getSelection().toString()));
   }
+
+  // The comment shortcut runs the control's path in the states where the control shows, and lets the key through
+  // otherwise, so typing in a block being edited is unchanged. An island's copy arrives as a page event (host.js), since
+  // its key was typed in the frame.
+  document.addEventListener('keydown', (e) => {
+    if (!isCommentShortcut(e) || commentBlock() === null) return;
+    e.preventDefault();
+    onTool();
+  });
+  document.addEventListener('margent:island-shortcut', () => {
+    if (commentBlock() !== null) onTool();
+  });
 
   // The selection touches a thread that already marks text (R5.5). The message points to that thread's Reply.
   function notifyOverlap(id) {
@@ -726,7 +767,7 @@ export function initComments(margent) {
 
   // The guest reports a selection inside an island (M5 R6.1). An empty one clears it, as an empty page selection does.
   document.addEventListener('margent:island-selection', (e) => {
-    const { text, rect } = e.detail;
+    const { text, rect, occurrence, count } = e.detail;
     if (!text) {
       islandSel = null;
     } else {
@@ -736,6 +777,8 @@ export function initComments(margent) {
         el: e.target,
         text,
         rect: { left: rect.left - origin.left, top: rect.top - origin.top, width: rect.width, height: rect.height },
+        occurrence,
+        count,
       };
     }
     update();
