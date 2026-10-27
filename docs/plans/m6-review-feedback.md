@@ -6,20 +6,20 @@ updated: 2026-10-27
 
 # Plan · M6 Review feedback
 
-Triage of six notes from using margent for reviews at work, and the order to address them in. Three phases, each shipped as its own release. F5 misleads the reviewer, so it goes before the rail work. Delete this plan when M6 closes, once its contracts are in `architecture.md`.
+Triage of six notes from using margent for reviews at work, and the order to address them in. Three phases on branch `m6-review-feedback`, merged and released together as one version once all three are done. F5 misleads the reviewer, so it goes before the rail work. Delete this plan when M6 closes, once its contracts are in `architecture.md`.
 
 ## Tracker
 
-- [x] Phase 1 · Quick fixes (patch release), on branch `m6-phase1`, full tier green
+- [x] Phase 1 · Quick fixes, full tier green
   - [x] T1 Links stay visible inside a comment highlight (F2)
   - [x] T2 Agents never cite a thread ID in the doc's text (F6). Unproven: 12 headless review rounds on a fixture that invites citations, half on `main`'s skill, cited no ID in either variant
   - [x] T3 Doc paths in the `serve` index (F1)
-- [ ] Phase 2 · A repeated phrase marks only the one commented (minor release)
+- [ ] Phase 2 · A repeated phrase marks only the one commented
   - [ ] T4 Reproduce F5 in a failing corpus case; decision 0041: quotes name their occurrence, superseding part of 0039
   - [ ] T5 Grammar, render record and `check`
   - [ ] T6 Store side: page and island selections record the occurrence
   - [ ] T7 Rail, `comments` output and skill
-- [ ] Phase 3 · Comment rail for real reviews (minor release)
+- [ ] Phase 3 · Comment rail for real reviews
   - [ ] T8 Thread IDs on cards (F3)
   - [ ] T9 Wider rail, compact cards, long threads and notes (F3)
   - [ ] T10 Keyboard shortcut to comment on a selection (F4)
@@ -39,7 +39,7 @@ F3 and F6 pull the same way: IDs become something the user reads and says in cha
 
 ## Phase 1 · Quick fixes
 
-Small, independent changes. One `fix:` release.
+Small, independent changes.
 
 ### T1 Links in a highlight (F2)
 
@@ -63,7 +63,7 @@ Done when: golden and index tests show the paths, and the index of the frozen ma
 
 ## Phase 2 · One phrase, one mark
 
-One `feat:` release, since the note grammar changes.
+The note grammar changes, so this phase makes the release a `feat:` (minor).
 
 ### T4 Reproduce, then decision 0041
 
@@ -101,7 +101,7 @@ Done when: a corpus case reproduces F5 (a comment on "keep" in row 2 of a table 
 
 ## Phase 3 · Comment rail for real reviews
 
-One `feat:` release. Design pass first (design-principles skill), with a mock of a long thread, a long note and a narrow window before any code.
+Design pass first (design-principles skill), with a mock of a long thread, a long note and a narrow window before any code.
 
 ### T8 IDs on cards (F3)
 
@@ -127,7 +127,7 @@ Known limit: a new thread takes the ID one above the highest in the file, so res
 
 Done when: a browser test types the shortcut with real keyboard input on a prose selection, a table selection and an island selection, and each opens the right draft.
 
-## Each phase ships when
+## Each phase is done when
 
 - `npm test` passes during work, and `npm run test:full` before the merge into `main`.
 - `architecture.md`, the skills, and a decision where the behaviour changes are updated in the same branch, and `node dist/cli.js check docs/` exits 0.
