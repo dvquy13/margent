@@ -4,7 +4,9 @@
    and wider, or in a drawer below. */
 
 :root {
-  --rail-w: 280px;
+  /* The rail takes the room left beside the content column (the viewport less --page-max and both gutters and the gap),
+     from 280px up to 380px. At 1100px it is the 280px floor, and the column narrows as before. */
+  --rail-w: clamp(280px, calc(100vw - var(--page-max) - 2 * var(--gutter) - var(--rail-gap)), 380px);
   --rail-gap: 32px;
   /* The page width with the rail: the content column (--page-max), both gutters, the gap and the rail. */
   --rail-page: calc(var(--page-max) + 2 * var(--gutter) + var(--rail-w) + var(--rail-gap));
@@ -117,6 +119,36 @@ mark.c-hl:focus-visible, .c-thread:focus-visible {
     font-family: var(--font-ui); font-size: var(--font-xs);
   }
   html.c-rail-on .c-card .c-actions:empty { display: none; }
+
+  /* The ID head row: mono, extra small and muted, selectable so it can be copied into chat. */
+  html.c-rail-on .c-card-head { display: flex; margin: 0 0 var(--gap-xs); }
+  html.c-rail-on .c-card .c-id {
+    font-family: var(--mono); font-size: var(--font-xs); line-height: 1.2; color: var(--text-muted); user-select: text;
+  }
+
+  /* At rest a card is compact: its quote clamps to 3 lines and each note's text to 6. Expanded, all of it shows. The
+     clamp is a block of -webkit-box, so the line count is exact. */
+  html.c-rail-on .c-card:not(.is-expanded) .c-quote {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+  }
+  html.c-rail-on .c-card:not(.is-expanded) .c-note .c-text {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden;
+  }
+  /* A thread of four or more notes folds its middle notes at rest: the first and the last show. */
+  html.c-rail-on .c-card:not(.is-expanded) .c-note.is-folded { display: none; }
+
+  /* The "Show more" and "Show {k} more replies" buttons: muted at rest, accent on hover and focus, like a link. They hide
+     once the card is expanded, and a "Show more" button also hides while no text is clipped. */
+  html.c-rail-on .c-card .c-more {
+    display: block; margin: var(--gap-xs) 0 0; padding: 0; border: 0; background: none;
+    font: inherit; font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1.4; color: var(--text-muted);
+    text-align: left; text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    transition: color var(--fade);
+  }
+  html.c-rail-on .c-card .c-more:hover { color: var(--accent); }
+  html.c-rail-on .c-card .c-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+  html.c-rail-on .c-card.is-expanded .c-more,
+  html.c-rail-on .c-card .c-more[hidden] { display: none; }
 }
 
 /* The rail and its button exist on every served page, but show only while the rail is on (html.c-rail-on). */

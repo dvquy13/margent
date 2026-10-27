@@ -40,6 +40,7 @@ const FIXTURES = [
   'quoted-table.md',
   'tall-table.md',
   'links-in-highlight.md',
+  'long-thread.md',
 ];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
@@ -658,5 +659,178 @@ test('F2: a link inside a highlight keeps its colour apart from the tinted text,
     } finally {
       await close();
     }
+  }
+});
+
+// ---- F3 the rail's card head, width, compact cards and expanding (T8, T9) -----------------------------------------------
+
+// The notes of a card that the layout shows (a folded note is display: none).
+function shownNotes(page, id) {
+  return page.evaluate((c) => [...document.querySelectorAll(`.c-card[data-c="${c}"] .c-note`)]
+    .filter((n) => getComputedStyle(n).display !== 'none').length, id);
+}
+// The label of a card's button when the layout shows it, or null.
+function shownMore(page, id) {
+  return page.evaluate((c) => {
+    const more = document.querySelector(`.c-card[data-c="${c}"] > .c-more, .c-card[data-c="${c}"] .c-note + .c-more`);
+    return more && getComputedStyle(more).display !== 'none' ? more.textContent : null;
+  }, id);
+}
+const cardHeight = (page, id) => page.locator(`.c-card[data-c="${id}"]`).evaluate((e) => e.getBoundingClientRect().height);
+const isExpanded = (page, id) => page.locator(`.c-card[data-c="${id}"]`).evaluate((e) => e.classList.contains('is-expanded'));
+const expandedCount = (page) => page.locator('.c-card.is-expanded').count();
+// Two animation frames: the rail relays out in the frame after an expand or collapse, so a layout read waits for it.
+const settle = (page) => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+
+test('F3: the card head shows each thread ID in the mono face, and the ID is the thread\'s', full, async () => {
+  const { page, errors, close } = await open(1280, 'light');
+  try {
+    const cards = await page.evaluate(() => [...document.querySelectorAll('.c-card')].map((card) => {
+      const id = card.querySelector('.c-card-head .c-id');
+      return {
+        data: card.dataset.c,
+        text: id && id.textContent,
+        family: id && getComputedStyle(id).fontFamily,
+        head: card.firstElementChild.className,
+      };
+    }));
+    assert.ok(cards.length > 0, 'there are cards');
+    for (const c of cards) {
+      assert.equal(c.text, c.data, `card ${c.data} shows its own ID`);
+      assert.equal(c.head, 'c-card-head', `card ${c.data} opens with the head row`);
+      assert.match(c.family, /monospace$/, `card ${c.data}'s ID is in the mono stack (${c.family})`);
+    }
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: the rail is 380px at 1440 and 280px at 1180 and 1100, and the column keeps 900px at 1440', full, async () => {
+  const rail = {};
+  for (const width of [1100, 1180, 1440]) {
+    const { page, errors, close } = await open(width, 'light', urls['long-thread.md']);
+    try {
+      rail[width] = await page.locator('.c-rail').evaluate((e) => Math.round(e.getBoundingClientRect().width));
+      const state = await layout(page);
+      assert.ok(state.scroll <= state.inner, `${width}px: no horizontal overflow (${state.scroll} > ${state.inner})`);
+      if (width === 1440) assert.equal(Math.round(state.contentRight - state.contentLeft), 900, 'the column is 900px');
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  }
+  assert.deepEqual(rail, { 1100: 280, 1180: 280, 1440: 380 });
+});
+
+test('F3: at rest a long thread shows its first and last notes and a button, and a long note is clamped', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    assert.equal(await shownNotes(page, 'c1'), 2, 'c1 shows its first and last notes');
+    assert.equal(await shownMore(page, 'c1'), 'Show 8 more replies');
+    assert.equal(await shownNotes(page, 'c4'), 1, 'c4 shows its one note');
+    assert.equal(await shownMore(page, 'c4'), 'Show more', 'the clipped note of c4 gets Show more');
+    assert.equal(await shownMore(page, 'c2'), null, 'c2 has no button');
+    assert.equal(await shownMore(page, 'c3'), null, 'c3 has no button');
+    assert.ok((await cardHeight(page, 'c1')) <= 260, 'c1 is at most 260px at rest');
+    assert.ok((await cardHeight(page, 'c4')) <= 260, 'c4 is at most 260px at rest');
+    await settle(page);
+    assertWideLayout(await layout(page), 'long thread at rest');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: a click expands a card, one card at a time, and a press on blank space collapses it', async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    const rest = await cardHeight(page, 'c1');
+    await page.locator('.c-card[data-c="c1"] .c-card-head').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'a click in c1 expands it');
+    assert.equal(await shownNotes(page, 'c1'), 10, 'all ten notes show');
+    assert.equal(await shownMore(page, 'c1'), null, 'an expanded card has no button');
+    assert.ok((await cardHeight(page, 'c1')) > rest, 'c1 is taller expanded than at rest');
+    await settle(page);
+    assertWideLayout(await layout(page), 'c1 expanded');
+
+    await page.locator('.c-card[data-c="c4"] .c-card-head').click();
+    assert.equal(await isExpanded(page, 'c4'), true, 'a click in c4 expands it');
+    assert.equal(await isExpanded(page, 'c1'), false, 'c1 collapses');
+    assert.equal(await expandedCount(page), 1, 'one card is expanded');
+    await settle(page);
+    assertWideLayout(await layout(page), 'c4 expanded');
+
+    await page.mouse.click(20, 700);
+    assert.equal(await isExpanded(page, 'c4'), false, 'a press on blank space collapses c4');
+    assert.equal(await expandedCount(page), 0);
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: Enter expands the focused card, Escape collapses it, and Tab from it reaches its button', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-card[data-c="c1"]').focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await isExpanded(page, 'c1'), true, 'Enter expands c1');
+    await page.keyboard.press('Escape');
+    assert.equal(await isExpanded(page, 'c1'), false, 'Escape collapses c1');
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.c), 'c1', 'the focus stays on the card');
+    await page.keyboard.press('Tab');
+    const focused = await page.evaluate(() => document.activeElement.className);
+    assert.equal(focused, 'c-more', 'Tab goes to the button inside c1');
+    assert.equal(await isExpanded(page, 'c1'), true, 'focus inside c1 expands it');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: the button expands its card: "Show 8 more replies" in c1, "Show more" in c4', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-card[data-c="c1"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'the replies button expands c1');
+    assert.equal(await shownNotes(page, 'c1'), 10);
+    await page.locator('.c-card[data-c="c4"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c4'), true, 'the Show more button expands c4');
+    assert.equal(await isExpanded(page, 'c1'), false, 'and c1 collapses');
+    await settle(page);
+    assertWideLayout(await layout(page), 'after the buttons');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: hovering a card links it and leaves its height unchanged', full, async () => {
+  const { page, errors, close } = await open(1440, 'light', urls['long-thread.md']);
+  try {
+    const before = await cardHeight(page, 'c1');
+    await page.locator('.c-card[data-c="c1"] .c-card-head').hover();
+    assert.equal(await linked(page, '.c-card[data-c="c1"]'), true, 'the card is linked');
+    assert.equal(await isExpanded(page, 'c1'), false, 'hover does not expand');
+    assert.equal(await cardHeight(page, 'c1'), before, 'hover does not change its height');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('F3: at 390px the drawer\'s card button expands its card, with no horizontal overflow', full, async () => {
+  const { page, errors, close } = await open(390, 'light', urls['long-thread.md']);
+  try {
+    await page.locator('.c-toggle').click();
+    await page.locator('.c-card[data-c="c1"] button.c-more').click();
+    assert.equal(await isExpanded(page, 'c1'), true, 'the button expands c1 in the drawer');
+    assert.equal(await page.locator('.c-rail').evaluate((e) => e.classList.contains('is-open')), true, 'the drawer stays open');
+    const state = await layout(page);
+    assert.ok(state.scroll <= state.inner, `no horizontal overflow (${state.scroll} > ${state.inner})`);
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
   }
 });

@@ -42,6 +42,8 @@
   const anchors = new Map(); // id -> the element the card lines up with
   const quotes = new Map(); // id -> the quoted text, for a block comment that has one
   const occurrences = new Map(); // id -> the match the quote names (`"phrase" #n`, decision 0041), when it names one
+  const textMores = new Map(); // id -> the "Show more" button of a card with fewer than four notes (measureMore)
+  let expanded = null; // the one expanded card, or null (expand)
 
   for (const thread of threads) {
     const id = thread.dataset.c;
@@ -66,6 +68,10 @@
     card.dataset.c = id;
     card.dataset.kind = kind;
     card.tabIndex = 0;
+    // The head row carries the thread's ID (c5), so a reader can name the thread in chat. It sits above the quote.
+    const cardHead = el('div', 'c-card-head');
+    cardHead.append(el('span', 'c-id', id));
+    card.append(cardHead);
 
     let quote = null;
     let occurrence;
@@ -83,6 +89,7 @@
       if (occurrence !== undefined) occurrences.set(id, occurrence);
     }
     // A note is a header row (its author; the edit runtime adds Edit to an owner's) and its text below it.
+    const noteEls = [];
     for (const note of thread.querySelectorAll('.c-note')) {
       const copy = note.cloneNode(true);
       for (const q of copy.querySelectorAll('q.c-quote')) q.remove();
@@ -108,6 +115,29 @@
       const p = el('p', 'c-note');
       p.append(head, text);
       card.append(p);
+      noteEls.push(p);
+    }
+    // A thread of four or more notes folds its middle notes at rest (a class, so expanding shows them again), behind a
+    // button after the first note. A shorter thread gets a "Show more" button at its end, shown only when some of its
+    // text is clipped (measureMore). Either way, an expanded card has no button (CSS).
+    if (noteEls.length >= 4) {
+      const folded = noteEls.slice(1, -1);
+      for (const p of folded) p.classList.add('is-folded');
+      const more = el('button', 'c-more', `Show ${folded.length} more replies`);
+      more.type = 'button';
+      // A press does not focus the button. Focus would expand the card on mousedown and hide the button under the press,
+      // so the click would land on the card, which below 1100px closes the drawer. The click expands the card instead.
+      more.addEventListener('mousedown', (e) => e.preventDefault());
+      more.addEventListener('click', () => expand(id));
+      noteEls[0].after(more);
+    } else {
+      const more = el('button', 'c-more', 'Show more');
+      more.type = 'button';
+      more.hidden = true;
+      more.addEventListener('mousedown', (e) => e.preventDefault()); // as above: the click expands the card
+      more.addEventListener('click', () => expand(id));
+      card.append(more);
+      textMores.set(id, more);
     }
     card.append(el('div', 'c-actions'));
 
@@ -157,8 +187,20 @@
 
   // ---- placement: each card's top is its anchor's top, pushed down when the card above reaches it -------------------
 
+  // The "Show more" button of a short thread shows only while some of its text is clipped at rest. A clipped element has
+  // scrollHeight above clientHeight. This is measured on every relayout, since the rail's width and the fonts move the
+  // line breaks. The drawer is measured too: its closed state is only visibility, so it still lays out.
+  function measureMore() {
+    for (const [id, btn] of textMores) {
+      const clipped = [...cards.get(id).querySelectorAll(':scope > q.c-quote, :scope > .c-note > .c-text')]
+        .some((e) => e.scrollHeight > e.clientHeight);
+      btn.hidden = !clipped;
+    }
+  }
+
   function relayout() {
     main.style.minHeight = '';
+    measureMore();
     if (!wide.matches) {
       for (const card of cards.values()) card.style.top = '';
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
@@ -199,6 +241,25 @@
       queued = false;
       relayout();
     });
+  }
+
+  // ---- expanding: a card is compact at rest and shows everything once expanded ----------------------------------------
+  // A card at rest clamps its quote and notes and folds a long thread's middle (CSS, on .c-card:not(.is-expanded)). Only
+  // one card is expanded at a time, so the rail never holds two tall cards at once. The card grew, so the rail relays out.
+  function expand(id) {
+    const card = cards.get(id);
+    if (expanded === card) return card;
+    if (expanded !== null) expanded.classList.remove('is-expanded');
+    expanded = card;
+    card.classList.add('is-expanded');
+    schedule();
+    return card;
+  }
+  function collapse() {
+    if (expanded === null) return;
+    expanded.classList.remove('is-expanded');
+    expanded = null;
+    schedule();
   }
 
   relayout();
@@ -372,14 +433,27 @@
     setOpen(false);
     toggle.focus();
   });
+  // Escape closes the drawer first, as before. With the drawer shut it collapses the card the focus is in, unless the
+  // focus is in a field, where Escape cancels the field's edit. The focus goes to the card, which may have just hidden it.
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) {
+    if (e.key !== 'Escape') return;
+    if (isOpen()) {
       setOpen(false);
       toggle.focus();
+      return;
+    }
+    const focus = document.activeElement;
+    if (expanded !== null && expanded.contains(focus) && !focus.matches('textarea, input')) {
+      const card = expanded;
+      collapse();
+      card.focus();
     }
   });
   document.addEventListener('pointerdown', (e) => {
     if (isOpen() && !rail.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+    // A press outside the expanded card collapses it. A press in another card, or in the note box (a draft card), does
+    // not: that card's own expansion, or the note box, takes over.
+    if (expanded !== null && !e.target.closest('.c-card, .comment-box')) collapse();
   });
 
   // A click on a card (below 1100px) closes the drawer and scrolls the anchor into view. The card is marked until the
@@ -394,14 +468,29 @@
     document.addEventListener('pointerdown', clear, true);
     document.addEventListener('keydown', clear, true);
   }
+  // Paths into expanded: a click on the card (a link inside it still just follows), Enter on the focused card, the
+  // "Show more" button, and focus moving to a control inside the card. Below 1100px a click on the card still closes
+  // the drawer and shows its anchor, so only the other paths expand a card there.
   for (const [id, card] of cards) {
     card.addEventListener('click', (e) => {
+      if (e.target.closest('a[href]')) return;
+      if (wide.matches) {
+        expand(id);
+        return;
+      }
       // A press in a button or the field of a draft is not a click on the card (below 1100px it would close the drawer).
-      if (wide.matches || e.target.closest('button, textarea')) return;
+      if (e.target.closest('button, textarea')) return;
       card.blur();
       anchors.get(id).scrollIntoView({ block: 'center' });
       setOpen(false);
       flash(id);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target === card) expand(id);
+    });
+    // Focus on the card itself does not expand it; focus on anything inside it (Reply, Edit, a composer) does.
+    card.addEventListener('focusin', (e) => {
+      if (e.target !== card) expand(id);
     });
   }
 
@@ -433,15 +522,18 @@
     }));
   }
 
-  // The hook for the edit runtime. reveal opens the drawer below 1100px, so a card's buttons can be reached.
+  // The hook for the edit runtime. reveal opens the drawer below 1100px, so a card's buttons can be reached, and expands
+  // the card, so its whole thread is there to act on.
   window.margentComments = {
     cards,
     relayout,
     quoteReport,
     reveal(id) {
       if (!wide.matches) setOpen(true);
-      return cards.get(id);
+      return expand(id);
     },
+    expand,
+    collapse,
     showDraft,
     hideDraft,
     close() {

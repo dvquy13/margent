@@ -273,6 +273,88 @@ test(
   })
 );
 
+// ---- F4 the comment shortcut: Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere --------------------------------------------
+
+const SHORTCUT_KEYS = process.platform === 'darwin' ? 'Meta+Alt+KeyM' : 'Control+Alt+KeyM';
+
+test(
+  'F4: the comment shortcut on a phrase selected in a paragraph opens the new-comment card, and Enter saves an inline comment',
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+    assert.equal(await selectedText(page), 'plain');
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), 'plain', 'the quote shows before anything is typed');
+    await page.keyboard.type('Check the wording.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: Check the wording.<<} paragraph')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut on a phrase selected in a table cell opens a quoted block comment',
+  full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'Proceed', index: 0 }, { text: 'Proceed', index: 7 });
+    assert.equal(await selectedText(page), 'Proceed');
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), 'Proceed', 'the quote shows before anything is typed');
+    await page.keyboard.type('Table note.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3] Ada: "Proceed" → Table note.<<}\n')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut on a phrase selected inside an island opens a quoted block comment',
+  full,
+  scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served, saves }) => {
+    const phrase = 'Forum and Wiki are out';
+    await drag(page, { text: phrase, index: 0 }, { text: phrase, index: phrase.length });
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await page.locator('.comment-box:not([hidden])').waitFor();
+    assert.equal(await quoteText(page), phrase, 'the quote shows before anything is typed');
+    await page.keyboard.type('Island note.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('island.md'),
+      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'F4: the comment shortcut with no selection does nothing and types nothing',
+  full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    // A click into the paragraph starts its in-place edit, with a collapsed caret and no selection.
+    const p = await pointAt(page, { text: 'plain', index: 2 });
+    await page.mouse.click(p.x, p.y);
+    const editing = page.locator('[data-editing]');
+    await editing.waitFor();
+    const before = await editing.textContent();
+    await page.keyboard.press(SHORTCUT_KEYS);
+    await settle(page);
+    assert.equal(await page.locator('.comment-box').isVisible(), false, 'no comment card opens');
+    assert.equal(await editing.textContent(), before, 'the shortcut types nothing into the paragraph');
+    assert.equal(await page.evaluate(() => window.margent.dirty()), false, 'the paragraph is not changed');
+    await page.mouse.click(990, 880); // blur: an unchanged edit closes without a save
+    await settle(page);
+    assert.deepEqual(saves, []);
+    assert.equal(served.read('ui.md'), ORIGINAL);
+  })
+);
+
 // ---- R5.2 snapping and the preview -----------------------------------------------------------------------------
 
 test(
@@ -1120,4 +1202,30 @@ test(
       }
     });
   }
+);
+
+// ---- F3 a folded thread (T9): Reply expands the card, and the reply saves --------------------------------------------
+
+const LONG = join(REPO, 'test', 'fixtures', 'comments', 'ui-long', 'docs');
+const LONG_ORIGINAL = readFileSync(join(LONG, 'long.md'), 'utf8');
+
+test(
+  'F3: Reply on a folded thread expands its card, and the reply saves',
+  full,
+  scenario({ author: 'Ada', fixture: LONG, doc: 'long.md' }, async ({ page, served }) => {
+    const card = page.locator('.c-card[data-c="c1"]');
+    await (await threadButton(page, 'c1', 'Reply')).click();
+    await page.locator('.comment-input:visible').waitFor();
+    assert.equal(await card.evaluate((e) => e.classList.contains('is-expanded')), true, 'Reply expands the card');
+    assert.equal(await card.locator('p.c-note:visible').count(), 5, 'all five notes show (the draft is a div)');
+    await page.keyboard.type('Ada reply on the folded thread.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('long.md'),
+      LONG_ORIGINAL.replace(
+        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}',
+        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}{>>[c1] Ada: Ada reply on the folded thread.<<}'
+      )
+    );
+  })
 );
