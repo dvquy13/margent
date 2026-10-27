@@ -15,6 +15,8 @@ Run `margent --version` once. If it prints `0.7.0`, run every command below as `
 Otherwise run them as `npx -y margent@0.7.0 …`. It needs Node 22 or later, and the first call downloads the package. Don't install anything globally unless the user asks.
 <!-- x-release-please-end -->
 
+When `margent --version` printed a different version (not when `margent` isn't installed), the CLI and these skills are out of step. Tell the user once, in one line, with both versions, that `npx -y margent@latest update` brings every install in line, then carry on with the `npx` form.
+
 The rest of this skill writes `margent` for whichever form applies.
 
 When the user asks to update margent, run `margent update` (or `npx -y margent@latest update` when `margent` has no `update` command), show its output, and tell the user to start a new session when it says so.
