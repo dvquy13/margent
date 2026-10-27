@@ -6,7 +6,7 @@ updated: 2026-10-27
 
 # Plan · M6 Review feedback
 
-Triage of six notes from using margent for reviews at work, and the order to address them in. Three phases on branch `m6-review-feedback`, merged and released together as one version once all three are done. F5 misleads the reviewer, so it goes before the rail work. Delete this plan when M6 closes, once its contracts are in `architecture.md`.
+Triage of six notes from using margent for reviews at work, and the order to address them in. The requirements F1 to F6 are in [the M6 spec](../specs/m6-review-feedback.md). Three phases on branch `m6-review-feedback`, merged and released together as one version once all three are done. F5 misleads the reviewer, so it goes before the rail work. Delete this plan when M6 closes, once its contracts are in `architecture.md`.
 
 ## Tracker
 
@@ -19,10 +19,10 @@ Triage of six notes from using margent for reviews at work, and the order to add
   - [x] T5 Grammar, render record and `check`
   - [x] T6 Store side: page and island selections record the occurrence
   - [x] T7 Rail, `comments` output and skill
-- [ ] Phase 3 · Comment rail for real reviews
-  - [ ] T8 Thread IDs on cards (F3)
-  - [ ] T9 Wider rail, compact cards, long threads and notes (F3)
-  - [ ] T10 Keyboard shortcut to comment on a selection (F4)
+- [x] Phase 3 · Comment rail for real reviews, full tier green
+  - [x] T8 Thread IDs on cards (F3)
+  - [x] T9 Wider rail, compact cards, long threads and notes (F3)
+  - [x] T10 Keyboard shortcut to comment on a selection (F4)
 
 ## Triage
 
@@ -105,17 +105,18 @@ Design pass first (design-principles skill), with a mock of a long thread, a lon
 
 ### T8 IDs on cards (F3)
 
-- Each card's head shows its ID (`c5`), mono and muted, before the first author. Selectable, so it can be copied into chat.
-- The no-JS and print layouts show it too, so every view names the thread the same way.
+- Each card opens with a head row holding its ID (`c5`) in the mono face, extra small and muted, selectable so it can be copied into chat. IDs are identifiers, so mono, as the design principles ask for machine-scannable text.
+- Rail only. The no-JS and print layouts stay as they are: a served page always has JS, and that is where reviews happen.
 
 ### T9 Wider rail, compact cards (F3)
 
-- Width: wider where the viewport allows (for example 360px from about 1300px, 280px between 1100 and 1300). The content column keeps its measure.
-- Compact by default: an unlinked card shows the quote, the first note clamped to a few lines, a "{n} more" line for the middle notes, and the last note. The linked or focused card expands in full and the rail relays out around it, as Google Docs does with its selected comment.
-- A long note clamps with "Show more", and the composer keeps growing to its cap.
-- Below 1100px (the drawer) cards are already in a scrolling column; they take the same compact form.
+- Width: the rail takes the room left beside the 900px column, from 280px up to 380px (`--rail-w` as a `clamp`), instead of a fixed 280px. The content column keeps its measure.
+- Compact at rest: the quote clamps to 3 lines and each note to 6. A thread of 4 or more notes shows its first note, a "Show {k} more replies" button, and its last note. When only text is clamped, the button reads "Show more". Nothing hidden, no button.
+- Expanded: a click in a card, Enter on a focused card, the button, or focus moving to a control inside the card (Reply, Edit, a composer) expands it in full, one card at a time. Escape or a click outside collapses it. The rail relays out around it.
+- Hover only links (tints) a card and never changes its size, so the rail doesn't jump while the pointer crosses it. No height transitions.
+- The drawer below 1100px uses the same compact form.
 
-Done when: corpus cases with a ten-note thread and a 1,500-character note show the unlinked card at its compact height, the focused card in full with no overlap, everything reachable by keyboard, and no change to the source.
+Done when: fixtures with a ten-note thread and a 1,500-character note show the collapsed card at a bounded height, the expanded card in full with no overlap between cards, every expand and collapse path works by mouse and keyboard, and no save is sent.
 
 Known limit: a new thread takes the ID one above the highest in the file, so resolving the highest thread frees its ID for reuse. Once users quote IDs in chat this can confuse across rounds. Not fixed here: avoiding it needs a record of resolved IDs.
 

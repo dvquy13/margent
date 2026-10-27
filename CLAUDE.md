@@ -2,7 +2,7 @@
 
 Renders markdown docs into designed pages with data-driven islands, shipped as an npm CLI (`margent`), skills for any agent (`npx skills add`), and a thin Claude Code plugin.
 
-**Status:** M1–M3 and M5 done. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
+**Status:** M1–M3 and M5 done; M6 (review feedback, F1–F6) built on branch `m6-review-feedback`, releasing as one version. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
 
 ## Where to look
 
@@ -71,4 +71,4 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 ## Rules
 
 - No silent fallbacks. Every error path exits non-zero with `{file}:{line}: {message}` (`RenderError`) and has a fixture proving it is loud.
-- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`.
+- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, and `docs/specs/m6-review-feedback.md` for F1 to F6. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
