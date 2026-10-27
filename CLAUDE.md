@@ -2,7 +2,7 @@
 
 Renders markdown docs into designed pages with data-driven islands, shipped as an npm CLI (`margent`), skills for any agent (`npx skills add`), and a thin Claude Code plugin.
 
-**Status:** M1–M3 and M5 done; M6 (review feedback, F1–F6) built on branch `m6-review-feedback`, releasing as one version. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
+**Status:** M1–M3 and M5 done; M6 (review feedback, F1–F6) released in 0.7.0; it closes after one real review round on that release (plan `docs/plans/m6-review-feedback.md`). 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
 
 ## Where to look
 
