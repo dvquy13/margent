@@ -1,0 +1,50 @@
+{
+  "version": 3,
+  "skills": {
+    "docs-open": {
+      "source": "dvquy13/margent",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/dvquy13/margent.git",
+      "skillPath": "skills/docs-open/SKILL.md",
+      "skillFolderHash": "1111111111111111111111111111111111111111",
+      "installedAt": "2026-10-24T21:00:00.000Z",
+      "updatedAt": "2026-10-24T21:00:00.000Z"
+    },
+    "docs-review": {
+      "source": "dvquy13/margent",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/dvquy13/margent.git",
+      "skillPath": "skills/docs-review/SKILL.md",
+      "skillFolderHash": "2222222222222222222222222222222222222222",
+      "installedAt": "2026-10-24T21:00:00.000Z",
+      "updatedAt": "2026-10-24T21:00:00.000Z"
+    },
+    "docs-serve": {
+      "source": "dvquy13/margent",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/dvquy13/margent.git",
+      "skillPath": "skills/docs-serve/SKILL.md",
+      "skillFolderHash": "3333333333333333333333333333333333333333",
+      "installedAt": "2026-10-24T21:00:00.000Z",
+      "updatedAt": "2026-10-24T21:00:00.000Z"
+    },
+    "gws-calendar": {
+      "source": "googleworkspace/cli",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/googleworkspace/cli.git",
+      "skillPath": "skills/gws-calendar/SKILL.md",
+      "skillFolderHash": "62a27859dbdf798c1f7288d04750e743283a6b4f",
+      "installedAt": "2026-04-14T15:28:29.756Z",
+      "updatedAt": "2026-04-14T15:28:29.756Z"
+    },
+    "margent": {
+      "source": "dvquy13/margent",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/dvquy13/margent.git",
+      "skillPath": "skills/margent/SKILL.md",
+      "skillFolderHash": "4444444444444444444444444444444444444444",
+      "installedAt": "2026-10-24T21:00:00.000Z",
+      "updatedAt": "2026-10-24T21:00:00.000Z"
+    }
+  }
+}

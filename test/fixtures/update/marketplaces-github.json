@@ -1,0 +1,14 @@
+[
+  {
+    "name": "drawio",
+    "source": "github",
+    "repo": "jgraph/drawio-mcp",
+    "installLocation": "/Users/dvq/.claude/plugins/marketplaces/drawio"
+  },
+  {
+    "name": "margent",
+    "source": "github",
+    "repo": "dvquy13/margent",
+    "installLocation": "/Users/dvq/.claude/plugins/marketplaces/margent"
+  }
+]

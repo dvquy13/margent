@@ -20,6 +20,7 @@ import { openInBrowser } from './cli/opener.js';
 import { runPages, type CheckPage } from './cli/pages-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
+import { commandUpdate } from './cli/update.js';
 import { linkProblems } from './cli/links.js';
 import { cleanSource } from './comments/clean.js';
 import { startServer } from './serve/server.js';
@@ -30,6 +31,7 @@ const USAGE = `usage:
   margent open {file}
   margent check {path}
   margent doctor
+  margent update [--check]
   margent comments {path}
   margent export {path} --out {dir} [--md] [--clean]
   margent init {path}
@@ -415,6 +417,9 @@ async function main(argv: string[]): Promise<number> {
     case 'doctor':
       if (rest.length > 0) throw new UsageError('doctor takes no arguments');
       return commandDoctor();
+    case 'update':
+      if (rest.length > 1 || (rest.length === 1 && rest[0] !== '--check')) throw new UsageError('update takes only --check');
+      return commandUpdate(rest.length === 1);
     case 'export': {
       const { target, out, mode } = parseExport(rest);
       return commandExport(target, out, mode);

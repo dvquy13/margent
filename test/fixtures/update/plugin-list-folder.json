@@ -1,0 +1,12 @@
+[
+  {
+    "id": "margent@margent",
+    "version": "0.7.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/dvq/.claude/plugins/cache/margent/margent/0.7.0",
+    "readFromFolder": "/Users/dvq/frostmourne/margent",
+    "folderVersion": "0.7.0",
+    "projectEnabled": false
+  }
+]

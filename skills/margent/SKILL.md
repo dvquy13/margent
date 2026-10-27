@@ -1,6 +1,6 @@
 ---
 name: margent
-description: 'Write and edit markdown docs that render into designed pages, and add data-driven visuals ("islands") whose data stays in the markdown. Use when asked to write or edit a doc, report, spec or design note, or to address review comments in one (load it first, before gathering content: it sets the format and workflow), when adding a chart, board or other visual to a doc, or when previewing or checking docs with margent, or to set up or remove margent in a project.'
+description: 'Write and edit markdown docs that render into designed pages, and add data-driven visuals ("islands") whose data stays in the markdown. Use when asked to write or edit a doc, report, spec or design note, or to address review comments in one (load it first, before gathering content: it sets the format and workflow), when adding a chart, board or other visual to a doc, or when previewing or checking docs with margent, or to set up, update or remove margent.'
 ---
 
 # margent
@@ -15,7 +15,11 @@ Run `margent --version` once. If it prints `0.7.0`, run every command below as `
 Otherwise run them as `npx -y margent@0.7.0 …`. It needs Node 22 or later, and the first call downloads the package. Don't install anything globally unless the user asks.
 <!-- x-release-please-end -->
 
+When `margent --version` printed a different version (not when `margent` isn't installed), the CLI and these skills are out of step. Tell the user once, in one line, with both versions, that `npx -y margent@latest update` brings every install in line, then carry on with the `npx` form.
+
 The rest of this skill writes `margent` for whichever form applies.
+
+When the user asks to update margent, run `margent update` (or `npx -y margent@latest update` when `margent` has no `update` command), show its output, and tell the user to start a new session when it says so.
 
 If a margent command fails for an environment reason (Chrome not found, no browser opener, cache not writable), run `margent doctor` and show the user its `fail` lines. It also runs a sample island in its frame, so it shows whether islands render on this machine.
 
