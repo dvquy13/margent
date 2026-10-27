@@ -27,6 +27,27 @@ Claude Code plugin:
 /plugin install margent
 ```
 
+## Update
+
+Update each part you installed. To see which ones you have:
+
+```sh
+npm ls -g margent     # the CLI, installed with npm i -g
+claude plugin list    # the Claude Code plugin: look for margent@margent
+npx skills ls -g      # skills from npx skills: look for margent (run npx skills ls in a project for project installs)
+```
+
+Then update each one listed:
+
+```sh
+npm i -g margent@latest                    # the CLI
+claude plugin marketplace update margent   # the Claude Code plugin; start a new session afterwards
+claude plugin update margent@margent
+npx skills update                          # skills from npx skills (updates every skill it installed)
+```
+
+Each skill names the CLI version it was written for. When `margent --version` prints another version, the skill runs `npx -y margent@{version}` instead. That works but downloads the package, so update the CLI along with the skills.
+
 ## For agents
 
 When someone tells you "Install github.com/dvquy13/margent", do this:
