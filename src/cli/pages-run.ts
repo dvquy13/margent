@@ -1,8 +1,8 @@
 // The headless page run for `margent check` (spec R4, R5). Each page with islands or quoted comments is loaded once and
 // measured at two widths: 390px (phone) and 1280px (desktop). The page answers for its islands (window.margentIslands.report,
 // host.js): each island's state, error, mismatches and overflow. A page with quoted comments answers for each quote
-// (window.margentComments.quoteReport, decision 0039): whether its phrase is in the block it is anchored to. Every problem
-// is a `{file}:{line}: ...` line.
+// (window.margentComments.quoteReport, decisions 0039 and 0041): how many times its phrase is in the block it is anchored
+// to, and whether the `#n` it names is in range. Every problem is a `{file}:{line}: ...` line.
 import { pathToFileURL } from 'node:url';
 import { launchChrome, type ChromeSession } from './chrome.js';
 
@@ -10,7 +10,7 @@ export interface CheckPage {
   file: string; // display path of the .md, for messages
   html: string; // absolute path of the page written for this doc
   islands: { name: string; line: number }[]; // in document order, as renderDoc reports them
-  quotes: { id: string; line: number; quote: string; anchorKind: string }[]; // in document order (decision 0039)
+  quotes: { id: string; line: number; quote: string; occurrence?: number; anchorKind: string }[]; // in document order (0039, 0041)
 }
 
 const WIDTHS = [390, 1280] as const;
@@ -29,8 +29,8 @@ const REPORT = `(() => {
     (err) => ({ failure: err instanceof Error ? err.message : String(err) }));
 })()`;
 
-// The quote report of every quoted thread, in document order: { id, found } with found true, false, or null (its island
-// has not rendered). A page without window.margentComments is a failure of the check itself.
+// The quote report of every quoted thread, in document order: { id, count } with the number of matches of its phrase, or
+// null (its island has not rendered). A page without window.margentComments is a failure of the check itself.
 const QUOTES = `(() => {
   if (!window.margentComments || typeof window.margentComments.quoteReport !== 'function') return { missing: true };
   return window.margentComments.quoteReport().then(
@@ -55,11 +55,11 @@ interface Answered {
 }
 type Pass = Answered | { failure: string };
 
-interface QuoteFound {
+interface QuoteCount {
   id: string;
-  found: boolean | null;
+  count: number | null;
 }
-type QuotePass = { report: QuoteFound[] } | { failure: string };
+type QuotePass = { report: QuoteCount[] } | { failure: string };
 
 // One width's report, from the page. A page without window.margentIslands is a failure of the check itself.
 async function reportAt(chrome: ChromeSession, file: string): Promise<Pass> {
@@ -109,10 +109,28 @@ function lineOfMessage(page: CheckPage, message: string): number {
   return island ? island.line : 1;
 }
 
+// The message for one quoted comment (after its `{file}:{line}: `), or null when its quote is fine. A count of null (its
+// island has not rendered) is skipped, since the island's own failure already prints. No match at all means the phrase is
+// not in the block; a `#n` past the last match is out of range; a quote with several matches and no `#n` is ambiguous
+// (decisions 0039, 0041).
+function quoteProblem(q: CheckPage['quotes'][number], count: number | null): string | null {
+  if (count === null) return null;
+  const at = `comment ${q.id}: `;
+  const named = q.occurrence === undefined ? '' : ` #${q.occurrence}`;
+  if (count === 0) return `${at}quoted phrase "${q.quote}"${named} is not in the ${q.anchorKind} it is anchored to`;
+  if (q.occurrence !== undefined && q.occurrence > count) {
+    return `${at}quoted phrase "${q.quote}"${named}: the ${q.anchorKind} it is anchored to has only ${count}`;
+  }
+  if (q.occurrence === undefined && count > 1) {
+    return `${at}quoted phrase "${q.quote}" occurs ${count} times in the ${q.anchorKind} it is anchored to; add #n after the quote to say which`;
+  }
+  return null;
+}
+
 // Returns one problem line per island that did not report or failed, per cell that does not match its column pattern
 // (once, from the first pass that answered), per overflow at each width, per uncaught page exception, and per quoted
-// phrase the page does not find in its block (decision 0039). Throws when Chrome is missing or a page cannot be loaded or
-// read: those are failures of the check itself.
+// comment whose phrase is missing, out of range or ambiguous (decisions 0039, 0041). Throws when Chrome is missing or a
+// page cannot be loaded or read: those are failures of the check itself.
 export async function runPages(pages: CheckPage[]): Promise<string[]> {
   const problems: string[] = [];
   if (pages.length === 0) return problems;
@@ -139,11 +157,8 @@ export async function runPages(pages: CheckPage[]): Promise<string[]> {
           );
         }
         page.quotes.forEach((q, i) => {
-          // null: the quote's island has not rendered, so there is nothing to check.
-          if (report[i].found !== false) return;
-          problems.push(
-            `${page.file}:${q.line}: comment ${q.id}: quoted phrase "${q.quote}" is not in the ${q.anchorKind} it is anchored to`
-          );
+          const problem = quoteProblem(q, report[i].count);
+          if (problem !== null) problems.push(`${page.file}:${q.line}: ${problem}`);
         });
       }
 

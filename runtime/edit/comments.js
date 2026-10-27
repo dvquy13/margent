@@ -270,7 +270,8 @@ export function initComments(margent) {
     if (next.preview) CSS.highlights.set(PENDING, new Highlight(next.preview));
     if (next.islandPreview) {
       // The island's frame draws the phrase, as the page's pending highlight would (R6.2, the same mark a hover uses).
-      window.margentIslands.mark(next.islandPreview.el, next.islandPreview.phrase);
+      // Only the selected match, when the note names one (decision 0041).
+      window.margentIslands.mark(next.islandPreview.el, next.islandPreview.phrase, next.islandPreview.occurrence);
       markedIsland = next.islandPreview.el;
     }
     const parts = [next.msg, next.form && state.author === null ? AUTHOR_MESSAGE : null].filter(Boolean);
@@ -469,6 +470,12 @@ export function initComments(margent) {
     // A quote from an island's selection: its rect is the frame's report, and the phrase is marked in the frame.
     const inFrame = quote && islandSel !== null && islandSel.el === el ? islandSel : null;
     const picked = quote && !inFrame ? selectionRange() : null;
+    // Which match of the quote the selection is (decision 0041). The quote names it only when the block repeats the
+    // phrase; a selection that reaches no match (n 0) writes no #n, and the quote then marks every match.
+    let at = null;
+    if (inFrame) at = { n: inFrame.occurrence, count: inFrame.count };
+    else if (picked) at = window.MargentQuote.occurrence(el, quote, picked);
+    const occurrence = at !== null && at.count > 1 && at.n > 0 ? at.n : undefined;
     const top = () => {
       if (inFrame) return islandRect(inFrame).top;
       const box = picked ? selectionEndRect(picked, el) : null;
@@ -479,9 +486,9 @@ export function initComments(margent) {
       quote: quote || undefined,
       place: { top },
       preview: picked ?? undefined, // the selected phrase stays marked while the note is typed, as for an inline comment
-      islandPreview: inFrame ? { el, phrase: quote } : undefined,
+      islandPreview: inFrame ? { el, phrase: quote, occurrence } : undefined,
       range,
-      build: (n) => `${sourceOf(range)}\n\n${noteSource(quote ? { ...n, text: quotedText(quote, n.text) } : n)}`,
+      build: (n) => `${sourceOf(range)}\n\n${noteSource(quote ? { ...n, text: quotedText(quote, n.text, occurrence) } : n)}`,
     });
   }
 
@@ -726,7 +733,7 @@ export function initComments(margent) {
 
   // The guest reports a selection inside an island (M5 R6.1). An empty one clears it, as an empty page selection does.
   document.addEventListener('margent:island-selection', (e) => {
-    const { text, rect } = e.detail;
+    const { text, rect, occurrence, count } = e.detail;
     if (!text) {
       islandSel = null;
     } else {
@@ -736,6 +743,8 @@ export function initComments(margent) {
         el: e.target,
         text,
         rect: { left: rect.left - origin.left, top: rect.top - origin.top, width: rect.width, height: rect.height },
+        occurrence,
+        count,
       };
     }
     update();

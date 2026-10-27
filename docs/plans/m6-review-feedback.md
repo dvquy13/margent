@@ -14,11 +14,11 @@ Triage of six notes from using margent for reviews at work, and the order to add
   - [x] T1 Links stay visible inside a comment highlight (F2)
   - [x] T2 Agents never cite a thread ID in the doc's text (F6). Unproven: 12 headless review rounds on a fixture that invites citations, half on `main`'s skill, cited no ID in either variant
   - [x] T3 Doc paths in the `serve` index (F1)
-- [ ] Phase 2 · A repeated phrase marks only the one commented
-  - [ ] T4 Reproduce F5 in a failing corpus case; decision 0041: quotes name their occurrence, superseding part of 0039
-  - [ ] T5 Grammar, render record and `check`
-  - [ ] T6 Store side: page and island selections record the occurrence
-  - [ ] T7 Rail, `comments` output and skill
+- [x] Phase 2 · A repeated phrase marks only the one commented, full tier green
+  - [x] T4 Reproduce F5 in a failing corpus case; decision 0041: quotes name their occurrence, superseding part of 0039
+  - [x] T5 Grammar, render record and `check`
+  - [x] T6 Store side: page and island selections record the occurrence
+  - [x] T7 Rail, `comments` output and skill
 - [ ] Phase 3 · Comment rail for real reviews
   - [ ] T8 Thread IDs on cards (F3)
   - [ ] T9 Wider rail, compact cards, long threads and notes (F3)

@@ -164,13 +164,17 @@
     return { description: describe(outermost.el), side: outermost.past.side, px: outermost.past.px };
   }
 
-  // Marks every occurrence of phrase in the shadow root for the CSS Highlight API (quote.js finds them). Null clears.
-  function mark(phrase) {
+  // Marks the occurrence-th match of phrase in the shadow root for the CSS Highlight API (quote.js finds them). A null
+  // occurrence marks every match, and an occurrence past the last match marks nothing. A null phrase clears.
+  function mark(phrase, occurrence) {
     if (phrase === null) {
       CSS.highlights.delete('margent-quote');
       return;
     }
-    CSS.highlights.set('margent-quote', new Highlight(...MargentQuote.find(state.root, phrase)));
+    var matches = MargentQuote.find(state.root, phrase);
+    var chosen = occurrence === null || occurrence === undefined ? matches
+      : occurrence >= 1 && occurrence <= matches.length ? [matches[occurrence - 1]] : [];
+    CSS.highlights.set('margent-quote', new Highlight(...chosen));
   }
 
   // Theme tokens: the first message renders, later ones refresh the sheet and run the onTheme callbacks.
@@ -231,7 +235,7 @@
     var msg = ev.data;
     if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'tokens') onTokens(msg);
-    else if (msg.type === 'mark') mark(msg.phrase);
+    else if (msg.type === 'mark') mark(msg.phrase, msg.occurrence);
     else if (msg.type === 'measure') post({ type: 'overflow', id: msg.id, overflow: overflowOf() });
     else if (msg.type === 'find') {
       // null when the guest has not started (no shadow root yet): the host reads that as "no island to search".
@@ -239,19 +243,24 @@
     }
   });
 
-  // Selections: the text inside the island and its rect in frame coordinates, on pointerup.
+  // Selections: the text inside the island, its rect in frame coordinates, and which match of the text it is (occurrence
+  // of count, decision 0041), on pointerup.
   document.addEventListener('pointerup', function () {
     var sel = state.root && state.root.getSelection ? state.root.getSelection() : document.getSelection();
     var text = sel && sel.rangeCount > 0 ? sel.toString() : '';
     if (!text) {
-      post({ type: 'selection', text: '', rect: null });
+      post({ type: 'selection', text: '', rect: null, occurrence: 0, count: 0 });
       return;
     }
-    var r = sel.getRangeAt(0).getBoundingClientRect();
+    var range = sel.getRangeAt(0);
+    var r = range.getBoundingClientRect();
+    var at = MargentQuote.occurrence(state.root, MargentQuote.store(text), range);
     post({
       type: 'selection',
       text: text,
-      rect: { top: r.top, right: r.right, bottom: r.bottom, left: r.left, width: r.width, height: r.height }
+      rect: { top: r.top, right: r.right, bottom: r.bottom, left: r.left, width: r.width, height: r.height },
+      occurrence: at.n,
+      count: at.count
     });
   });
 

@@ -30,7 +30,17 @@ function pageFile(name, source) {
   return { html, url: pathToFileURL(path).href };
 }
 
-const FIXTURES = ['all-kinds.md', 'block-prose.md', 'quoted.md', 'quoted-repeat.md', 'quoted-table.md', 'tall-table.md', 'links-in-highlight.md'];
+const FIXTURES = [
+  'all-kinds.md',
+  'block-prose.md',
+  'quoted.md',
+  'quoted-repeat.md',
+  'quoted-occurrence-page.md',
+  'quoted-occurrence-past.md',
+  'quoted-table.md',
+  'tall-table.md',
+  'links-in-highlight.md',
+];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
 let browser;
@@ -320,14 +330,53 @@ test('R4.3: a quoted phrase that is not in its block marks only the block', full
   }
 });
 
-test('0039: a phrase that occurs twice in its block is marked at both places, always and on hover', full, async () => {
+test('0041: a phrase that occurs twice in its block and names no #n is marked at both places, always and on hover, and its card says so', full, async () => {
   const { page, errors, close } = await open(1280, 'light', urls['quoted-repeat.md']);
   try {
     const always = await page.evaluate(() => [...(CSS.highlights.get('margent-quotes') ?? [])].map((r) => r.toString()));
     assert.deepEqual(always, ['beta gate', 'beta gate'], 'both matches carry the always-on tint');
-    await page.locator('.c-card[data-c="c1"]').hover();
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('q.c-quote + .c-quote-note').textContent(), 'matches 2 places', 'the card says how many places');
+    assert.equal(await card.locator('.c-quote-missing').count(), 0, 'an ambiguous quote is found, not missing');
+    await card.hover();
     const hovered = await page.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
     assert.deepEqual(hovered, ['beta gate', 'beta gate'], 'hovering the card marks both matches');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+// The start offsets of the marked ranges in their text nodes, in order. "beta gate, then beta gate again" has its second
+// match at lastIndexOf.
+const markedStarts = (page, name) =>
+  page.evaluate((name) => [...(CSS.highlights.get(name) ?? [])].map((r) => r.startOffset), name);
+
+test('0041: a quote that names its match (#2) marks only that match, always and on hover, with no label', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-occurrence-page.md']);
+  try {
+    const text = 'beta gate, then beta gate again';
+    const second = text.lastIndexOf('beta gate');
+    assert.deepEqual(await markedStarts(page, 'margent-quotes'), [second], 'only the second match carries the always-on tint');
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('.c-quote-note').count(), 0, 'a named match has no label');
+    await card.hover();
+    assert.deepEqual(await markedStarts(page, 'margent-quote'), [second], 'hovering the card marks only the second match');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('0041: a quote that names a match past the last one (#3) marks nothing, and its card says not found in the page', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['quoted-occurrence-past.md']);
+  try {
+    assert.deepEqual(await markedStarts(page, 'margent-quotes'), [], 'no match is marked');
+    const card = page.locator('.c-card[data-c="c1"]');
+    assert.equal(await card.locator('q.c-quote.c-quote-missing').count(), 1, 'the quote is marked missing');
+    assert.equal(await card.locator('q.c-quote + .c-quote-note').textContent(), 'not found in the page');
+    await card.hover();
+    assert.deepEqual(await markedStarts(page, 'margent-quote'), [], 'hovering the card marks nothing');
     assert.deepEqual(errors, []);
   } finally {
     await close();
@@ -362,7 +411,7 @@ test('0039: a quote the page cannot find is muted and labelled on its card, and 
     assert.equal(await page.locator('.c-card[data-c="c2"] .c-quote-missing').count(), 0, 'a highlight is never marked missing');
     // c2 is an inline thread: its highlight is in the source, so only the block comment's quote is reported.
     const report = await page.evaluate(() => window.margentComments.quoteReport());
-    assert.deepEqual(report, [{ id: 'c1', found: false }]);
+    assert.deepEqual(report, [{ id: 'c1', count: 0 }]);
     assert.equal(await card.locator('.c-quote-note').count(), 1, 'the label is not added twice');
     assert.deepEqual(errors, []);
   } finally {

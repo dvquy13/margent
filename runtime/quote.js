@@ -46,5 +46,20 @@ var MargentQuote = (function () {
     return ranges;
   }
 
-  return { store: store, find: find };
+  // Which match a selected range is, among find's matches of phrase in root (decision 0041): n is 1-based, in reading order,
+  // and 0 when no match reaches the range's start; count is how many matches there are. A match counts when the range
+  // starts at or before its end, so a selection inside a match picks that match.
+  function occurrence(root, phrase, range) {
+    var matches = find(root, phrase);
+    var n = 0;
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i].comparePoint(range.startContainer, range.startOffset) <= 0) {
+        n = i + 1;
+        break;
+      }
+    }
+    return { n: n, count: matches.length };
+  }
+
+  return { store: store, find: find, occurrence: occurrence };
 })();

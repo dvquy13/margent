@@ -41,6 +41,7 @@
   const cards = new Map(); // id -> card
   const anchors = new Map(); // id -> the element the card lines up with
   const quotes = new Map(); // id -> the quoted text, for a block comment that has one
+  const occurrences = new Map(); // id -> the match the quote names (`"phrase" #n`, decision 0041), when it names one
 
   for (const thread of threads) {
     const id = thread.dataset.c;
@@ -67,14 +68,19 @@
     card.tabIndex = 0;
 
     let quote = null;
+    let occurrence;
     if (kind === 'inline') quote = mark.textContent;
     if (kind === 'block') {
       const quoted = thread.querySelector('q.c-quote');
-      if (quoted) quote = quoted.textContent;
+      if (quoted) {
+        quote = quoted.textContent;
+        if ('occurrence' in quoted.dataset) occurrence = Number(quoted.dataset.occurrence);
+      }
     }
     if (quote !== null) {
       card.append(el('q', 'c-quote', quote));
       quotes.set(id, quote);
+      if (occurrence !== undefined) occurrences.set(id, occurrence);
     }
     // A note is a header row (its author; the edit runtime adds Edit to an owner's) and its text below it.
     for (const note of thread.querySelectorAll('.c-note')) {
@@ -210,9 +216,10 @@
   // ---- linking: the highlight or point marker, the card and (for a block) the block, marked together -------------------
 
   const isIsland = (el) => el.localName === 'agent-island';
-  // Marks a phrase in one island's frame, or clears it with null. Without margentIslands there is no island to mark.
-  function markInIsland(el, phrase) {
-    if (window.margentIslands) window.margentIslands.mark(el, phrase);
+  // Marks a phrase in one island's frame, or clears it with a null phrase. occurrence picks one match (null: all of them).
+  // Without margentIslands there is no island to mark.
+  function markInIsland(el, phrase, occurrence) {
+    if (window.margentIslands) window.margentIslands.mark(el, phrase, occurrence ?? null);
   }
 
   // Quoted phrases (decision 0023) are marked with the Custom Highlight API, so the DOM never changes: all of their
@@ -224,8 +231,11 @@
   // no always-on tint, and its miss state comes from margentIslands.find in quoteReport.
   // A block comment with no quote is about its whole block (decision 0039). A prose block is marked like a phrase, all
   // of its text; a table, code, a figure or an island would be one large tint, so it takes c-commented, a light bar.
+  // A quote that names its match (decision 0041) marks only that one. A quote that occurs more than once, and names none,
+  // marks every match, and its card says how many places it matches.
   const PROSE = ':is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote)';
   const markRanges = new Map(); // id -> the Range[] its card marks: its quote's matches, or its prose block's text
+  const counts = new Map(); // id -> how many matches its quote has in its block (page blocks only)
   function markQuotes() {
     markRanges.clear();
     for (const [id, card] of cards) {
@@ -233,8 +243,15 @@
       const anchor = anchors.get(id);
       if (quotes.has(id)) {
         if (isIsland(anchor)) continue;
-        const ranges = MargentQuote.find(anchor, quotes.get(id));
-        if (ranges.length > 0) markRanges.set(id, ranges);
+        const matches = MargentQuote.find(anchor, quotes.get(id));
+        counts.set(id, matches.length);
+        const occurrence = occurrences.get(id);
+        if (occurrence === undefined) {
+          if (matches.length > 0) markRanges.set(id, matches);
+          if (matches.length > 1) quoteNote(id, `matches ${matches.length} places`);
+        } else if (matches[occurrence - 1] !== undefined) {
+          markRanges.set(id, [matches[occurrence - 1]]);
+        }
       } else if (anchor.matches(PROSE) && 'highlights' in CSS) {
         const range = document.createRange();
         range.selectNodeContents(anchor);
@@ -247,12 +264,18 @@
   }
   markQuotes();
 
+  // A label under a card's quote (the class is c-quote-note). Applied once per card.
+  function quoteNote(id, text) {
+    const q = cards.get(id).querySelector(':scope > q.c-quote');
+    if (q.nextElementSibling?.classList.contains('c-quote-note')) return;
+    q.after(el('span', 'c-quote-note', text));
+  }
   // A quote the page cannot find: its card's quote is muted and a label under it says so. Applied once per card.
   function markMissing(id) {
     const q = cards.get(id).querySelector(':scope > q.c-quote');
     if (q.classList.contains('c-quote-missing')) return;
     q.classList.add('c-quote-missing');
-    q.after(el('span', 'c-quote-note', 'not found in the page'));
+    quoteNote(id, 'not found in the page');
   }
   // An inline thread's text is its highlight, so only a block comment's quote can be missing.
   for (const id of quotes.keys()) {
@@ -262,7 +285,7 @@
   function markQuote(id, on) {
     const anchor = anchors.get(id);
     if (isIsland(anchor)) {
-      if (quotes.has(id)) markInIsland(anchor, on ? quotes.get(id) : null);
+      if (quotes.has(id)) markInIsland(anchor, on ? quotes.get(id) : null, occurrences.get(id));
       return;
     }
     if (!('highlights' in CSS)) return;
@@ -382,24 +405,30 @@
     });
   }
 
-  // Every quoted block comment, in document order: { id, found }. found is true or false for a quote the page can search
-  // or an island that has rendered (margentIslands.find), and null for an island that has not rendered. A false marks its
-  // card. An inline thread's text is its highlight, which is in the source, so it is never reported.
+  // Every quoted block comment, in document order: { id, count }. count is how many matches the phrase has in its block
+  // (page blocks from counts, islands from margentIslands.find), or null for an island that has not rendered. A quote is
+  // missing (its card is marked, and the card says "not found in the page") when count is 0 or the occurrence it names is
+  // past the last match. An ambiguous island quote (more than one match, no #n) gets the "matches {count} places" label,
+  // as a page quote does at load. An inline thread's text is its highlight, which is in the source, so it is never reported.
   function quoteReport() {
     const blockQuotes = [...quotes.keys()].filter((id) => cards.get(id).dataset.kind === 'block');
+    const missingIf = (id, count) => {
+      const occurrence = occurrences.get(id);
+      if (count === 0 || (occurrence !== undefined && occurrence > count)) markMissing(id);
+      else if (occurrence === undefined && count > 1) quoteNote(id, `matches ${count} places`);
+    };
     return Promise.all(blockQuotes.map((id) => {
       const anchor = anchors.get(id);
       if (!isIsland(anchor)) {
-        const found = markRanges.has(id);
-        if (!found) markMissing(id);
-        return { id, found };
+        const count = counts.get(id);
+        missingIf(id, count);
+        return { id, count };
       }
-      if (anchor.getAttribute('data-state') !== 'rendered') return { id, found: null };
-      return window.margentIslands.find(anchor, quotes.get(id)).then((n) => {
-        if (n === null) return { id, found: null };
-        const found = n > 0;
-        if (!found) markMissing(id);
-        return { id, found };
+      if (anchor.getAttribute('data-state') !== 'rendered') return { id, count: null };
+      return window.margentIslands.find(anchor, quotes.get(id)).then((count) => {
+        if (count === null) return { id, count: null };
+        missingIf(id, count);
+        return { id, count };
       });
     }));
   }
