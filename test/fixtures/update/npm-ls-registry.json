@@ -1,0 +1,10 @@
+{
+  "name": "lib",
+  "dependencies": {
+    "margent": {
+      "version": "0.7.0",
+      "resolved": "https://registry.npmjs.org/margent/-/margent-0.7.0.tgz",
+      "overridden": false
+    }
+  }
+}

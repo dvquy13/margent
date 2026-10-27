@@ -45,6 +45,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted, amended by [0041](0041-quote-names-its-occurrence.md) | 2026-10-26 |
 | [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted | 2026-10-27 |
 | [0041](0041-quote-names-its-occurrence.md) | A quoted phrase names its occurrence when it repeats (amends 0039) | accepted | 2026-10-27 |
+| [0042](0042-update-command-updates-every-install.md) | `margent update` finds every install and updates it | accepted | 2026-10-27 |
 
 ## Deferred
 

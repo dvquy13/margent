@@ -1,0 +1,10 @@
+{
+  "name": "lib",
+  "dependencies": {
+    "margent": {
+      "version": "0.7.0",
+      "resolved": "file:../../../frostmourne/margent",
+      "overridden": false
+    }
+  }
+}

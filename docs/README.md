@@ -67,7 +67,7 @@ Update `updated:` on every content change, and keep `docs/README.md`'s table in 
 |---|---|---|
 | [design/system-design.md](design/system-design.md) | draft v0 | 2026-10-27 |
 | [architecture.md](architecture.md) | accepted | 2026-10-27 |
-| [decisions/](decisions/README.md) | 38 accepted, 3 superseded | 2026-10-27 |
+| [decisions/](decisions/README.md) | 39 accepted, 3 superseded | 2026-10-27 |
 | [specs/m1-render-islands.md](specs/m1-render-islands.md) | done | 2026-10-25 |
 | [specs/m2-serve-edit.md](specs/m2-serve-edit.md) | done | 2026-10-25 |
 | [specs/m3-comments.md](specs/m3-comments.md) | done | 2026-10-25 |

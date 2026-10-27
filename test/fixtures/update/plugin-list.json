@@ -1,0 +1,20 @@
+[
+  {
+    "id": "drawio@drawio",
+    "version": "1.2.5",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/dvq/.claude/plugins/cache/drawio/drawio/1.2.5",
+    "projectEnabled": false
+  },
+  {
+    "id": "margent@margent",
+    "version": "0.7.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/dvq/.claude/plugins/cache/margent/margent/0.7.0",
+    "installedAt": "2026-10-24T21:06:39.330Z",
+    "lastUpdated": "2026-10-24T21:06:39.330Z",
+    "projectEnabled": false
+  }
+]

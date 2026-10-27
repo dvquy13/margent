@@ -29,7 +29,22 @@ Claude Code plugin:
 
 ## Update
 
-Update each part you installed. To see which ones you have:
+```sh
+margent update
+```
+
+It finds every install (the CLI, the Claude Code plugin, skills from `npx skills`), updates each one that is behind the latest version, and leaves development installs (`npm link`, a plugin read from a local folder) alone. `margent update --check` only reports.
+
+An install from before 0.8.0 has no `update` command. Run the newest margent without installing it:
+
+```sh
+npx -y margent@latest update
+```
+
+<details>
+<summary>Updating by hand</summary>
+
+To see which installs you have:
 
 ```sh
 npm ls -g margent     # the CLI, installed with npm i -g
@@ -47,6 +62,8 @@ npx skills update                          # skills from npx skills (updates eve
 ```
 
 Each skill names the CLI version it was written for. When `margent --version` prints another version, the skill runs `npx -y margent@{version}` instead. That works but downloads the package, so update the CLI along with the skills.
+
+</details>
 
 ## For agents
 
@@ -92,6 +109,7 @@ When someone tells you "Install github.com/dvquy13/margent", do this:
 | `margent init {path}` | Writes a short margent block into the nearest `AGENTS.md` or `CLAUDE.md` above `{path}`, up to the git root (creating `AGENTS.md` at the root when there is none), so agents without the skill keep comment markup and run `check`. Running it again only updates the block. |
 | `margent teardown {path}` | Removes that block from the nearest `AGENTS.md` or `CLAUDE.md` above `{path}` that holds one, and deletes a file it leaves empty. A monorepo's root block stays for the other packages. |
 | `margent doctor` | Checks Node, Chrome, the browser opener and the cache, and runs a sample island in its frame. Exit 1 on any failure. |
+| `margent update [--check]` | Updates every margent install that is behind the latest version: the CLI, the Claude Code plugin and skills from `npx skills`. Skips development installs. `--check` only reports. |
 | `margent --version` | Prints the version. |
 
 A folder `{path}` covers every `.md` under it except `node_modules`, dot-folders and files git ignores.
