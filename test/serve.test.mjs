@@ -1,4 +1,4 @@
-// Server tests (T4, spec R1, R2, R6.1, R6.6, R7.1, acceptance A8). Run after `npm run build`. Requests go through
+// Server tests (spec R1, R2, R6.1, R6.6, R7.1, acceptance A8). Run after `npm run build`. Requests go through
 // node:http, not fetch: fetch drops the Host header, and the Host and Origin checks are what these tests exercise.
 // Anything that writes works on a temp copy of test/fixtures/serve/docs. The index check on the margent corpus only reads.
 import { test } from 'node:test';

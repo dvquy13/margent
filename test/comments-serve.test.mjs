@@ -1,4 +1,4 @@
-// Server tests for comments (T5, spec R2.3, R5.6, acceptance A10 server half): the author in the page state and the open
+// Server tests for comments (spec R2.3, R5.6, acceptance A10 server half): the author in the page state and the open
 // thread counts in the `/` index. Run after `npm run build`. Each test starts the real server in-process and closes it in
 // t.after, since every server holds a recursive watcher.
 import { test } from 'node:test';

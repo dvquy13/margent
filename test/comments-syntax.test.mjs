@@ -1,4 +1,4 @@
-// Comment syntax tests (M3 T1, spec R1, R5.6): the note grammar, the pure source edits, and code spans. Run after
+// Comment syntax tests (M3 spec R1, R5.6): the note grammar, the pure source edits, and code spans. Run after
 // `npm run build`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -205,13 +205,13 @@ test('stripThread unwraps the highlight even when a code span before it holds an
   assert.equal(stripThread(block, 'c1'), 'Use `{==` here, real after.');
 });
 
-// ---- quoted block comments (M3 T13, plan "Quote grammar")
+// ---- quoted block comments (decision 0023)
 
-test('T13: splitQuote reads "quote" → body with U+2192 and one space each side', () => {
+test('decision 0023: splitQuote reads "quote" → body with U+2192 and one space each side', () => {
   assert.deepEqual(splitQuote('"Reddit is out" → why left out?'), { quote: 'Reddit is out', body: 'why left out?' });
 });
 
-test('T13: splitQuote returns the text as the body when there is no quote, and never throws', () => {
+test('decision 0023: splitQuote returns the text as the body when there is no quote, and never throws', () => {
   const plain = [
     'why left out?',
     '"Reddit is out" why left out?', // no arrow
@@ -229,7 +229,7 @@ test('T13: splitQuote returns the text as the body when there is no quote, and n
   }
 });
 
-test('T13: quotedText round-trips through splitQuote', () => {
+test('decision 0023: quotedText round-trips through splitQuote', () => {
   const text = quotedText('Reddit, Discourse and Stack Exchange are out', 'why are these left out?');
   assert.equal(text, '"Reddit, Discourse and Stack Exchange are out" → why are these left out?');
   assert.deepEqual(splitQuote(text), {
@@ -239,7 +239,7 @@ test('T13: quotedText round-trips through splitQuote', () => {
   assert.deepEqual(splitQuote(quotedText('a', 'b → c')), { quote: 'a', body: 'b → c' });
 });
 
-test('T13: quotedText throws a clear error on each bad input', () => {
+test('decision 0023: quotedText throws a clear error on each bad input', () => {
   const bad = [
     [['', 'body'], /quote is empty/],
     [['   ', 'body'], /quote is empty/],
@@ -255,7 +255,7 @@ test('T13: quotedText throws a clear error on each bad input', () => {
   }
 });
 
-test('T13: a quoted first note still passes noteSource, and a body with <<} is rejected there', () => {
+test('decision 0023: a quoted first note still passes noteSource, and a body with <<} is rejected there', () => {
   const text = quotedText('quote', 'body');
   assert.equal(noteSource({ id: 'c1', author: 'Quy', text }), '{>>[c1] Quy: "quote" → body<<}');
   assert.throws(() => noteSource({ id: 'c1', author: 'Quy', text: quotedText('quote', 'a <<} b') }), /'<<\}'/);

@@ -1,6 +1,6 @@
 /* Edit runtime styles, inlined only into pages that `margent serve` renders. Tokens only, no raw colors. */
 
-/* ---- in-place editing (T6, spec R4) */
+/* ---- in-place editing (spec R4) */
 
 /* A gated block takes the text cursor, and a faint outline on hover. Links keep their pointer, so a click on one follows it. */
 [data-gate="pass"] {
@@ -32,7 +32,7 @@
   font-size: var(--font-sm);
 }
 
-/* ---- side panel, edit controls and banner (T7, spec R5, R7) */
+/* ---- side panel, edit controls and banner (spec R5, R7) */
 
 /* The block the panel is editing: the same accent outline as a block edited in place. */
 [data-panel-open] {

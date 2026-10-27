@@ -1,4 +1,4 @@
-// Live reload tests (T7, spec R7.2 to R7.5, acceptance A6, A7 and A11). Real keyboard and mouse input in installed
+// Live reload tests (spec R7.2 to R7.5, acceptance A6, A7 and A11). Real keyboard and mouse input in installed
 // Chrome. External writes go to the served temp copy with plain file writes, as an editor or an agent would make them.
 // Timings are measured from the write (or keypress) to the reloaded page's `margent` being ready. Run `npm run build`
 // first (or `npm test`).

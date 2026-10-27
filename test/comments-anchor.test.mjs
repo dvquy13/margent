@@ -1,4 +1,4 @@
-// Selection anchoring (M3 spec R5.2 to R5.5, acceptance A2; plan T7), in installed Chrome. The unit cases run on a served
+// Selection anchoring (M3 spec R5.2 to R5.5, acceptance A2), in installed Chrome. The unit cases run on a served
 // fixture (test/fixtures/comments/anchor). Selections are built from code here, because these tests check the mapping,
 // not the UI. The A2 walk serves the frozen margent docs/ (read only) and checks every gated block.
 import { test, before, after } from 'node:test';

@@ -1,4 +1,4 @@
-// Save core tests (T3, R6.2 to R6.5, acceptance A9): hashing, splicing under the line-ending and blank-line rules,
+// Save core tests (spec R6.2 to R6.5, acceptance A9): hashing, splicing under the line-ending and blank-line rules,
 // validation through renderDoc, and the atomic write. Run after `npm run build`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,4 +1,4 @@
-// Comment display (M3 spec R4, acceptance A6; plan T14, decision 0023). Fixtures are rendered to pages and opened in
+// Comment display (M3 spec R4, acceptance A6; decision 0023). Fixtures are rendered to pages and opened in
 // Chrome. At 1100px and wider the threads are cards in a right rail, each lined up with its anchor and pushed down only
 // when the card above reaches it. Below 1100px the rail is a drawer. Run after `npm run build`.
 import { test, before, after } from 'node:test';

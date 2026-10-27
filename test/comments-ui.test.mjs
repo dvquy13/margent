@@ -1,4 +1,4 @@
-// The comment UI in served pages (M3 spec R5, R6, A7, A10; plan T8), in installed Chrome. Every action is a real mouse drag
+// The comment UI in served pages (M3 spec R5, R6, A7, A10), in installed Chrome. Every action is a real mouse drag
 // or key press. Every result is read from disk and compared with the expected bytes. Run `npm run build` first (or npm test).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -377,7 +377,7 @@ test(
 // ---- R5.4 block comments ---------------------------------------------------------------------------------------
 
 test(
-  'R5.4/T15: a drag across two list items gives a block comment line after the list, quoting the selected text',full, 
+  'R5.4: a drag across two list items gives a block comment line after the list, quoting the selected text',full, 
   scenario({ author: 'Ada' }, async ({ page, served }) => {
     await drag(page, { text: 'First item', index: 0 }, { text: 'Second item', index: 6 });
     await openNote(page);
@@ -398,7 +398,7 @@ test(
 );
 
 test(
-  'T15: a phrase dragged in a table cell, then Comment and a note, gives a quoted block comment line after the table',full, 
+  'decision 0023: a phrase dragged in a table cell, then Comment and a note, gives a quoted block comment line after the table',full, 
   scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
     await drag(page, { text: 'Proceed', index: 0 }, { text: 'Proceed', index: 7 });
     assert.equal(await selectedText(page), 'Proceed');
@@ -452,7 +452,7 @@ test(
 );
 
 test(
-  'T15: a drag across two lines inside an island quotes them with a space between, as the page selection does',full, 
+  'decision 0023: a drag across two lines inside an island quotes them with a space between, as the page selection does',full, 
   scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served }) => {
     await drag(page, { text: 'Forum and Wiki are out', index: 15 }, { text: 'Blog and Docs stay in', index: 8 });
     await openNote(page);
@@ -464,7 +464,7 @@ test(
 );
 
 test(
-  'T15: a double or triple click on a line inside an island shows the Comment control by that line, not at the page corner',full, 
+  'decision 0023: a double or triple click on a line inside an island shows the Comment control by that line, not at the page corner',full, 
   scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page }) => {
     const line = 'Blog and Docs stay in';
     for (const clickCount of [2, 3]) {
@@ -481,7 +481,7 @@ test(
 );
 
 test(
-  'T15: a phrase dragged inside an island, then Comment and a note, gives a quoted block comment line after the island',full, 
+  'decision 0023: a phrase dragged inside an island, then Comment and a note, gives a quoted block comment line after the island',full, 
   scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served }) => {
     const phrase = 'Forum and Wiki are out';
     await drag(page, { text: phrase, index: 0 }, { text: phrase, index: phrase.length });
@@ -502,7 +502,7 @@ test(
 );
 
 test(
-  'T15: a quote holding <<} is refused when the note is sent: the box shows why, and nothing is saved',full, 
+  'decision 0023: a quote holding <<} is refused when the note is sent: the box shows why, and nothing is saved',full, 
   scenario({ author: 'Ada', fixture: ISLAND, doc: 'island.md' }, async ({ page, served, saves }) => {
     const phrase = 'Stop marker <<} inside the island';
     await drag(page, { text: phrase, index: 0 }, { text: phrase, index: phrase.length });

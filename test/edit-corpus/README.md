@@ -8,7 +8,7 @@ Chrome with real mouse and keyboard input, then checks the file.
     figure, fenced code, blockquotes and an island table (`islands/milestone-status.island.js`). Most cases edit it.
   - `extra-kinds.md` holds the block kinds the handbook lacks: a raw HTML block, a YAML-backed island (`islands/steps.island.js`,
     from the runtime fixtures), a nested list and a paragraph the gate rejects.
-  - `quoted.md` holds a quoted block comment line (M3 T15) to reply on. `reviewed.md` holds comments that already
+  - `quoted.md` holds a quoted block comment line (decision 0023) to reply on. `reviewed.md` holds comments that already
     have a reply, for the review cases.
   - `node dist/cli.js check test/edit-corpus/docs` must exit 0.
 - `cases/{doc-slug}/{nn}-{slug}.json`: `{ "doc": "{path under docs/}", "steps": [...] }`.

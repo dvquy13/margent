@@ -1,4 +1,4 @@
-// CLI tests (T6, R4): open, export, check, doctor (R7), --version and usage. Each test spawns `node dist/cli.js` from the repo root,
+// CLI tests (M1 spec R4): open, export, check, doctor (M5 spec R7), --version and usage. Each test spawns `node dist/cli.js` from the repo root,
 // so messages carry repo-relative paths. Run after `npm run build`. Browser-dependent checks need an installed Chrome.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

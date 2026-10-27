@@ -1,4 +1,4 @@
-// Comments in the round-trip gate and house turndown (M3 spec R7, plan T6), in installed Chrome. Covers R7.1 and R7.2 on
+// Comments in the round-trip gate and house turndown (M3 spec R7), in installed Chrome. Covers R7.1 and R7.2 on
 // the all-kinds fixture, the reserved sentinels, and A3: a commented copy of every frozen margent doc, gated.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -132,7 +132,7 @@ test('R7.1: text after a thread and a highlight at a line start round-trip witho
   }
 });
 
-// The sentinels are reserved for selection anchoring (T7, spec R5.3): house turndown must never use them.
+// The sentinels are reserved for selection anchoring (spec R5.3): house turndown must never use them.
 test('the house turndown uses neither sentinel U+E001 nor U+E002', () => {
   const text = readFileSync(TURNDOWN, 'utf8');
   assert.equal(text.includes(''), false, 'no U+E001 in turndown.js');

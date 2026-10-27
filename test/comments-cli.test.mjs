@@ -1,4 +1,4 @@
-// The comment commands of the CLI (M3 spec R8, R9, A8, A9; plan T4): `comments`, `export --md --clean`, `export --clean`
+// The comment commands of the CLI (M3 spec R8, R9, A8, A9): `comments`, `export --md --clean`, `export --clean`
 // and `serve --author`. Each test spawns dist/cli.js, so run `npm run build` first. The fixtures are in
 // test/fixtures/comments/cli/ (the folder every test below walks) and test/fixtures/comments/errors/ (malformed docs).
 // UPDATE_GOLDEN=1 rewrites test/golden/comments/; review the diff before committing it.
@@ -143,7 +143,7 @@ test('comments: a block comment on an island says so, with the island anchor (R8
   assert.match(r.stdout, /:17: \[c7\] needs agent · block comment on the island at line 11\n/);
 });
 
-test('comments: a quoted block comment names its quote in the head, and the note line drops it (T13)', () => {
+test('comments: a quoted block comment names its quote in the head, and the note line drops it (decision 0023)', () => {
   const r = cli(['comments', `${CLI_FIX}/quoted.md`]);
   assert.equal(r.status, 0, r.stderr);
   assert.match(
@@ -292,9 +292,9 @@ test('export --md --clean of a folder with a malformed doc writes nothing and ex
   assert.match(r.stderr, /test\/fixtures\/comments\/errors\/[\w-]+\.md:\d+: /);
 });
 
-// ---- serve --author (R5.6 seam, plan T4)
+// ---- serve --author (spec R5.6)
 
-test('serve --author with an empty name is a usage error, exit 2 (plan T4)', () => {
+test('serve --author with an empty name is a usage error, exit 2', () => {
   for (const args of [['serve', CLI_FIX, '--author='], ['serve', CLI_FIX, '--author', ''], ['serve', CLI_FIX, '--author']]) {
     const r = cli(args);
     assert.equal(r.status, 2, `${args.join(' ')}: ${r.stderr}`);

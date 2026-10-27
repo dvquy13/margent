@@ -1,4 +1,4 @@
-// Comment markup in markdown (spec R1 to R3; plan "Render contract"). Inline rules read {== ==} highlights and
+// Comment markup in markdown (spec R1 to R3; architecture "Comment HTML"). Inline rules read {== ==} highlights and
 // {>> <<} notes into tokens; the `comments` core rule checks their structure, groups notes into threads, marks block
 // comment lines, and records one Thread per thread in env.comments. Inline rules never throw: they push c_error, and
 // the core rule raises the RenderError with the file line.

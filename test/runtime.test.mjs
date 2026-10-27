@@ -1,5 +1,5 @@
 // Runtime tests for the island kit, the sandboxed frame (guest and host) and the theme toggle. Browser checks use Chrome
-// via playwright-core and read each island inside its frame (M5 T3); kit checks run runtime/kit.js in an empty node:vm
+// via playwright-core and read each island inside its frame (M5 spec R3); kit checks run runtime/kit.js in an empty node:vm
 // context, as `check` does.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -410,7 +410,7 @@ test('margentIslands.mark highlights the phrase in the guest with the CSS Highli
   });
 });
 
-// ---- node:vm: the kit, evaluated the way T5 uses it
+// ---- node:vm: the kit, evaluated the way `check` uses it
 
 function loadKit() {
   const ctx = {};

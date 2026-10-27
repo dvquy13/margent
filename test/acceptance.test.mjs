@@ -1,4 +1,4 @@
-// Acceptance checks that run on fixtures (T9): A1 text coverage, A4 re-render on a verdict edit, A8/A9 layout and
+// Acceptance checks that run on fixtures: A1 text coverage, A4 re-render on a verdict edit, A8/A9 layout and
 // theme shots, A10 link walk. The scripts in scripts/accept/ take paths, so the same ones can run on any docs tree.
 // Run after `npm run build`. Browser checks need an installed Chrome.
 //

@@ -1,4 +1,4 @@
-// The edit runtime's gate, house turndown and runtime contract (spec R3, A3), in installed Chrome (M2 T5).
+// The edit runtime's gate, house turndown and runtime contract (spec R3, A3), in installed Chrome.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
@@ -29,7 +29,7 @@ async function assertRoundTrip(source) {
   assert.equal(candidates[0].pass, true, `${JSON.stringify(source)} passes: ${candidates[0].reason}`);
 }
 
-// ---- soft breaks (plan T5 decision 1) -----------------------------------------------------------
+// ---- soft breaks (decision 0019) -----------------------------------------------------------
 
 const SOFT_BREAK_CASES = {
   'a newline inside text': 'Plain line one\nline two that wraps.',
@@ -89,7 +89,7 @@ test('soft breaks: text inside code is never touched', full, async () => {
   }
 });
 
-// ---- house rules (plan T5 test list) ------------------------------------------------------------
+// ---- house rules (spec R3.5) ------------------------------------------------------------
 
 const HOUSE_CASES = {
   'an escaped dollar': 'Prices keep their escaped dollar: \\$3.87 a month.',

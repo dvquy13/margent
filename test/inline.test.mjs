@@ -1,5 +1,6 @@
-// In-place editing (spec R4, M2 T6) in installed Chrome, driven by real mouse and keyboard input on a served page. Every
-// save is checked on disk, byte for byte. The side panel and reload are T7's: their calls are recorded here.
+// In-place editing (spec R4) in installed Chrome, driven by real mouse and keyboard input on a served page. Every
+// save is checked on disk, byte for byte. The side panel and reload are covered by panel.test.mjs and reload.test.mjs,
+// which record their own calls.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';

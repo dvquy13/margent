@@ -1,5 +1,5 @@
 // House turndown (spec R3.5): the only HTML-to-markdown path of the edit runtime. Stock turndown does not write a
-// source block back byte for byte, so each rule below exists because the corpus needs it (S2 FINDINGS, M2 T5).
+// source block back byte for byte, so each rule below exists because the corpus needs it (S2 FINDINGS).
 import TurndownService from 'turndown';
 
 // Elements that start a new line of markdown, so a newline next to one is formatting, not a soft break.

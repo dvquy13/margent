@@ -1,4 +1,4 @@
-// The no-op walk (spec R10 and acceptance A2; M2 T8). Every gated block of every .md under the frozen margent docs/ is
+// The no-op walk (spec R10 and acceptance A2). Every gated block of every .md under the frozen margent docs/ is
 // focused with a real click and then blurred with a click outside, with no typing. Nothing may be saved: no /_save
 // request, and the file's bytes and mtime are unchanged. Runs on a temp copy of the frozen margent docs/, which is never
 // written. Run `npm run build` first.

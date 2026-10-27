@@ -1,4 +1,4 @@
-// Strips comment markup, and with `islandMarkup` the island markup, from a doc's source (spec R9; plan "Clean"). Pure:
+// Strips comment markup, and with `islandMarkup` the island markup, from a doc's source (spec R9). Pure:
 // text in, text out. Every byte outside a stripped span is kept, line endings included, so a CRLF file stays CRLF.
 import { splice } from '../serve/splice.js';
 import { stripAll, type Thread } from './syntax.js';

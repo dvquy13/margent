@@ -96,7 +96,7 @@ var MargentKit = (function () {
   // Supported keywords: type, enum, const, required, properties, additionalProperties, items, minItems,
   // maxItems, contains, minLength, maxLength, pattern, minimum, maximum, allOf, anyOf, maxProperties.
   // Annotations (title, description, $comment, default, examples) are ignored. The root may also carry
-  // `columns` (R3.1), which the runtime does not check; T5 applies column patterns in Node.
+  // `columns` (R3.1), which validate skips: checkPatterns (below) applies column patterns.
   // Anything else is an error, never ignored.
   var ANNOTATIONS = ['title', 'description', '$comment', 'default', 'examples'];
   var VALIDATED = [

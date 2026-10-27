@@ -1,4 +1,4 @@
-// The comment UI (M3 spec R5, R6; plan T8). Runs only in a page that `margent serve` produced. It adds a Comment
+// The comment UI (M3 spec R5, R6). Runs only in a page that `margent serve` produced. It adds a Comment
 // control at a selection inside one top-level block, a comment control on every block, and Reply, Resolve and Edit on
 // the thread's card. A new comment is a draft card; a reply is a field at the foot of its thread's card; an owner's edit
 // replaces its note's text with the field. Every save is one margent.save of one block (decision 0021): the block's new

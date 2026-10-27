@@ -1,4 +1,4 @@
-// Island pipeline tests (T5, R3, M5 T3): markup parsing, module lookup, the page policy, the island DOM, and the browser
+// Island pipeline tests (M1 spec R3, M5 spec R3): markup parsing, module lookup, the page policy, the island DOM, and the browser
 // checks for A5 (pattern badge, CSP), A7 (JS off), the errors the guest reports (M5 R1.3) and S3's three islands.
 // Run after `npm run build`.
 import { test } from 'node:test';

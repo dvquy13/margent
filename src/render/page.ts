@@ -1,4 +1,4 @@
-// Full page for one doc: the house shell with every slot filled (spec R1, R2; plan "Shell slots").
+// Full page for one doc: the house shell with every slot filled (spec R1, R2; architecture "Shell slots").
 import shellHtml from '../../shell/shell.html?raw';
 import shellCss from '../../shell/shell.css?raw';
 import islandCss from '../../runtime/island.css?raw';
@@ -23,7 +23,7 @@ export interface EditState {
   path: string;
   hash: string;
   source: string;
-  author: string | null; // the name new notes are signed with; null refuses notes (spec R5.6). Set by the server (T5).
+  author: string | null; // the name new notes are signed with; null refuses notes (spec R5.6). Set by the server.
 }
 
 export interface RenderDocInput {

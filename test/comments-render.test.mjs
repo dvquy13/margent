@@ -1,4 +1,4 @@
-// Comment markup in the renderer (M3 spec R1 to R3; plan T2): the thread list, the render contract, the check errors
+// Comment markup in the renderer (M3 spec R1 to R3): the thread list, the render contract, the check errors
 // (A4) and the headings (A5). Run after `npm run build`. The error fixtures live in test/fixtures/comments/errors/,
 // which no folder test walks.
 import { test } from 'node:test';
@@ -147,11 +147,11 @@ test('all-kinds: markup in a fence and in a code span stays text (R1.7)', () => 
   assert.ok(r.main.includes('{==this stays text==}'), 'escaped \\{ stays text');
 });
 
-// ---- quoted block comments (M3 T13): a quote on a block thread's first note only
+// ---- quoted block comments (decision 0023): a quote on a block thread's first note only
 
 const QUOTED = join(FIX, 'quoted.md');
 
-test('T13: only the block thread records a quote; an inline note that looks like one stays plain text', () => {
+test('decision 0023: only the block thread records a quote; an inline note that looks like one stays plain text', () => {
   const r = render(QUOTED);
   assert.deepEqual(r.comments, [
     {
@@ -179,7 +179,7 @@ test('T13: only the block thread records a quote; an inline note that looks like
   assert.equal('quote' in r.comments[1], false);
 });
 
-test('T13: a quoted block comment renders its quote in the first note, and data-md stays the exact source', () => {
+test('decision 0023: a quoted block comment renders its quote in the first note, and data-md stays the exact source', () => {
   const r = render(QUOTED);
   const block =
     '<p class="c-line" data-src="14-14" data-anchor="9-12">' +
@@ -192,7 +192,7 @@ test('T13: a quoted block comment renders its quote in the first note, and data-
   assert.equal(body.split('c-quote').length - 1, 1, 'only the block thread shows a quote');
 });
 
-test('T13: an inline note whose text starts with "x" → y renders as plain note text, with no q', () => {
+test('decision 0023: an inline note whose text starts with "x" → y renders as plain note text, with no q', () => {
   const body = bodyDump(render(QUOTED));
   assert.ok(
     body.includes(

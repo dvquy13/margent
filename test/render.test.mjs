@@ -328,7 +328,7 @@ function renderSource(source) {
   return renderBody(source, { file, root: FIX, outFile: join(FIX, 'inline.html') }).hero;
 }
 
-// No soft-break element: the newline stays in the text node. The edit runtime (T5) reads soft breaks from that newline
+// No soft-break element: the newline stays in the text node. The edit runtime reads soft breaks from that newline
 // on a cloned DOM. An element boundary there changes Chrome's glyph shaping (109 px on a long page at 1280), so a
 // marker element would break the "no pixel change" rule (R8.2).
 test('R8.1: a soft break renders as a bare newline in the paragraph, with no data-soft anywhere', () => {

@@ -1,4 +1,4 @@
-// The comment grammar and the pure source edits on one block's text (spec R1; plan "Syntax module"). Nothing here
+// The comment grammar and the pure source edits on one block's text (spec R1). Nothing here
 // imports from node or the DOM, because esbuild bundles this file into the edit runtime as well as into the CLI.
 // Every function except nextId works on one block's source and skips backtick code spans.
 
@@ -12,7 +12,7 @@ export interface NoteParts {
   text: string;
 }
 
-// A thread as the renderer reports it (plan "Render contract").
+// A thread as the renderer reports it (architecture "Comment HTML").
 export interface Thread {
   id: string;
   line: number;

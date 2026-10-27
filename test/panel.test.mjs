@@ -1,4 +1,4 @@
-// Side panel tests (T7, spec R5, acceptance A4 and A5, plus the keyboard and focus rules of R5.2). Real keyboard and
+// Side panel tests (spec R5, acceptance A4 and A5, plus the keyboard and focus rules of R5.2). Real keyboard and
 // mouse input in installed Chrome, on a temp copy of test/fixtures/panel/docs served by the real `margent serve`
 // server. Expected files are written out by hand: each save changes the lines named in the test and nothing else.
 // Run `npm run build` first (or `npm test`).

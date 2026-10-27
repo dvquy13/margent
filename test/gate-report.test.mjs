@@ -1,4 +1,4 @@
-// Gate report (spec A3, M2 T5): renders every .md under the frozen margent docs, runs the round-trip gate in
+// Gate report (spec A3): renders every .md under the frozen margent docs, runs the round-trip gate in
 // Chrome, and prints pass rates by block type and every failing block. Docs that do not render are listed with their
 // error and not counted. The overall candidate pass rate must be at least 95%.
 import { test, before, after } from 'node:test';
