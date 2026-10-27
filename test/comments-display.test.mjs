@@ -662,7 +662,7 @@ test('F2: a link inside a highlight keeps its colour apart from the tinted text,
   }
 });
 
-// ---- F3 the rail's card head, width, compact cards and expanding (T8, T9) -----------------------------------------------
+// ---- F3 the rail's card head, width, compact cards and expanding -----------------------------------------------
 
 // The notes of a card that the layout shows (a folded note is display: none).
 function shownNotes(page, id) {

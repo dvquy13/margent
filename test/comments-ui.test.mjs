@@ -1204,7 +1204,7 @@ test(
   }
 );
 
-// ---- F3 a folded thread (T9): Reply expands the card, and the reply saves --------------------------------------------
+// ---- F3 a folded thread: Reply expands the card, and the reply saves --------------------------------------------
 
 const LONG = join(REPO, 'test', 'fixtures', 'comments', 'ui-long', 'docs');
 const LONG_ORIGINAL = readFileSync(join(LONG, 'long.md'), 'utf8');

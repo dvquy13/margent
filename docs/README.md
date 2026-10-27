@@ -72,5 +72,4 @@ Update `updated:` on every content change, and keep `docs/README.md`'s table in 
 | [specs/m2-serve-edit.md](specs/m2-serve-edit.md) | done | 2026-10-25 |
 | [specs/m3-comments.md](specs/m3-comments.md) | done | 2026-10-25 |
 | [specs/m5-ship.md](specs/m5-ship.md) | done | 2026-10-25 |
-| [specs/m6-review-feedback.md](specs/m6-review-feedback.md) | accepted | 2026-10-27 |
-| [plans/m6-review-feedback.md](plans/m6-review-feedback.md) | draft | 2026-10-27 |
+| [specs/m6-review-feedback.md](specs/m6-review-feedback.md) | done | 2026-10-27 |

@@ -1,12 +1,12 @@
 ---
 title: M6 spec · Review feedback
-status: accepted
+status: done
 updated: 2026-10-27
 ---
 
 # M6 spec · Review feedback
 
-M6 fixes what the first weeks of real reviews at work turned up: six notes on the served page, the comment rail and how agents answer comments. Each note is one requirement, F1 to F6, and test names cite those IDs. Task order and progress: [the M6 plan](../plans/m6-review-feedback.md). The three phases ship together as one release.
+M6 fixes what the first weeks of real reviews at work turned up: six notes on the served page, the comment rail and how agents answer comments. Each note is one requirement, F1 to F6, and test names cite those IDs. It shipped in three phases, released together as 0.7.0.
 
 ## Requirements
 
@@ -24,4 +24,10 @@ M6 fixes what the first weeks of real reviews at work turned up: six notes on th
 - F1, F2, F4 and F5 met as stated; each test failed before its fix where the requirement says so.
 - F3 met. The no-JS and print layouts keep threads inline without IDs: a served page always has JS, and that is where reviews happen.
 - F6 is in the skills but unproven: 12 headless review rounds on a doc whose comments invite cross-references (6 with the skill from `main`, 6 with the new rule) cited no thread ID in either case, so the old behaviour never reproduced.
-- Open: one real review round at work on the release.
+- Not yet checked: a real review round at work on 0.7.0. What it finds starts new work.
+
+## What differed from the plan
+
+- F5 changed decision 0039 in part, so [0041](../decisions/0041-quote-names-its-occurrence.md) amends it rather than superseding it, and `docs/README.md` gained the `amends`/`amended_by` rule.
+- F3's IDs are on rail cards only (above).
+- Thread ID reuse after a resolve surfaced while designing F3 and is deferred ([decisions index](../decisions/README.md#deferred)).

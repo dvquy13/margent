@@ -48,4 +48,4 @@ One file per decision. Format and rules: `docs/README.md`.
 
 ## Deferred
 
-None yet.
+- **Thread IDs are reused after a resolve.** A new thread takes the ID one above the highest in the file (`nextId` in `src/comments/syntax.ts`), so resolving the highest thread frees its ID for the next one. Rail cards show IDs and users quote them in chat ([M6 spec](../specs/m6-review-feedback.md) F3), so a `c5` named in one round can mean another thread in the next. Avoiding it needs a record of resolved IDs.
