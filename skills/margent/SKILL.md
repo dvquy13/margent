@@ -1,6 +1,6 @@
 ---
 name: margent
-description: 'Write and edit markdown docs that render into designed pages, and add data-driven visuals ("islands") whose data stays in the markdown. Use when asked to write or edit a doc, report, spec or design note, or to address review comments in one (load it first, before gathering content: it sets the format and workflow), when adding a chart, board or other visual to a doc, or when previewing or checking docs with margent.'
+description: 'Write and edit markdown docs that render into designed pages, and add data-driven visuals ("islands") whose data stays in the markdown. Use when asked to write or edit a doc, report, spec or design note, or to address review comments in one (load it first, before gathering content: it sets the format and workflow), when adding a chart, board or other visual to a doc, or when previewing or checking docs with margent, or to set up or remove margent in a project.'
 ---
 
 # margent
@@ -28,6 +28,14 @@ If a margent command fails for an environment reason (Chrome not found, no brows
 `margent export {path} --out {dir}` writes standalone pages for sending to someone. Add `--clean` to strip review comments, and `--md` to write markdown files instead of pages (with `--clean`, island markup goes too).
 
 `margent serve {docs root}` (also the `docs-serve` skill: `/docs-serve`, or `/margent:docs-serve` through the plugin) is how the user reviews and edits docs: it serves every page, reloads it when the `.md` changes, and lets the user edit blocks in the page, which writes the `.md`. While docs are served, the user may have changed a file since you last read it, so read the `.md` again before every edit.
+
+## Projects
+
+Before the first doc you write or edit in a repository during a session, run `margent init {doc path}`. It adds a short margent block to the nearest `AGENTS.md` or `CLAUDE.md` (creating `AGENTS.md` at the git root when neither exists), so a colleague's agent keeps comment markup intact and runs `check`. When it prints `added` or `updated`, tell the user in one line which file changed. Say nothing on `unchanged`. If it says the folder is not in a git repository, skip it and carry on. When the user asks to set up margent in a project, run `margent init {docs folder}` and report the file.
+
+When the user asks to remove margent from a project or stop using it there, run `margent teardown {docs folder}` without asking, once for each docs folder, and report the files it changed or deleted. It removes only the nearest block, so a monorepo's root block stays for the other packages. It doesn't touch the docs. To strip review comments from a copy, use `margent export … --clean`.
+
+Never edit the margent block by hand. Run `init` again instead.
 
 ## Doc format
 

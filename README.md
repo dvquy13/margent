@@ -68,6 +68,8 @@ When someone tells you "Install github.com/dvquy13/margent", do this:
 | `margent comments {path}` | Lists the review comment threads in the docs that `check` walks. |
 | `margent export {path} --out {dir} [--md] [--clean]` | Writes standalone pages (or markdown with `--md`) without opening the browser. `--clean` strips review comments. A folder exports every `.md` under it. |
 | `margent serve {docs root} [--port {n}] [--no-open] [--author {name}]` | Serves the folder locally, reloads pages when a `.md` changes, and lets the reader edit blocks and leave comments. Runs until interrupted. |
+| `margent init {path}` | Writes a short margent block into the nearest `AGENTS.md` or `CLAUDE.md` above `{path}`, up to the git root (creating `AGENTS.md` at the root when there is none), so agents without the skill keep comment markup and run `check`. Running it again only updates the block. |
+| `margent teardown {path}` | Removes that block from the nearest `AGENTS.md` or `CLAUDE.md` above `{path}` that holds one, and deletes a file it leaves empty. A monorepo's root block stays for the other packages. |
 | `margent doctor` | Checks Node, Chrome, the browser opener and the cache, and runs a sample island in its frame. Exit 1 on any failure. |
 | `margent --version` | Prints the version. |
 
@@ -77,7 +79,7 @@ Comments you leave in `serve` are signed with `--author {name}`, else your `git 
 
 ## Skills
 
-- `margent`: loaded by the agent when it writes or edits a doc. Sets the doc format and the check-then-open workflow.
+- `margent`: loaded by the agent when it writes or edits a doc. Sets the doc format and the check-then-open workflow, runs `margent init` before the first doc it touches in a repository, and runs `margent teardown` when you ask to remove margent from a project.
 - `docs-open`: render a doc and open it in the browser.
 - `docs-serve`: serve a docs folder so the user can review and edit pages.
 - `docs-review`: address the review comments in a doc or folder.

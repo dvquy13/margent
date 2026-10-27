@@ -43,6 +43,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0037](0037-note-line-breaks-as-br.md) | A note's line breaks are stored as `<br>` | accepted | 2026-10-25 |
 | [0038](0038-serve-tells-pages-when-margent-changed.md) | `serve` tells open pages when margent changed on disk | accepted | 2026-10-26 |
 | [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted | 2026-10-26 |
+| [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted | 2026-10-27 |
 
 ## Deferred
 

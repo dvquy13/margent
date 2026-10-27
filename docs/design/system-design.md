@@ -2,7 +2,7 @@
 title: margent design
 status: draft
 version: v0.1
-updated: 2026-10-25
+updated: 2026-10-27
 ---
 
 # margent design
@@ -226,8 +226,8 @@ For detail, see the [M3 spec](../specs/m3-comments.md).
 |---|---|
 | Skill `margent` | The format rules (sections [Doc format](#doc-format) and [Islands](#islands)), when an island earns its place, and the comment contract. It loads `/design-principles` before designing a new island. |
 | Skills `docs-open`, `docs-serve`, `docs-review` | The user-invoked commands (`disable-model-invocation: true`): render and open a doc, serve a folder for review, and work through open comments. |
-| CLI | `open`, `serve`, `check`, `comments`, `export`. Agents call `check` to confirm a doc builds. Failures exit non-zero with `file:line`. |
-| No project setup | Nothing in the project changes: no CLAUDE.md line, no config file, no gitignore entry. Agents learn the tool from the skill, which loads when they write or edit a doc. `serve` takes the docs folder as an argument. Islands resolve by walking up from the doc to the nearest `islands/` folder. Renders never land in the repo. |
+| CLI | `open`, `serve`, `check`, `comments`, `export`, `init`, `teardown`. Agents call `check` to confirm a doc builds. Failures exit non-zero with `file:line`. |
+| One marked block of project setup | The skill runs `margent init`, which writes a short block into the nearest `AGENTS.md` or `CLAUDE.md`, so a colleague's agent without the skill still keeps comment markup and runs `check` ([0040](../decisions/0040-init-writes-nearest-agents-file.md)). `margent teardown` removes it. Nothing else changes: no config file, no gitignore entry. Agents learn the full workflow from the skill, which loads when they write or edit a doc. `serve` takes the docs folder as an argument. Islands resolve by walking up from the doc to the nearest `islands/` folder. Renders never land in the repo. |
 
 ### First user migration
 
