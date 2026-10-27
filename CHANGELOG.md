@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0](https://github.com/dvquy13/margent/compare/v0.6.0...v0.7.0) (2026-10-27)
+
+
+### Features
+
+* a comment on a repeated phrase marks only the match that was selected ([659473d](https://github.com/dvquy13/margent/commit/659473de8446673140d9374566cd07c003967b37))
+* a quoted block comment may name its occurrence, "phrase" #n ([64ecf32](https://github.com/dvquy13/margent/commit/64ecf32dc5ef54290019ae4d0a82276a50670691))
+* Cmd+Option+M (Ctrl+Alt+M) comments on the selection, in the page and in islands ([ca31590](https://github.com/dvquy13/margent/commit/ca315903be8b60237492553ae7e9b4812fd11410))
+* rail cards show their thread ID, the rail widens to 380px, and long threads fold ([4ba1ff8](https://github.com/dvquy13/margent/commit/4ba1ff8fe600c9375e1c305571a5063d1222e3a6))
+
+
+### Bug Fixes
+
+* links stay visible inside a comment highlight ([fc4a136](https://github.com/dvquy13/margent/commit/fc4a136cc45d4caf545df4a9fd9a634ee88a98a0))
+* skills tell agents never to cite a thread ID in the doc's text ([9131686](https://github.com/dvquy13/margent/commit/9131686c517cf4acf4f51c4f5e3f7a8b2450d0d2))
+* the serve index shows each doc's path under its title ([4664d92](https://github.com/dvquy13/margent/commit/4664d92b8558f5feb16bd6612fd190400dbf7921))
+
+
+### Documentation
+
+* decision 0041, a quoted phrase names its occurrence when it repeats ([961e55f](https://github.com/dvquy13/margent/commit/961e55f658cd052877b11ca6808decf6fb0084a3))
+* M6 Phase 1 done ([6e3da3d](https://github.com/dvquy13/margent/commit/6e3da3d8e89ae90ef76faaaf6fb04f8dc2f5a75f))
+* M6 spec with F1 to F6, Phase 3 done, IDs rule in CLAUDE.md ([41a5ed1](https://github.com/dvquy13/margent/commit/41a5ed117d1b25305f9674fe2039f2a210c81704))
+* plan M6 from review feedback at work ([b1e6b51](https://github.com/dvquy13/margent/commit/b1e6b51ed3410e5c8fa2934d4cff912e7d239b0b))
+
 ## [0.6.0](https://github.com/dvquy13/margent/compare/v0.5.0...v0.6.0) (2026-10-27)
 
 
