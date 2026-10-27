@@ -203,8 +203,9 @@ agent-island.edit-block > .comment-control {
 .comment-box .c-quote[hidden], .c-note[hidden], .comment-box .c-note-head[hidden], .comment-input[hidden],
 .comment-save[hidden] { display: none !important; }
 
-/* The pending highlight: the text a new comment will mark. The CSS Custom Highlight API draws it, so the DOM is unchanged. */
-::highlight(margent-pending) { background-color: var(--accent-border); color: var(--text); }
+/* The pending highlight: the text a new comment will mark. The CSS Custom Highlight API draws it, so the DOM is unchanged.
+   Only the background is set, so a link in the pending text keeps its own colour (as in shell/comments.css). */
+::highlight(margent-pending) { background-color: var(--accent-border); }
 
 /* The Comment control at a selection: a quiet pill that takes the accent on hover, like the other controls. */
 .comment-tool {

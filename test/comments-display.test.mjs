@@ -30,7 +30,7 @@ function pageFile(name, source) {
   return { html, url: pathToFileURL(path).href };
 }
 
-const FIXTURES = ['all-kinds.md', 'block-prose.md', 'quoted.md', 'quoted-repeat.md', 'quoted-table.md', 'tall-table.md'];
+const FIXTURES = ['all-kinds.md', 'block-prose.md', 'quoted.md', 'quoted-repeat.md', 'quoted-table.md', 'tall-table.md', 'links-in-highlight.md'];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
 let browser;
@@ -517,6 +517,94 @@ test('0023: a quote that runs across two island lines is marked in the frame on 
       await frame.waitForFunction(() => CSS.highlights.has('margent-quote'));
       const marked = await frame.evaluate(() => [...CSS.highlights.get('margent-quote')].map((r) => r.toString()));
       assert.deepEqual(marked, ['are outBlog and'], `the range covers both lines for "${quote}"`);
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  }
+});
+
+// F2: a link inside a highlight keeps its own colour, so it still stands apart from the tinted text around it. The
+// Custom Highlight colours can't be read from getComputedStyle, so the glyphs are read from painted pixels: each box's
+// background is its most common colour, and its glyph is the pixel farthest in luminance from that background.
+const F2_CASES = [
+  { para: 'The plan', link: 'the spec', plain: 'follows' },
+  { para: 'see the decision', link: 'the decision', plain: 'see' },
+  { para: 'The review found', link: 'sourced claim', plain: 'review found' },
+];
+const F2_MIN_GAP = 40;
+
+// The rectangle of the first match of `text` under `root`, scrolled into view and inset a pixel so the edges are clear.
+async function f2Box(page, para, root, text) {
+  return page.locator('p:not(article p):not(.c-line)', { hasText: para }).evaluate((p, { root, text }) => {
+    p.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const scope = root === 'link' ? p.querySelector('a') : p;
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    for (let node; (node = walker.nextNode()); ) {
+      const at = node.data.indexOf(text);
+      if (at < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + text.length);
+      const r = range.getBoundingClientRect();
+      return { x: r.x + 1, y: r.y + 1, width: r.width - 2, height: r.height - 2 };
+    }
+    throw new Error(`F2: "${text}" not found in ${root}`);
+  }, { root, text });
+}
+
+// The painted glyph colour of a PNG: the background is the most common colour, the glyph the pixel farthest from it in
+// luminance (darkest on a light tint, brightest on a dark one). Decoded in the page with an Image and a canvas.
+async function f2Glyph(page, png) {
+  return page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, img.width, img.height).data;
+    const lum = (i) => 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const counts = new Map();
+    for (let i = 0; i < d.length; i += 4) {
+      const key = `${d[i]},${d[i + 1]},${d[i + 2]}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const [bgKey] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    const [br, bg, bb] = bgKey.split(',').map(Number);
+    const bgLum = 0.2126 * br + 0.7152 * bg + 0.0722 * bb;
+    let best = -1;
+    let glyph = null;
+    for (let i = 0; i < d.length; i += 4) {
+      const gap = Math.abs(lum(i) - bgLum);
+      if (gap > best) {
+        best = gap;
+        glyph = [d[i], d[i + 1], d[i + 2]];
+      }
+    }
+    return { background: bgKey.split(',').map(Number), glyph };
+  }, `data:image/png;base64,${png.toString('base64')}`);
+}
+
+test('F2: a link inside a highlight keeps its colour apart from the tinted text, in light and dark', async () => {
+  for (const scheme of ['light', 'dark']) {
+    const { page, errors, close } = await open(1280, scheme, urls['links-in-highlight.md']);
+    try {
+      for (const c of F2_CASES) {
+        const link = await f2Box(page, c.para, 'link', c.link);
+        const plain = await f2Box(page, c.para, 'para', c.plain);
+        const linkPng = await page.screenshot({ clip: link });
+        const plainPng = await page.screenshot({ clip: plain });
+        const linkInk = await f2Glyph(page, linkPng);
+        const plainInk = await f2Glyph(page, plainPng);
+        const gap = Math.max(...[0, 1, 2].map((k) => Math.abs(linkInk.glyph[k] - plainInk.glyph[k])));
+        assert.ok(
+          gap >= F2_MIN_GAP,
+          `${scheme} "${c.link}": link glyph ${linkInk.glyph} on ${linkInk.background}, plain "${c.plain}" glyph ${plainInk.glyph} on ${plainInk.background}; channel gap ${gap} is below ${F2_MIN_GAP}`
+        );
+      }
       assert.deepEqual(errors, []);
     } finally {
       await close();

@@ -10,9 +10,12 @@
   --rail-page: calc(var(--page-max) + 2 * var(--gutter) + var(--rail-w) + var(--rail-gap));
 }
 
-/* Highlight: the marked text, tinted with the accent. Linked (hover or focus) takes the stronger accent tint. */
+/* Highlight: the marked text, tinted with the accent. Linked (hover or focus) takes the stronger accent tint. The tint sets
+   only the background: each element keeps its own colour, so a link inside a highlight still stands apart from the prose
+   around it (the link underline is the other cue). The browser's default mark colour (MarkText) would replace the text
+   colour, so the colour is inherited. */
 mark.c-hl {
-  background: var(--accent-light); color: var(--text);
+  background: var(--accent-light); color: inherit;
   border-radius: 2px; padding: 0 0.1em;
   transition: background-color var(--fade);
 }
@@ -120,9 +123,10 @@ mark.c-hl:focus-visible, .c-thread:focus-visible {
 .c-rail, .c-toggle { display: none; }
 
 /* Quoted phrases inside their blocks, through the Custom Highlight API: all of them in the highlight tint, and the
-   linked card's one in the stronger tint (the script sets both; it gives island shadow roots their own copy). */
-::highlight(margent-quotes) { background-color: var(--accent-light); color: var(--text); }
-::highlight(margent-quote) { background-color: var(--accent-border); color: var(--text); }
+   linked card's one in the stronger tint (the script sets both; it gives island shadow roots their own copy). The tint
+   sets only the background, for the same reason as mark.c-hl: a link inside a quoted phrase keeps its own colour. */
+::highlight(margent-quotes) { background-color: var(--accent-light); }
+::highlight(margent-quote) { background-color: var(--accent-border); }
 
 /* 1100px and wider: the content column keeps --page-max when the viewport allows it, and the rail sits to its right,
    so the page is the column, the gap and the rail. The header and footer use the same width, so their left edge is the
