@@ -172,7 +172,7 @@ At start the server hashes its own script (`self`, the file margent was loaded f
 | Route | Response |
 |---|---|
 | any path with `?token=` | sets cookie `margent-{port}` (`HttpOnly; SameSite=Strict`) and 302s to the path without the query. The name holds the port, because browsers don't scope cookies by port |
-| `GET /` | the doc index: each doc rendered, with its open thread count, or its error. Sent with the policy header (no script, so `script-src 'none'`) |
+| `GET /` | the doc index: each doc rendered, with its path under the root, its open thread count, or its error. Sent with the policy header (no script, so `script-src 'none'`) |
 | `GET /{path}.html` | the page, sent with its policy as a `Content-Security-Policy` header, or a 500 error page listing every `file:line: message` that reloads when the `.md` changes. The error page's policy lists its own script's hash |
 | `GET /{path}` other | a file under the root (realpath-checked), else 404. Any path segment that starts with `.` is a 404, a page included (`/.env`, `/.git/config`, `/docs/.secret.md`) |
 | `GET /_events?path={md path}&hash={rendered hash}` | SSE: `event: changed` when a dep of that page changes, debounced 50 ms, and at once when the `.md` already differs from `hash`. Skipped for a page whose `hash` matches the `.md` when only the `.md` changed, so a save reloads its page once (the page reloads itself on the 200). One recursive `fs.watch` on the root; `event: outdated` when the server's own script changes on disk, at once to a stream opened later ([0038](decisions/0038-serve-tells-pages-when-margent-changed.md)) |
