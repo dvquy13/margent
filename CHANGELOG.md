@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.0](https://github.com/dvquy13/margent/compare/v0.8.0...v0.9.0) (2026-11-02)
+
+
+### Features
+
+* a note can carry the UTC minute it was written (P4) ([75a62ba](https://github.com/dvquy13/margent/commit/75a62ba5770e6bbe5f5702fefb63448cb72e5e59))
+* margent init previews its target and writes a chosen file, CLAUDE.local.md included (P3) ([ab6610a](https://github.com/dvquy13/margent/commit/ab6610a5422cf8f09d2ad7bce6ce119a6cda838a))
+* the page stamps new notes with the time and cards show it; agents add it to replies (P4) ([04d8841](https://github.com/dvquy13/margent/commit/04d8841ef5fbf692793d9ccc714536204257f300))
+
+
+### Bug Fixes
+
+* a quoted block comment's card lines up with its phrase (P2) ([86aacae](https://github.com/dvquy13/margent/commit/86aacae9bc9bbc38a20f923cbb50fe6efbe90959))
+* Home and End move the caret in comment, panel and block fields on macOS (P1) ([7de77be](https://github.com/dvquy13/margent/commit/7de77beca27733c63c734c3ba9eb6b88c5a1d56a))
+* the drawer lists quoted block comments in page order too (P2) ([147498a](https://github.com/dvquy13/margent/commit/147498a764259fd899873e96c1388bac01232e7b))
+
+
+### Documentation
+
+* M7 done: architecture, design and spec results; plan removed ([e556c21](https://github.com/dvquy13/margent/commit/e556c21aaf92a91cf09904f4c9dd3ce5e3d195b5))
+* M7 spec, plan and decisions 0043 (init asks which file) and 0044 (note time) ([13d4894](https://github.com/dvquy13/margent/commit/13d489484bd807df0671d3a9f389020d4c048f34))
+
 ## [0.8.0](https://github.com/dvquy13/margent/compare/v0.7.0...v0.8.0) (2026-10-27)
 
 
