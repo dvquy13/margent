@@ -58,6 +58,19 @@ function check(path) {
 
 const ALL_KINDS = join(FIX, 'all-kinds.md');
 
+test('P4: a timed note shows its UTC minute in a time element after the author, and carries the time in its record', () => {
+  const file = join(workdir, 'timed.md');
+  const source = '---\ntitle: Timed\n---\n\n# Timed\n\n## Filter\n\nThe filter keeps {==96%==}{>>[c1 2026-11-02T14:31Z] Quy: is it stable?<<}\n';
+  const r = renderBody(source, { file, root: workdir, outFile: join(workdir, 'timed.html') });
+  assert.ok(
+    r.main.includes(
+      '<span class="c-note"><b class="c-author">Quy</b> <time class="c-time" datetime="2026-11-02T14:31Z">2026-11-02 14:31 UTC</time> is it stable?</span>'
+    ),
+    r.main
+  );
+  assert.deepEqual(r.comments[0].notes, [{ id: 'c1', author: 'Quy', text: 'is it stable?', time: '2026-11-02T14:31Z' }]);
+});
+
 test('all-kinds body matches its golden', () => {
   assertGolden('all-kinds.body', bodyDump(render(ALL_KINDS)));
 });
@@ -257,8 +270,14 @@ test('A5: a commented heading without a number keeps the slug of its plain text 
 const ERROR_FIXTURES = [
   ['unclosed-highlight.md', 7, 'unclosed {==: add ==} after the highlighted text, in the same paragraph'],
   ['unclosed-note.md', 7, 'unclosed {>>: add <<} after the note text'],
-  ['bad-head.md', 7, 'malformed comment note: expected {>>[c{n}] {author}: {text}<<}'],
+  [
+    'bad-head.md',
+    7,
+    'malformed comment note: expected {>>[c{n}] {author}: {text}<<} or {>>[c{n} {YYYY-MM-DDTHH:MMZ}] {author}: {text}<<}',
+  ],
   ['empty-text.md', 7, 'comment note has no text: write the note after "{author}: "'],
+  ['bad-time.md', 7, 'comment time 2026-13-02T10:00Z is not a valid UTC time'],
+  ['empty-timed-note.md', 7, 'comment note has no text: write the note after "{author}: "'],
   ['highlight-no-note.md', 7, 'highlight has no note after it: add {>>[c{n}] {author}: {text}<<} right after the ==}'],
   ['duplicate-id.md', 9, 'ID c3 names two threads: give each thread its own ID'],
   ['split-thread.md', 9, "thread c3's notes are split apart: keep a thread's notes together"],

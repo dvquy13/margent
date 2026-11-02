@@ -18,6 +18,6 @@ Plain text in this paragraph stays unmarked for the cases.
 
 {>>[c3] Quy: Add the cost row.<<}
 
-{>>[c4] Quy: Give the endpoint a version.<<}
+{>>[c4 2026-11-02T14:31Z] Quy: Give the endpoint a version.<<}
 
 Last paragraph of the section.

@@ -21,6 +21,31 @@
     return node;
   }
 
+  // ---- note times: a card shows how long ago each timed note was written (decision 0044) -----------------------------
+
+  const MINUTE = 60 * 1000;
+  // The relative time a card shows for a UTC minute at `now`: "just now" under a minute (and for a time ahead of this
+  // clock), then "5m", "3h", "2d", and from a week on the date ("Nov 2", with the year when it is another year).
+  function relativeTime(datetime, now) {
+    const then = new Date(datetime);
+    const ago = now - then.getTime();
+    if (ago < MINUTE) return 'just now';
+    if (ago < 60 * MINUTE) return `${Math.floor(ago / MINUTE)}m`;
+    if (ago < 24 * 60 * MINUTE) return `${Math.floor(ago / (60 * MINUTE))}h`;
+    if (ago < 7 * 24 * 60 * MINUTE) return `${Math.floor(ago / (24 * 60 * MINUTE))}d`;
+    const options = { month: 'short', day: 'numeric' };
+    if (then.getFullYear() !== new Date(now).getFullYear()) options.year = 'numeric';
+    return then.toLocaleDateString(undefined, options);
+  }
+  // Every card's time text, once a minute. A card is rebuilt only with the page, so the rail's times are all there is.
+  function refreshTimes() {
+    const now = Date.now();
+    for (const time of rail.querySelectorAll('time.c-time')) {
+      time.textContent = relativeTime(time.getAttribute('datetime'), now);
+    }
+  }
+  setInterval(refreshTimes, MINUTE);
+
   // ---- the rail: one card per thread, in document order --------------------------------------------------------------
 
   const rail = el('aside', 'c-rail');
@@ -98,6 +123,15 @@
       author.remove();
       const head = el('div', 'c-note-head');
       head.append(author);
+      // The time follows the author in the head. Its text is the relative time and its title the full local time.
+      const time = copy.querySelector('time.c-time');
+      if (time !== null) {
+        time.remove();
+        const datetime = time.getAttribute('datetime');
+        time.textContent = relativeTime(datetime, Date.now());
+        time.title = new Date(datetime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        head.append(time);
+      }
       // The text keeps its breaks (decision 0037), so it is built from the nodes left, not from textContent. The spaces
       // the markup puts at either end go, and a text node that empties goes with them.
       const text = el('div', 'c-text');
@@ -186,6 +220,7 @@
   }
 
   // ---- placement: each card's top is its anchor's top, pushed down when the card above reaches it -------------------
+  // A quoted block comment lines up with its phrase instead of its block, so a long table's card sits by its row (P2).
 
   // The "Show more" button of a short thread shows only while some of its text is clipped at rest. A clipped element has
   // scrollHeight above clientHeight. This is measured on every relayout, since the rail's width and the fonts move the
@@ -198,19 +233,46 @@
     }
   }
 
+  // Where a card wants its top, in viewport px: a quoted block comment's first match of its phrase, when the page found it
+  // (markRanges holds the ranges only for those). Any other card lines up with its anchor.
+  function wantedTop(id) {
+    const ranges = markRanges.get(id);
+    if (quotes.has(id) && ranges !== undefined) return ranges[0].getBoundingClientRect().top;
+    return anchors.get(id).getBoundingClientRect().top;
+  }
+  // Tab order follows the visual order, so the cards are moved only when their order changed (a ResizeObserver relayouts
+  // on every size change). Each card takes the slot of the card it replaces, so the draft box, if it is in the rail, stays
+  // where it is. A focused card keeps the focus.
+  function orderCards(ordered) {
+    const current = [...rail.children].filter((node) => node.classList.contains('c-card'));
+    if (ordered.every((card, i) => card === current[i])) return;
+    const focused = rail.contains(document.activeElement) ? document.activeElement : null;
+    const slots = current.map((card) => {
+      const slot = document.createComment('');
+      card.replaceWith(slot);
+      return slot;
+    });
+    ordered.forEach((card, i) => slots[i].replaceWith(card));
+    focused?.focus({ preventScroll: true });
+  }
+
   function relayout() {
     main.style.minHeight = '';
     measureMore();
     if (!wide.matches) {
       for (const card of cards.values()) card.style.top = '';
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
+      // The drawer lists the cards in page order too.
+      orderCards([...cards].map(([id, card]) => ({ card, top: wantedTop(id) })).sort((a, b) => a.top - b.top).map((e) => e.card));
       return;
     }
     if (draft !== null && draft.place.note === undefined && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
-    // The rail is positioned against main, so anchors are measured from main's top edge. The draft joins the cards in
-    // order: right after its thread's card for a reply, else before the first card whose anchor is further down.
+    // The rail is positioned against main, so tops are measured from main's top edge. The cards are sorted by where they
+    // want to be (a stable sort, so equal tops keep source order), and the draft joins them in that order: right after
+    // its thread's card for a reply, else before the first card whose top is further down.
     const origin = main.getBoundingClientRect().top;
-    const entries = [...cards].map(([id, card]) => ({ id, el: card, wanted: anchors.get(id).getBoundingClientRect().top - origin }));
+    const entries = [...cards].map(([id, card]) => ({ id, el: card, wanted: wantedTop(id) - origin }));
+    entries.sort((a, b) => a.wanted - b.wanted);
     if (draft !== null && draft.place.note === undefined) {
       const { place } = draft;
       if (place.after !== undefined) {
@@ -228,6 +290,7 @@
       item.style.top = `${top}px`;
       bottom = top + item.getBoundingClientRect().height;
     }
+    orderCards(entries.filter((e) => e.id !== undefined).map((e) => e.el));
     // Absolute cards do not grow the page, so main is made tall enough to hold the rail above the footer.
     const padBottom = parseFloat(getComputedStyle(main).paddingBottom);
     main.style.minHeight = `${bottom + padBottom}px`;
@@ -261,18 +324,6 @@
     expanded = null;
     schedule();
   }
-
-  relayout();
-  window.addEventListener('resize', schedule);
-  wide.addEventListener('change', schedule);
-  new ResizeObserver(schedule).observe(main);
-  const cardObserver = new ResizeObserver(schedule);
-  for (const card of cards.values()) cardObserver.observe(card);
-  // An island renders after the page loads, and its height moves the cards below it.
-  new MutationObserver((records) => {
-    if (records.some((r) => r.target.localName === 'agent-island')) schedule();
-  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-state'] });
-  if (document.fonts) document.fonts.ready.then(schedule);
 
   // ---- linking: the highlight or point marker, the card and (for a block) the block, marked together -------------------
 
@@ -342,6 +393,19 @@
   for (const id of quotes.keys()) {
     if (cards.get(id).dataset.kind === 'block' && !isIsland(anchors.get(id)) && !markRanges.has(id)) markMissing(id);
   }
+
+  // The first layout waits for markQuotes, since a quoted block card lines up with its phrase's range (P2).
+  relayout();
+  window.addEventListener('resize', schedule);
+  wide.addEventListener('change', schedule);
+  new ResizeObserver(schedule).observe(main);
+  const cardObserver = new ResizeObserver(schedule);
+  for (const card of cards.values()) cardObserver.observe(card);
+  // An island renders after the page loads, and its height moves the cards below it.
+  new MutationObserver((records) => {
+    if (records.some((r) => r.target.localName === 'agent-island')) schedule();
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-state'] });
+  if (document.fonts) document.fonts.ready.then(schedule);
 
   function markQuote(id, on) {
     const anchor = anchors.get(id);

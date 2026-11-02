@@ -227,6 +227,8 @@ agent-island.edit-block > .comment-control {
   display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap-sm);
 }
 .c-note-head .c-author { margin-right: 0; }
+/* The time sits beside the author. The auto margin keeps Edit at the right edge, where space-between would centre it. */
+.c-note-head .c-time { flex: none; margin-right: auto; }
 /* Edit sits at the header's right edge, which is the card's content edge. It fades like the footer. */
 .comment-edit {
   flex: none;

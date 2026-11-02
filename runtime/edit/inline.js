@@ -2,6 +2,8 @@
 // press; blur and Cmd+S save it through margent.save, the one save path. The editable DOM is never rewritten (native
 // undo works); normalization happens on a clone in turndown.js.
 
+import { lineKeys } from './keys.js';
+
 const GATED = '[data-gate="pass"]';
 
 // One entry per block in edit mode (or saving). `snapshot` is the block's innerHTML before editing, for Esc and a 422.
@@ -33,6 +35,7 @@ export function initInline(margent) {
     if (saveKey) e.preventDefault();
     const s = sessions.get(e.target);
     if (!s || s.saving || e.isComposing) return;
+    if (lineKeys(e)) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       revert(margent, s);

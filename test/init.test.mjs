@@ -238,3 +238,136 @@ test('check on a folder holding only an AGENTS.md with the block exits 0', () =>
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^ok 1 docs, 0 islands$/m);
 });
+
+// The exclude file of a repo, read as text. A fresh `git init` writes a template with comment lines; the tests compare it whole.
+const excludeText = (dir) => readFileSync(join(dir, '.git', 'info', 'exclude'), 'utf8');
+const excludeLines = (dir) => excludeText(dir).split('\n').filter((line) => line === '/CLAUDE.local.md');
+
+test('P3: --dry-run writes nothing and prints would add, would update, then unchanged', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  const r = margent(dir, ['init', 'docs/x.md', '--dry-run']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'would add AGENTS.md\n');
+  assert.equal(existsSync(join(dir, 'AGENTS.md')), false);
+
+  const file = put(dir, 'AGENTS.md', `# Team\n\n<!-- margent:start -->\nold text\n<!-- margent:end -->\n`);
+  const before = read(file);
+  const u = margent(dir, ['init', 'docs/x.md', '--dry-run']);
+  assert.equal(u.stdout, 'would update AGENTS.md\n');
+  assert.equal(read(file), before);
+
+  assert.equal(margent(dir, ['init', 'docs/x.md']).status, 0);
+  const same = margent(dir, ['init', 'docs/x.md', '--dry-run']);
+  assert.equal(same.stdout, 'unchanged AGENTS.md\n');
+});
+
+test('P3: --into CLAUDE.local.md writes the block and one exclude line, and a second run adds no second line', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  const before = excludeText(dir);
+  const r = margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'added CLAUDE.local.md\nexcluded CLAUDE.local.md in .git/info/exclude\n');
+  assert.equal(read(join(dir, 'CLAUDE.local.md')), `${BLOCK}\n`);
+  assert.equal(existsSync(join(dir, 'AGENTS.md')), false);
+  assert.equal(excludeText(dir), `${before}/CLAUDE.local.md\n`);
+  assert.equal(spawnSync('git', ['-C', dir, 'check-ignore', '-q', 'CLAUDE.local.md']).status, 0);
+
+  const again = margent(dir, ['init', 'docs/x.md', '--into=CLAUDE.local.md']);
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(again.stdout, 'unchanged CLAUDE.local.md\n');
+  assert.equal(excludeLines(dir).length, 1);
+});
+
+test('P3: --into --dry-run previews the chosen file and writes neither it nor the exclude line', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  const before = excludeText(dir);
+  const r = margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md', '--dry-run']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'would add CLAUDE.local.md\n');
+  assert.equal(existsSync(join(dir, 'CLAUDE.local.md')), false);
+  assert.equal(excludeText(dir), before);
+});
+
+test('P3: a CLAUDE.local.md that git already ignores adds no exclude line', () => {
+  const dir = repo();
+  put(dir, '.gitignore', 'CLAUDE.local.md\n');
+  put(dir, 'docs/x.md', '# X\n');
+  const before = excludeText(dir);
+  const r = margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'added CLAUDE.local.md\n');
+  assert.equal(read(join(dir, 'CLAUDE.local.md')), `${BLOCK}\n`);
+  assert.equal(excludeText(dir), before);
+});
+
+test('P3: --into with a wrong name, a folder off the walk, or a block in another file exits 1 and writes nothing', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  put(dir, 'other/keep.txt', 'x\n');
+
+  const wrongName = margent(dir, ['init', 'docs/x.md', '--into', 'NOTES.md']);
+  assert.equal(wrongName.status, 1, wrongName.stdout);
+  assert.match(wrongName.stderr, /^margent: --into needs one of AGENTS\.md, CLAUDE\.md, CLAUDE\.local\.md, not NOTES\.md$/m);
+
+  const offWalk = margent(dir, ['init', 'docs/x.md', '--into', 'other/CLAUDE.md']);
+  assert.equal(offWalk.status, 1, offWalk.stdout);
+  assert.match(offWalk.stderr, /^margent: other\/CLAUDE\.md is not in a folder from docs up to \., the folders init searches$/m);
+
+  const above = margent(dir, ['init', 'docs/x.md', '--into', '../AGENTS.md']);
+  assert.equal(above.status, 1, above.stdout);
+  assert.match(above.stderr, /is not in a folder from docs up to \./);
+
+  put(dir, 'AGENTS.md', `# Team\n\n${BLOCK}\n`);
+  const elsewhere = margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md']);
+  assert.equal(elsewhere.status, 1, elsewhere.stdout);
+  assert.match(elsewhere.stderr, /^margent: a margent block is already in AGENTS\.md: run margent teardown first$/m);
+  assert.equal(existsSync(join(dir, 'CLAUDE.local.md')), false);
+  assert.equal(excludeText(dir).includes('/CLAUDE.local.md'), false);
+});
+
+test('P3: plain init after --into CLAUDE.local.md updates that file and never creates AGENTS.md', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  assert.equal(margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md']).status, 0);
+  const r = margent(dir, ['init', 'docs/x.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'unchanged CLAUDE.local.md\n');
+  assert.equal(existsSync(join(dir, 'AGENTS.md')), false);
+
+  const local = join(dir, 'CLAUDE.local.md');
+  writeFileSync(local, '<!-- margent:start -->\nold text\n<!-- margent:end -->\n');
+  const u = margent(dir, ['init', 'docs/x.md']);
+  assert.equal(u.status, 0, u.stderr);
+  assert.equal(u.stdout, 'updated CLAUDE.local.md\n');
+  assert.equal(read(local), `${BLOCK}\n`);
+  assert.equal(existsSync(join(dir, 'AGENTS.md')), false);
+});
+
+test('P3: teardown removes the local block, deletes the emptied file and its exclude line', () => {
+  const dir = repo();
+  put(dir, 'docs/x.md', '# X\n');
+  const before = excludeText(dir);
+  assert.equal(margent(dir, ['init', 'docs/x.md', '--into', 'CLAUDE.local.md']).status, 0);
+  assert.notEqual(excludeText(dir), before);
+  const r = margent(dir, ['teardown', 'docs/x.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'deleted CLAUDE.local.md\nunexcluded CLAUDE.local.md in .git/info/exclude\n');
+  assert.equal(existsSync(join(dir, 'CLAUDE.local.md')), false);
+  assert.equal(excludeText(dir), before);
+});
+
+test('P3: plain init with a block in a nested CLAUDE.local.md updates only that file, not the AGENTS.md above', () => {
+  const dir = repo();
+  const rootFile = put(dir, 'AGENTS.md', '# Root\n');
+  const local = put(dir, 'packages/a/CLAUDE.local.md', '<!-- margent:start -->\nold text\n<!-- margent:end -->\n');
+  put(dir, 'packages/a/docs/x.md', '# X\n');
+  const r = margent(dir, ['init', 'packages/a/docs/x.md']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'updated packages/a/CLAUDE.local.md\nexcluded packages/a/CLAUDE.local.md in .git/info/exclude\n');
+  assert.equal(read(local), `${BLOCK}\n`);
+  assert.equal(read(rootFile), '# Root\n');
+  assert.equal(excludeText(dir).split('\n').includes('/packages/a/CLAUDE.local.md'), true);
+});

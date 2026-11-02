@@ -16,6 +16,6 @@ Plain text in this paragraph stays unmarked for the cases.
 |---|---|
 | Record counts per month | `GET /v1/records` |
 
-{>>[c3] Quy: Add the cost row.<<}{>>[c3] Quy: Which quarter?<<}
+{>>[c3] Quy: Add the cost row.<<}{>>[c3 2026-11-02T14:31Z] Quy: Which quarter?<<}
 
 Last paragraph of the section.

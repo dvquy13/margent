@@ -60,7 +60,7 @@ Every change gets a review before it lands on `main`. The reviewer reads the dif
 | `UPDATE_GOLDEN=1 npm test` | rewrites the golden files | after an intended output change |
 | `node dist/cli.js check docs/` | renders every doc and runs its islands | after a docs edit |
 
-{>>[c1] Quy: Say which tier this runs.<<}
+{>>[c1 2026-11-02T14:31Z] Quy: Say which tier this runs.<<}
 
 Rebuild before any command that reads `src/`. A stale build runs old code without an error, so the output looks plausible and is wrong.
 

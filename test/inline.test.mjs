@@ -8,7 +8,7 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveCopy } from './helpers/serve-page.mjs';
-import { full } from './helpers/tier.mjs';
+import { full, fullMac } from './helpers/tier.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'inline', 'docs');
 const ORIGINAL = readFileSync(join(FIXTURE, 'inline.md'), 'utf8');
@@ -54,8 +54,10 @@ async function openInlinePage(served, mdPath) {
 
 // Opens a served copy of the fixture with the recorders in place, runs fn, and closes everything.
 // `saves` lists every request to /_save (routed or not). `errors` collects page and console errors.
-async function withPage(fn) {
+async function withPage(fn, prepare) {
   const served = await serveCopy(FIXTURE);
+  // prepare rewrites the served doc before the page opens (a test that needs a long page adds filler text).
+  if (prepare) writeFileSync(join(served.root, 'inline.md'), prepare(served.read('inline.md')));
   // The server closes even when the page fails to open: a leaked one keeps its watcher alive, and with it this file's
   // process, so the whole run would hang with no failure shown.
   try {
@@ -531,3 +533,47 @@ test('R4.3: dirty() reports unsaved text while a block is edited', full, () =>
     await waitForCall(page, 'reload');
     assert.equal(await dirty(), false);
   }));
+
+// ---- P1 Home and End in a block being edited (macOS) --------------------------------------------------------------
+
+// A press at the right edge of the last character of block `src`: the caret goes to the end of the block.
+async function pressAtEnd(page, src) {
+  const p = await page.evaluate((src) => {
+    const root = document.querySelector(`[data-src="${src}"]`);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let last = null;
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.data.trim()) last = n;
+    const end = last.data.trimEnd().length;
+    const r = document.createRange();
+    r.setStart(last, end - 1);
+    r.setEnd(last, end);
+    const b = r.getBoundingClientRect();
+    return { x: b.right - 1, y: (b.top + b.bottom) / 2 };
+  }, src);
+  await page.mouse.click(p.x, p.y);
+}
+
+test('P1: Home in a block being edited moves the caret to the start of the line, and the page does not scroll', fullMac, () =>
+  withPage(
+    async ({ page }) => {
+      const src = await page.locator('p', { hasText: 'A soft wrapped' }).getAttribute('data-src');
+      await page.evaluate(() => {
+        const el = [...document.querySelectorAll('p')].find((p) => p.textContent.includes('A soft wrapped'));
+        el.scrollIntoView({ block: 'center' });
+      });
+      await pressAt(page, src, 'A soft wrapped');
+      await pressAtEnd(page, src);
+      assert.equal(await block(page, src).getAttribute('contenteditable'), 'true');
+      const y = await page.evaluate(() => window.scrollY);
+      assert.ok(y > 0, 'the page is scrolled down before the keys are pressed');
+      await page.keyboard.press('Home');
+      await page.keyboard.type('X');
+      assert.ok((await block(page, src).textContent()).startsWith('X'), 'the X is at the start of the block');
+      assert.equal(await page.evaluate(() => window.scrollY), y);
+    },
+    (s) =>
+      s.replace(
+        'A soft wrapped',
+        `${Array.from({ length: 40 }, (_, i) => `Filler paragraph ${i + 1} makes the page taller than the window.`).join('\n\n')}\n\nA soft wrapped`
+      )
+  ));

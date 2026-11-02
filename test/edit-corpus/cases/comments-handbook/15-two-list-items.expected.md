@@ -25,7 +25,7 @@ The codebase splits into five parts, and each one owns a single job. The tests i
 - **shell**: the page chrome, the table of contents and the theme toggle
 - `doctor`: checks that Chrome, the browser opener and the cache work on this machine
 
-{>>[c1] Quy: "and shell islands" → Name the modules in order.<<}
+{>>[c1 2026-11-02T14:31Z] Quy: "and shell islands" → Name the modules in order.<<}
 
 ![Markdown renders into a page, a reader reviews the page, and comments and edits go back into the markdown.](assets/margent-loop.svg)
 

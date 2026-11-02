@@ -12,6 +12,6 @@ A paragraph before the table, which stays unmarked for the cases.
 |---|---|
 | Sample records | `GET /v1/records` |
 
-{>>[c1] Quy: "Sample records" → Which endpoint is this?<<}{>>[c1] Quy: Use the search endpoint.<<}
+{>>[c1] Quy: "Sample records" → Which endpoint is this?<<}{>>[c1 2026-11-02T14:31Z] Quy: Use the search endpoint.<<}
 
 Last paragraph of the section.

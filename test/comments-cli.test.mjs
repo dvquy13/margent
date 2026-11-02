@@ -200,7 +200,7 @@ test('comments on a folder with malformed docs prints every error, each as file:
   assert.equal(r.status, 1);
   assert.equal(r.stdout, '');
   const lines = r.stderr.trimEnd().split('\n');
-  assert.equal(lines.length, 11, r.stderr);
+  assert.equal(lines.length, 13, r.stderr); // one line per error fixture, the P4 time fixtures included
   for (const line of lines) assert.match(line, /^test\/fixtures\/comments\/errors\/[\w-]+\.md:\d+: .+$/, line);
 });
 

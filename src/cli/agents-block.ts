@@ -1,8 +1,8 @@
 // The margent block that `init` writes into AGENTS.md / CLAUDE.md and `teardown` removes. Pure text functions, plus the
 // git and folder lookups that choose which files they touch.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { RenderError } from '../errors.js';
 import { displayPath } from '../render/root.js';
 
@@ -14,7 +14,7 @@ export const BLOCK = [
   'The markdown docs here render into pages with [margent](https://github.com/dvquy13/margent). The `.md` is the only copy: renders are never committed.',
   '',
   '- After editing a doc, run `npx -y margent check {file}` and fix every `file:line` it prints.',
-  "- `{==text==}` and `{>>[c1] Name: note<<}` are review comments. Keep their markup. To answer one, add `{>>[c1] {your name}: answer<<}` right after the thread's last note, with the same ID. Don't delete a thread: the person who opened it resolves it.",
+  "- `{==text==}` and `{>>[c1] Name: note<<}` are review comments. Keep their markup. To answer one, add `{>>[c1 {UTC time}] {your name}: answer<<}` right after the thread's last note, with the same ID and the time from `date -u +%Y-%m-%dT%H:%MZ`. Don't delete a thread: the person who opened it resolves it.",
   '- `<!-- island {name} -->` above a table draws it as a visual with `islands/{name}.island.js`. Keep the marker and the wording of the cells it reads.',
   '- Full workflow: `npx skills add dvquy13/margent`.',
   '<!-- margent:end -->',
@@ -22,7 +22,10 @@ export const BLOCK = [
 
 const START = '<!-- margent:start -->';
 const END = '<!-- margent:end -->';
-const AGENT_FILES = ['AGENTS.md', 'CLAUDE.md'];
+// The personal file Claude Code reads. It is kept out of git (see addExcludeLine and excludeFile).
+export const LOCAL_FILE = 'CLAUDE.local.md';
+// The files init and teardown know, in the order they are checked within a folder.
+export const AGENT_FILES = ['AGENTS.md', 'CLAUDE.md', LOCAL_FILE];
 
 // One line of a file: its text without the terminator, and the terminator ('\r\n', '\n' or '' for a last line with none).
 interface Line {
@@ -79,6 +82,11 @@ function findBlock(lines: Line[], file: string): { start: number; end: number } 
 // Whether a line is blank: only whitespace, or nothing.
 function isBlank(line: Line): boolean {
   return line.body.trim() === '';
+}
+
+// Whether a file holds a margent block. A malformed block throws a RenderError at its line, as applyBlock does.
+export function hasBlock(source: string, file: string): boolean {
+  return findBlock(splitLines(source), file) !== null;
 }
 
 // The result of init on one file: its new text, and what changed.
@@ -162,9 +170,15 @@ function importsAgents(source: string): boolean {
   return source.split('\n').some((line) => line.trim() === '@AGENTS.md');
 }
 
-// The files init writes. The nearest folder on the walk that holds an AGENTS.md or CLAUDE.md gets the write. A folder with
-// both gets AGENTS.md, and CLAUDE.md too unless it imports AGENTS.md. When no folder has one, AGENTS.md at the git root.
+// The files init writes. First, the nearest folder on the walk with a known file that holds a block: those files, and no
+// others, so an existing block is updated where it is. Otherwise the nearest folder that holds an AGENTS.md or CLAUDE.md
+// gets the write. A folder with both gets AGENTS.md, and CLAUDE.md too unless it imports AGENTS.md. When no folder has
+// one, AGENTS.md at the git root.
 export function initTargets(folders: string[], root: string): string[] {
+  for (const folder of folders) {
+    const holding = agentsFilesOn([folder]).filter((file) => hasBlock(readFileSync(file, 'utf8'), file));
+    if (holding.length > 0) return holding;
+  }
   for (const folder of folders) {
     const agents = join(folder, 'AGENTS.md');
     const claude = join(folder, 'CLAUDE.md');
@@ -173,4 +187,45 @@ export function initTargets(folders: string[], root: string): string[] {
     if (isFile(claude)) return [claude];
   }
   return [join(root, 'AGENTS.md')];
+}
+
+// Runs git in `dir`. Returns its exit status and output. A failure to start git throws.
+function git(dir: string, args: string[]): { status: number; stdout: string; stderr: string } {
+  const r = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  if (r.error) throw r.error;
+  return { status: r.status ?? -1, stdout: r.stdout, stderr: r.stderr };
+}
+
+// Whether git ignores a file (through .gitignore or the exclude file). Exit 1 means not ignored; any other failure throws.
+export function isIgnored(root: string, file: string): boolean {
+  const r = git(root, ['check-ignore', '-q', file]);
+  if (r.status === 0) return true;
+  if (r.status === 1) return false;
+  throw new Error(`git check-ignore failed in ${root}: ${r.stderr.trim()}`);
+}
+
+// The repository's exclude file (info/exclude in its git dir), resolved from the root. git prints the path, so worktrees work.
+export function excludeFile(root: string): string {
+  const r = git(root, ['rev-parse', '--git-path', 'info/exclude']);
+  if (r.status !== 0) throw new Error(`git rev-parse failed in ${root}: ${r.stderr.trim()}`);
+  return resolve(root, r.stdout.trim());
+}
+
+// The exclude line for a file: its path from the root, anchored with '/', with forward slashes.
+export function excludePattern(root: string, file: string): string {
+  return `/${relative(root, file).split(sep).join('/')}`;
+}
+
+// The text of an exclude file with `line` appended, or null when the line is already there. Keeps a trailing newline.
+export function addExcludeLine(source: string, line: string): string | null {
+  if (splitLines(source).some((l) => l.body === line)) return null;
+  const base = source === '' || source.endsWith('\n') ? source : `${source}\n`;
+  return `${base}${line}\n`;
+}
+
+// The text of an exclude file without its `line` lines, or null when it has none.
+export function removeExcludeLine(source: string, line: string): string | null {
+  const lines = splitLines(source);
+  const kept = lines.filter((l) => l.body !== line);
+  return kept.length === lines.length ? null : render(kept);
 }

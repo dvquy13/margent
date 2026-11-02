@@ -40,7 +40,7 @@ Islands run in sandboxed frames with no network and no access to the page. A bro
 
 A release is cut from `main` and from nothing else. The version lives in several files, and a scaffold test fails when they disagree. Publishing is manual, so the maintainer runs each step in order and stops at the first failure.
 
-1. Run the {==full tier with `npm run test:full`==}{>>[c1] Quy: Is the full tier still 4 to 9 minutes?<<} and wait for it to pass.
+1. Run the {==full tier with `npm run test:full`==}{>>[c1 2026-11-02T14:31Z] Quy: Is the full tier still 4 to 9 minutes?<<} and wait for it to pass.
 2. Bump the version in `package.json`, the plugin manifest and every skill, all in one commit.
 3. Run **npm pack --dry-run** and check the file list against the package contents.
 4. Tag the commit with the new version and push the tag to the remote.

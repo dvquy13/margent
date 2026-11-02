@@ -1,7 +1,7 @@
 // The margent CLI (spec R4): open, check, export, init, teardown, --version. Built into dist/cli.js.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync, type Stats } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VERSION } from './version.js';
 import { displayPath, findDocsRoot } from './render/root.js';
@@ -25,7 +25,23 @@ import { linkProblems } from './cli/links.js';
 import { cleanSource } from './comments/clean.js';
 import { startServer } from './serve/server.js';
 import { writeAtomic } from './serve/splice.js';
-import { agentsFilesOn, applyBlock, gitRoot, initTargets, removeBlock, walkFolders } from './cli/agents-block.js';
+import {
+  AGENT_FILES,
+  LOCAL_FILE,
+  addExcludeLine,
+  agentsFilesOn,
+  applyBlock,
+  excludeFile,
+  excludePattern,
+  gitRoot,
+  hasBlock,
+  initTargets,
+  isIgnored,
+  removeBlock,
+  removeExcludeLine,
+  walkFolders,
+  type InitEdit,
+} from './cli/agents-block.js';
 
 const USAGE = `usage:
   margent open {file}
@@ -34,7 +50,7 @@ const USAGE = `usage:
   margent update [--check]
   margent comments {path}
   margent export {path} --out {dir} [--md] [--clean]
-  margent init {path}
+  margent init {path} [--dry-run] [--into {file}]
   margent teardown {path}
   margent serve {docs root} [--port {n}] [--no-open] [--author {name}]
   margent --version`;
@@ -336,12 +352,83 @@ function gitRootOf(start: string, target: string, reason: string): string {
   return root;
 }
 
-// margent init {path}: writes the margent block into the AGENTS.md or CLAUDE.md that colleagues' agents read. Every
-// text is made before any file is written, so a malformed block in one file leaves them all as they were.
-function commandInit(target: string): number {
+// The arguments of `init`: one {path}, --dry-run, and --into {file} (or --into={file}).
+function parseInit(rest: string[]): { target: string; dryRun: boolean; into: string | undefined } {
+  let target: string | undefined;
+  let into: string | undefined;
+  let dryRun = false;
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg === '--dry-run') {
+      dryRun = true;
+    } else if (arg === '--into' || arg.startsWith('--into=')) {
+      const value = arg === '--into' ? rest[++i] : arg.slice('--into='.length);
+      if (value === undefined || value.startsWith('--') || value === '') throw new UsageError('--into needs a file');
+      into = value;
+    } else if (arg.startsWith('-')) {
+      throw new UsageError(`unknown option ${arg}`);
+    } else if (target === undefined) {
+      target = arg;
+    } else {
+      throw new UsageError(`unexpected argument ${arg}`);
+    }
+  }
+  if (target === undefined) throw new UsageError('init needs a {path}');
+  return { target, dryRun, into };
+}
+
+// The file `--into` names: its name must be one of AGENT_FILES, and its folder on the walk. A block in any other file on
+// the walk is an error, so a second block never appears beside the first.
+function intoFile(into: string, folders: string[], start: string, root: string): string {
+  const abs = resolve(into);
+  const name = basename(abs);
+  if (!AGENT_FILES.includes(name)) throw new Error(`--into needs one of ${AGENT_FILES.join(', ')}, not ${into}`);
+  const dir = existsSync(dirname(abs)) ? realpathSync(dirname(abs)) : dirname(abs);
+  if (!folders.includes(dir)) {
+    throw new Error(`${into} is not in a folder from ${displayPath(start)} up to ${displayPath(root)}, the folders init searches`);
+  }
+  const file = join(dir, name);
+  for (const folder of folders) {
+    for (const other of agentsFilesOn([folder])) {
+      if (other !== file && hasBlock(readFileSync(other, 'utf8'), other)) {
+        throw new Error(`a margent block is already in ${displayPath(other)}: run margent teardown first`);
+      }
+    }
+  }
+  return file;
+}
+
+// The exclude edit that keeps a CLAUDE.local.md out of git, or null when git already ignores it or the line is there.
+// Git's own check decides: exit 1 means not ignored, and any other failure throws.
+function localExclude(root: string, file: string): { local: string; file: string; text: string } | null {
+  if (isIgnored(root, file)) return null;
+  const exclude = excludeFile(root);
+  const source = existsSync(exclude) ? readFileSync(exclude, 'utf8') : '';
+  const text = addExcludeLine(source, excludePattern(root, file));
+  return text === null ? null : { local: file, file: exclude, text };
+}
+
+// Removes the exclude line of a CLAUDE.local.md that teardown deleted, if init added one, and says so.
+function unexcludeLocal(root: string, file: string): void {
+  const exclude = excludeFile(root);
+  if (!existsSync(exclude)) return;
+  const text = removeExcludeLine(readFileSync(exclude, 'utf8'), excludePattern(root, file));
+  if (text === null) return;
+  writeAtomic(exclude, text);
+  process.stdout.write(`unexcluded ${displayPath(file)} in ${displayPath(exclude)}\n`);
+}
+
+// The words init prints per file, and the words --dry-run prints instead.
+const DRY_RUN_WORDS: Record<InitEdit['change'], string> = { added: 'would add', updated: 'would update', unchanged: 'unchanged' };
+
+// margent init {path}: writes the margent block into the file initTargets picks, or into the --into file. Every text is
+// made before any file is written, so a malformed block in one file leaves them all as they were. --dry-run writes
+// nothing and prints what would happen. A CLAUDE.local.md that git doesn't ignore goes in the exclude file.
+function commandInit(target: string, options: { dryRun: boolean; into: string | undefined }): number {
   const start = startFolder(target);
   const root = gitRootOf(start, target, "init writes the AGENTS.md that colleagues' agents read");
-  const files = initTargets(walkFolders(start, root), root);
+  const folders = walkFolders(start, root);
+  const files = options.into === undefined ? initTargets(folders, root) : [intoFile(options.into, folders, start, root)];
   const home = realpathSync(homedir());
   for (const file of files) {
     if (dirname(file) === home) throw new Error(`refusing to write ${file}: it is in your home directory`);
@@ -350,9 +437,20 @@ function commandInit(target: string): number {
     const source = existsSync(file) ? readFileSync(file, 'utf8') : '';
     return { file, ...applyBlock(source, file) };
   });
+  if (options.dryRun) {
+    for (const edit of edits) process.stdout.write(`${DRY_RUN_WORDS[edit.change]} ${displayPath(edit.file)}\n`);
+    return 0;
+  }
+  const local = edits.find((edit) => basename(edit.file) === LOCAL_FILE && edit.change !== 'unchanged');
+  const exclude = local ? localExclude(root, local.file) : null;
   for (const edit of edits) {
     if (edit.change !== 'unchanged') writeAtomic(edit.file, edit.text);
     process.stdout.write(`${edit.change} ${displayPath(edit.file)}\n`);
+  }
+  if (exclude) {
+    mkdirSync(dirname(exclude.file), { recursive: true });
+    writeAtomic(exclude.file, exclude.text);
+    process.stdout.write(`excluded ${displayPath(exclude.local)} in ${displayPath(exclude.file)}\n`);
   }
   return 0;
 }
@@ -379,6 +477,7 @@ function commandTeardown(target: string): number {
     if (edit.text.trim() === '') {
       rmSync(edit.file);
       process.stdout.write(`deleted ${displayPath(edit.file)}\n`);
+      if (basename(edit.file) === LOCAL_FILE) unexcludeLocal(root, edit.file);
     } else {
       writeAtomic(edit.file, edit.text);
       process.stdout.write(`removed ${displayPath(edit.file)}\n`);
@@ -410,8 +509,10 @@ async function main(argv: string[]): Promise<number> {
       return commandCheck(singlePath(command, rest));
     case 'comments':
       return commandComments(singlePath(command, rest));
-    case 'init':
-      return commandInit(singlePath(command, rest));
+    case 'init': {
+      const { target, dryRun, into } = parseInit(rest);
+      return commandInit(target, { dryRun, into });
+    }
     case 'teardown':
       return commandTeardown(singlePath(command, rest));
     case 'doctor':

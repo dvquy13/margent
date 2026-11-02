@@ -13,7 +13,7 @@ This handbook covers how **margent** is built, released and reviewed. It is for 
 
 margent is one loop with one source. The markdown file is the doc, and every page is rebuilt from it on each run. Nothing rendered is ever committed, because the page cache lives outside the repository.
 
-{==Three stages.==}{>>[c1] Quy: Name each stage in the glossary.<<} The renderer turns markdown into a page. The islands runtime draws each data-driven visual in its own frame. The server reloads the page on change and saves edits from the browser back into the file.
+{==Three stages.==}{>>[c1 2026-11-02T14:31Z] Quy: Name each stage in the glossary.<<} The renderer turns markdown into a page. The islands runtime draws each data-driven visual in its own frame. The server reloads the page on change and saves edits from the browser back into the file.
 
 ### Module map
 

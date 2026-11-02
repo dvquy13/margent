@@ -35,7 +35,7 @@ If a margent command fails for an environment reason (Chrome not found, no brows
 
 ## Projects
 
-Before the first doc you write or edit in a repository during a session, run `margent init {doc path}`. It adds a short margent block to the nearest `AGENTS.md` or `CLAUDE.md` (creating `AGENTS.md` at the git root when neither exists), so a colleague's agent keeps comment markup intact and runs `check`. When it prints `added` or `updated`, tell the user in one line which file changed. Say nothing on `unchanged`. If it says the folder is not in a git repository, skip it and carry on. When the user asks to set up margent in a project, run `margent init {docs folder}` and report the file.
+Before the first doc you write or edit in a repository during a session, run `margent init {doc path} --dry-run`. If it prints `would update` or `unchanged`, run `margent init {doc path}`. If it prints `would add {file}`, ask the user once which file gets the margent block: `{file}` (recommended: colleagues' agents learn the rules), `CLAUDE.local.md` at the git root (only you; only Claude Code reads it; margent keeps it out of git), or another `AGENTS.md` or `CLAUDE.md` between the doc and the git root. Then run `margent init {doc path} --into {chosen file}` and report the line it prints. When `init` prints `added` or `updated`, tell the user in one line which file changed (and the exclude line, if it prints one). Say nothing on `unchanged`. If it says the folder is not in a git repository, skip it and carry on. When the user asks to set up margent in a project, do the same with the docs folder.
 
 When the user asks to remove margent from a project or stop using it there, run `margent teardown {docs folder}` without asking, once for each docs folder, and report the files it changed or deleted. It removes only the nearest block, so a monorepo's root block stays for the other packages. It doesn't touch the docs. To strip review comments from a copy, use `margent export … --clean`.
 
@@ -123,6 +123,7 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 ```
 
 - A note is `{>>[c{n}] {author}: {text}<<}`: one line of plain text in the source. Write `<br>` for a line break inside a note. Notes with the same ID, written directly after each other, are one thread.
+- A note may carry the UTC minute it was written, after its ID: `{>>[c{n} {YYYY-MM-DDTHH:MMZ}] {author}: {text}<<}`. The page writes it on the notes a person adds; you write it on your replies, as step 3 says. Old notes without it stay valid.
 - A thread right after `{==highlighted text==}` is about that text. A thread alone on its own line is about the block above it: this is how tables, code, islands and figures take comments. Never put comment markup inside a table cell or island YAML.
 - A comment about words in a paragraph, heading or list item highlights those words, so the page marks them. Keep a thread on its own line for tables, code, islands and figures, and for a remark about a whole block.
 - A block comment line may start with the phrase it is about: `{>>[c5] Quy: "Proceed" → is this still right?<<}`. The phrase is the text as the page shows it, with no markdown (no backticks, `**` or `|`), and it must appear in that block, or `margent check` fails. When the phrase occurs more than once in the block, add which one, counting in reading order: `"keep" #2 → …` is the second. `check` fails on a repeated phrase without `#n`. `margent comments` prints the phrase, and its `#n`, in the thread's head.
@@ -133,7 +134,7 @@ When asked to address comments (or `/docs-review`):
 
 1. Run `margent comments {file or folder}`. It lists each thread with its `file:line`, its notes, and whether it `needs agent` or `needs you`. Work only on threads that need the agent.
 2. Read the `.md` again before every edit: the user may have added a comment in the page since you last read it.
-3. When a comment asks for a change you can make exactly as asked, make it, then append a `{>>[c{n}] Claude: …<<}` note directly after the thread's last note, with the same ID, saying in one line what you changed and where ("Reworded to X in the second sentence"). Leave the thread open: the user resolves it after reading your note, and that is how they see what you did.
+3. When a comment asks for a change you can make exactly as asked, make it, then append a `{>>[c{n} {UTC time}] Claude: …<<}` note directly after the thread's last note, with the same ID, saying in one line what you changed and where ("Reworded to X in the second sentence"). Take the time from `date -u +%Y-%m-%dT%H:%MZ`, as in `{>>[c3 2026-11-02T14:31Z] Claude: …<<}`. Leave the thread open: the user resolves it after reading your note, and that is how they see what you did.
 4. When it asks a question, needs a judgment call, or you disagree or need the user, append the same kind of note with your answer or question, and leave the thread open.
 5. Run `margent check` on what you changed, then `margent comments` again, and report how many threads still need the agent and how many need the user.
 

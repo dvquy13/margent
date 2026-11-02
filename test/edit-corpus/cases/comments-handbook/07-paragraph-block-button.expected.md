@@ -33,7 +33,7 @@ The codebase splits into five parts, and each one owns a single job. The tests i
 
 Islands run in sandboxed frames with no network and no access to the page. A broken module shows its error in its own box and nowhere else.
 
-{>>[c1] Quy: Name the frame size limit.<<}
+{>>[c1 2026-11-02T14:31Z] Quy: Name the frame size limit.<<}
 
 > Island code never runs in Node, so a bad module cannot crash the server.
 > Its only output is pixels inside its frame, and its only input is the data in the table.

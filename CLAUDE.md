@@ -2,7 +2,7 @@
 
 Renders markdown docs into designed pages with data-driven islands, shipped as an npm CLI (`margent`), skills for any agent (`npx skills add`), and a thin Claude Code plugin.
 
-**Status:** M1–M3, M5 and M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) done. No milestone is open; the next comes from real review rounds on 0.7.0. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
+**Status:** M1–M3, M5, M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) and M7 (polish P1–P4, 2026-11-02, not yet released) done. No milestone is open; the next comes from real review rounds. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
 
 ## Where to look
 
@@ -74,4 +74,4 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 ## Rules
 
 - No silent fallbacks. Every error path exits non-zero with `{file}:{line}: {message}` (`RenderError`) and has a fixture proving it is loud.
-- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, and `docs/specs/m6-review-feedback.md` for F1 to F6. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
+- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, `docs/specs/m6-review-feedback.md` for F1 to F6, and `docs/specs/m7-polish.md` for P1 to P4. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
