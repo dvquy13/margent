@@ -48,7 +48,7 @@ A release is cut from `main` and from nothing else. The version lives in several
 
 If a step fails, fix the cause and start again from step one. A partial release leaves a version number on the registry that nobody can reuse.
 
-## 3. {==Reviewing changes==}{>>[c1] Quy: Is the review list still complete?<<}
+## 3. {==Reviewing changes==}{>>[c1 2026-11-02T14:31Z] Quy: Is the review list still complete?<<}
 
 Every change gets a review before it lands on `main`. The reviewer reads the diff, runs the commands in the table, and opens the page when the change touches what the reader sees.
 

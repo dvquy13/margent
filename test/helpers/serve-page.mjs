@@ -29,11 +29,16 @@ export async function serveCopy(folder, options = {}) {
   };
 }
 
+// The browser clock every served page runs on. A note stamps the page's clock with its UTC minute (decision 0044), so the
+// expected files hold this minute. Date.now and new Date read it; timers still run (Playwright's setFixedTime).
+export const PINNED_NOW = '2026-11-02T14:31:00Z';
+
 // Opens `mdPath` (relative to the served root) as its page, after the token URL has set the cookie. Waits for the edit
 // runtime. Returns { page, errors, close }; errors collects page errors and console errors. `initScript` (optional) runs
 // in every document before the page's own scripts.
 export async function openServedPage(browser, served, mdPath, { viewport = { width: 1000, height: 900 }, colorScheme = 'light', initScript } = {}) {
   const context = await browser.newContext({ viewport, colorScheme });
+  await context.clock.setFixedTime(new Date(PINNED_NOW));
   if (initScript) await context.addInitScript(initScript);
   const page = await context.newPage();
   const errors = [];

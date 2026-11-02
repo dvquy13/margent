@@ -21,6 +21,31 @@
     return node;
   }
 
+  // ---- note times: a card shows how long ago each timed note was written (decision 0044) -----------------------------
+
+  const MINUTE = 60 * 1000;
+  // The relative time a card shows for a UTC minute at `now`: "just now" under a minute (and for a time ahead of this
+  // clock), then "5m", "3h", "2d", and from a week on the date ("Nov 2", with the year when it is another year).
+  function relativeTime(datetime, now) {
+    const then = new Date(datetime);
+    const ago = now - then.getTime();
+    if (ago < MINUTE) return 'just now';
+    if (ago < 60 * MINUTE) return `${Math.floor(ago / MINUTE)}m`;
+    if (ago < 24 * 60 * MINUTE) return `${Math.floor(ago / (60 * MINUTE))}h`;
+    if (ago < 7 * 24 * 60 * MINUTE) return `${Math.floor(ago / (24 * 60 * MINUTE))}d`;
+    const options = { month: 'short', day: 'numeric' };
+    if (then.getFullYear() !== new Date(now).getFullYear()) options.year = 'numeric';
+    return then.toLocaleDateString(undefined, options);
+  }
+  // Every card's time text, once a minute. A card is rebuilt only with the page, so the rail's times are all there is.
+  function refreshTimes() {
+    const now = Date.now();
+    for (const time of rail.querySelectorAll('time.c-time')) {
+      time.textContent = relativeTime(time.getAttribute('datetime'), now);
+    }
+  }
+  setInterval(refreshTimes, MINUTE);
+
   // ---- the rail: one card per thread, in document order --------------------------------------------------------------
 
   const rail = el('aside', 'c-rail');
@@ -98,6 +123,15 @@
       author.remove();
       const head = el('div', 'c-note-head');
       head.append(author);
+      // The time follows the author in the head. Its text is the relative time and its title the full local time.
+      const time = copy.querySelector('time.c-time');
+      if (time !== null) {
+        time.remove();
+        const datetime = time.getAttribute('datetime');
+        time.textContent = relativeTime(datetime, Date.now());
+        time.title = new Date(datetime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        head.append(time);
+      }
       // The text keeps its breaks (decision 0037), so it is built from the nodes left, not from textContent. The spaces
       // the markup puts at either end go, and a text node that empties goes with them.
       const text = el('div', 'c-text');

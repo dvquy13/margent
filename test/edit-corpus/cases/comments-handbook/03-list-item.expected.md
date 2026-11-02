@@ -19,7 +19,7 @@ Three stages. The renderer turns markdown into a page. The islands runtime draws
 
 The codebase splits into five parts, and each one owns a single job. The tests import the bundles built from these parts, so a stale build tests old code.
 
-- **render**: {==turns a markdown file into a page==}{>>[c1] Quy: Name the input format.<<}, with its islands and shell
+- **render**: {==turns a markdown file into a page==}{>>[c1 2026-11-02T14:31Z] Quy: Name the input format.<<}, with its islands and shell
 - **islands**: the contract, the schema check and the sandboxed frame runtime
 - `serve`: a local server that reloads pages and saves edits to the markdown
 - **shell**: the page chrome, the table of contents and the theme toggle

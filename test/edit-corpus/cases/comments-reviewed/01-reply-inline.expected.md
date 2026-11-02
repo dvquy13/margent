@@ -6,7 +6,7 @@ updated: 2026-10-21
 
 # Export field mapping
 
-A paragraph with an existing highlight {==here is marked==}{>>[c1] Quy: is this still true?<<}{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: Agreed, keep it.<<}.
+A paragraph with an existing highlight {==here is marked==}{>>[c1] Quy: is this still true?<<}{>>[c1] Claude: Checked against the API docs.<<}{>>[c1 2026-11-02T14:31Z] Quy: Agreed, keep it.<<}.
 
 A point comment sits here.{>>[c2] Quy: Cite the docs for this.<<}
 

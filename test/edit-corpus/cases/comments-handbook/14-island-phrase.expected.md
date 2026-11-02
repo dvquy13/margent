@@ -86,7 +86,7 @@ Milestones run in order, and each one closes with an acceptance record in the re
 | M4 Catalog | Waits for the first public release | Decided to wait for the release |
 | M5 Ship | Local checks pass, the publish steps are still open | Adjust the publish steps |
 
-{>>[c1] Quy: "Pages render with islands in a sandboxed frame" → Cite the M1 spec.<<}
+{>>[c1 2026-11-02T14:31Z] Quy: "Pages render with islands in a sandboxed frame" → Cite the M1 spec.<<}
 
 *The renderer and the editor shipped as planned. The release is the open item, and the catalog waits for it.*
 

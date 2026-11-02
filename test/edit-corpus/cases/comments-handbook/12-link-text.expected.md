@@ -7,7 +7,7 @@ updated: 2026-10-25
 
 # margent maintainer handbook
 
-This handbook covers how **margent** is built, released and reviewed. It is for the people who change the renderer, the islands runtime and the skills, and it assumes you have {==read [the block kinds page](extra-kinds.md)==}{>>[c1] Quy: Link the block kinds page here.<<} once. Read it *in order* the first time, then use the sections as a reference. The project needs [Node.js](https://nodejs.org/) 22 or later, and every command below runs from the repository root.
+This handbook covers how **margent** is built, released and reviewed. It is for the people who change the renderer, the islands runtime and the skills, and it assumes you have {==read [the block kinds page](extra-kinds.md)==}{>>[c1 2026-11-02T14:31Z] Quy: Link the block kinds page here.<<} once. Read it *in order* the first time, then use the sections as a reference. The project needs [Node.js](https://nodejs.org/) 22 or later, and every command below runs from the repository root.
 
 ## 1. Architecture
 

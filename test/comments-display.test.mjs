@@ -42,6 +42,7 @@ const FIXTURES = [
   'links-in-highlight.md',
   'long-thread.md',
   'long-table.md',
+  'timed.md',
 ];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
@@ -189,6 +190,54 @@ test('P2: the drawer lists quoted block comments in page order', full, async () 
     await settle(page);
     const ids = await page.evaluate(() => [...document.querySelectorAll('.c-rail .c-card')].map((c) => c.dataset.c));
     assert.deepEqual(ids, ['c2', 'c1'], 'the row 3 card comes first');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+// A page whose browser clock reads `now`, so a card's relative time is fixed. Returns { page, errors, close }.
+async function openAt(now, name) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+  await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+  await context.clock.setFixedTime(new Date(now));
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(urls[name]);
+  return { page, errors, close: () => context.close() };
+}
+
+test('P4: a timed note shows its relative time in its card head, with the full local time on hover; an untimed note shows none', full, async () => {
+  // The note was written at 11:31 UTC; the clock reads 14:31 UTC, three hours later.
+  const { page, errors, close } = await openAt('2026-11-02T14:31:00Z', 'timed.md');
+  try {
+    await settle(page);
+    const notes = await page.evaluate(() =>
+      [...document.querySelectorAll('.c-rail .c-card')].map((card) => ({
+        id: card.dataset.c,
+        notes: [...card.querySelectorAll(':scope > .c-note')].map((note) => {
+          const time = note.querySelector('time.c-time');
+          return {
+            inHead: time !== null && time.parentElement.classList.contains('c-note-head') && time.previousElementSibling?.classList.contains('c-author'),
+            inText: note.querySelector('.c-text time') !== null,
+            text: time && time.textContent,
+            title: time && time.getAttribute('title'),
+            full: time && new Date(time.getAttribute('datetime')).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+          };
+        }),
+      }))
+    );
+    const c1 = notes.find((c) => c.id === 'c1').notes[0];
+    assert.equal(c1.inHead, true, 'the time sits in the head, right after the author');
+    assert.equal(c1.inText, false, 'the time is not in the note text');
+    assert.equal(c1.text, '3h');
+    assert.equal(c1.title, c1.full, 'the title is the full local time');
+    const c2 = notes.find((c) => c.id === 'c2').notes[0];
+    assert.equal(c2.text ?? null, null, 'an untimed note shows no time');
+    // The thread in the page keeps the UTC text that print and no-JS readers see.
+    const inPage = await page.locator('span.c-thread[data-c="c1"] time.c-time').textContent();
+    assert.equal(inPage, '2026-11-02 11:31 UTC');
     assert.deepEqual(errors, []);
   } finally {
     await close();

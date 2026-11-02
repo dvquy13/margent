@@ -14,7 +14,7 @@ export const BLOCK = [
   'The markdown docs here render into pages with [margent](https://github.com/dvquy13/margent). The `.md` is the only copy: renders are never committed.',
   '',
   '- After editing a doc, run `npx -y margent check {file}` and fix every `file:line` it prints.',
-  "- `{==text==}` and `{>>[c1] Name: note<<}` are review comments. Keep their markup. To answer one, add `{>>[c1] {your name}: answer<<}` right after the thread's last note, with the same ID. Don't delete a thread: the person who opened it resolves it.",
+  "- `{==text==}` and `{>>[c1] Name: note<<}` are review comments. Keep their markup. To answer one, add `{>>[c1 {UTC time}] {your name}: answer<<}` right after the thread's last note, with the same ID and the time from `date -u +%Y-%m-%dT%H:%MZ`. Don't delete a thread: the person who opened it resolves it.",
   '- `<!-- island {name} -->` above a table draws it as a visual with `islands/{name}.island.js`. Keep the marker and the wording of the cells it reads.',
   '- Full workflow: `npx skills add dvquy13/margent`.',
   '<!-- margent:end -->',

@@ -205,7 +205,7 @@ test(
     assert.equal(status, 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: Check the wording.<<} paragraph')
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: Check the wording.<<} paragraph')
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -223,7 +223,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: first<br>second<<} paragraph')
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: first<br>second<<} paragraph')
     );
     assert.equal(saves.length, 1, 'one save');
     const card = page.locator('.c-card[data-c="c3"] .c-text');
@@ -289,7 +289,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: Check the wording.<<} paragraph')
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: Check the wording.<<} paragraph')
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -308,7 +308,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3] Ada: "Proceed" → Table note.<<}\n')
+      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3 2026-11-02T14:31Z] Ada: "Proceed" → Table note.<<}\n')
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -327,7 +327,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('island.md'),
-      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
+      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1 2026-11-02T14:31Z] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -369,7 +369,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('of **rendered** pages across', 'of {==**rendered** pages==}{>>[c3] Ada: Stable?<<} across')
+      ORIGINAL.replace('of **rendered** pages across', 'of {==**rendered** pages==}{>>[c3 2026-11-02T14:31Z] Ada: Stable?<<} across')
     );
   })
 );
@@ -391,7 +391,7 @@ test(
       served.read('ui.md'),
       ORIGINAL.replace(
         '- Second item with the second point.\n',
-        '- Second item with the second point.\n\n{>>[c3] Ada: "First item with the first point. Second" → A note on the list.<<}\n'
+        '- Second item with the second point.\n\n{>>[c3 2026-11-02T14:31Z] Ada: "First item with the first point. Second" → A note on the list.<<}\n'
       )
     );
   })
@@ -408,7 +408,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3] Ada: "Proceed" → Table note.<<}\n')
+      ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3 2026-11-02T14:31Z] Ada: "Proceed" → Table note.<<}\n')
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -425,7 +425,7 @@ function repeatedKeep({ nth }) {
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('repeat.md'),
-      REPEAT_ORIGINAL.replace('| Parser | keep |\n', `| Parser | keep |\n\n{>>[c1] Ada: "keep" #${nth} → Table note.<<}\n`)
+      REPEAT_ORIGINAL.replace('| Parser | keep |\n', `| Parser | keep |\n\n{>>[c1 2026-11-02T14:31Z] Ada: "keep" #${nth} → Table note.<<}\n`)
     );
     assert.equal(saves.length, 1, 'one save');
     // The save reloads the page, and the rail draws the reloaded card before the marks are read.
@@ -459,7 +459,7 @@ test(
     assert.equal(await quoteText(page), 'are out Blog and');
     await page.keyboard.type('Two lines.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
-    assert.ok(served.read('island.md').includes('{>>[c1] Ada: "are out Blog and" → Two lines.<<}'), served.read('island.md'));
+    assert.ok(served.read('island.md').includes('{>>[c1 2026-11-02T14:31Z] Ada: "are out Blog and" → Two lines.<<}'), served.read('island.md'));
   })
 );
 
@@ -496,7 +496,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('island.md'),
-      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
+      ISLAND_ORIGINAL.replace('```\n\nA paragraph after', `\`\`\`\n\n{>>[c1 2026-11-02T14:31Z] Ada: "${phrase}" → Island note.<<}\n\nA paragraph after`)
     );
   })
 );
@@ -526,7 +526,7 @@ test(
     await page.keyboard.type('Second quorum.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.ok(
-      served.read('island.md').includes('{>>[c1] Ada: "quorum" #2 → Second quorum.<<}'),
+      served.read('island.md').includes('{>>[c1 2026-11-02T14:31Z] Ada: "quorum" #2 → Second quorum.<<}'),
       served.read('island.md')
     );
     assert.equal(saves.length, 1, 'one save');
@@ -562,7 +562,7 @@ test(
     await page.locator('.comment-box:not([hidden])').waitFor();
     await page.keyboard.type('Table first.');
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
-    const first = ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3] Ada: Table first.<<}\n');
+    const first = ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n');
     assert.equal(served.read('ui.md'), first);
 
     const again = await blockControl(page, 'table');
@@ -572,7 +572,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      first.replace('{>>[c3] Ada: Table first.<<}\n', '{>>[c3] Ada: Table first.<<}\n\n{>>[c4] Ada: Table second.<<}\n')
+      first.replace('{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n', '{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n\n{>>[c4 2026-11-02T14:31Z] Ada: Table second.<<}\n')
     );
   })
 );
@@ -782,7 +782,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('reviewed.md'),
-      reviewed.replace('{>>[c1] Claude: Checked against the API docs.<<}', '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: Agreed, keep it for now.<<}')
+      reviewed.replace('{>>[c1] Claude: Checked against the API docs.<<}', '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1 2026-11-02T14:31Z] Quy: Agreed, keep it for now.<<}')
     );
     assert.equal(saves.length, 2, 'the reply and its edit are two saves');
   })
@@ -830,7 +830,7 @@ test(
       served.read('reviewed.md'),
       reviewed.replace(
         '{>>[c1] Claude: Checked against the API docs.<<}',
-        '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1] Quy: First line.<br>Second line.<<}'
+        '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1 2026-11-02T14:31Z] Quy: First line.<br>Second line.<<}'
       )
     );
     assert.equal(saves.length, 1, 'one save');
@@ -847,7 +847,7 @@ test(
     assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
     assert.equal(
       served.read('ui.md'),
-      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: first<br>second<<} paragraph')
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: first<br>second<<} paragraph')
     );
     assert.equal(saves.length, 1, 'one save');
   })
@@ -968,7 +968,7 @@ test(
       served.read('ui.md'),
       ORIGINAL.replace(
         '{>>[c1] Quy: is this still true?<<}',
-        '{>>[c1] Quy: is this still true?<<}{>>[c1] Ada: Rechecked, still true.<<}'
+        '{>>[c1] Quy: is this still true?<<}{>>[c1 2026-11-02T14:31Z] Ada: Rechecked, still true.<<}'
       )
     );
   })
@@ -1060,7 +1060,7 @@ test(
     await panelText.waitFor();
     assert.equal(
       await panelText.inputValue(),
-      PLAIN.replace('The plain paragraph', 'The {==plain==}{>>[c3] Ada: Held note.<<} paragraph')
+      PLAIN.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: Held note.<<} paragraph')
     );
   })
 );
@@ -1156,7 +1156,7 @@ test('0023: a long note wraps in the field, which grows, and Enter still saves i
         const hidden = await page.locator('.comment-input:visible').evaluate((el) => el.scrollHeight - el.clientHeight);
         assert.ok(hidden <= 1, `all of the note shows, none scrolled out of view (${hidden}px hidden)`);
         assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
-        assert.ok(served.read('ui.md').includes(`{==plain==}{>>[c3] Ada: ${note}<<}`), served.read('ui.md'));
+        assert.ok(served.read('ui.md').includes(`{==plain==}{>>[c3 2026-11-02T14:31Z] Ada: ${note}<<}`), served.read('ui.md'));
       } finally {
         await close();
       }
@@ -1224,7 +1224,7 @@ test(
       served.read('long.md'),
       LONG_ORIGINAL.replace(
         '{>>[c1] Quy: Fifth and last note, shown at rest.<<}',
-        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}{>>[c1] Ada: Ada reply on the folded thread.<<}'
+        '{>>[c1] Quy: Fifth and last note, shown at rest.<<}{>>[c1 2026-11-02T14:31Z] Ada: Ada reply on the folded thread.<<}'
       )
     );
   })
@@ -1321,4 +1321,63 @@ test(
     assert.equal(await commentField(page).inputValue(), 'Ya\nXbc', 'Cmd+Home is the start of the field');
     assert.equal(await scrollY(page), y);
   })
+);
+
+// ---- P4 note time (decision 0044) -------------------------------------------------------------------------------------
+
+test(
+  'P4: a new comment is saved with the UTC minute the page clock reads',full,
+  scenario({ author: 'Ada' }, async ({ page, served, saves }) => {
+    await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+    await openNote(page);
+    await page.keyboard.type('Check the wording.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('ui.md'),
+      ORIGINAL.replace('The plain paragraph', 'The {==plain==}{>>[c3 2026-11-02T14:31Z] Ada: Check the wording.<<} paragraph')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'P4: a reply is saved with the UTC minute the page clock reads, after the thread\'s last note',full,
+  scenario({ author: 'Ada', fixture: EDIT_DOCS, doc: 'reviewed.md' }, async ({ page, served, saves }) => {
+    const reviewed = served.read('reviewed.md');
+    await (await threadButton(page, 'c1', 'Reply')).click();
+    await page.locator('.comment-input:visible').waitFor();
+    await page.keyboard.type('Agreed, keep it.');
+    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    assert.equal(
+      served.read('reviewed.md'),
+      reviewed.replace('{>>[c1] Claude: Checked against the API docs.<<}', '{>>[c1] Claude: Checked against the API docs.<<}{>>[c1 2026-11-02T14:31Z] Ada: Agreed, keep it.<<}')
+    );
+    assert.equal(saves.length, 1, 'one save');
+  })
+);
+
+test(
+  'P4: an owner\'s edit keeps the time its note was written with',full,
+  scenario(
+    {
+      author: 'Quy',
+      fixture: EDIT_DOCS,
+      doc: 'reviewed.md',
+      prepare: (text) => text.replace('{>>[c1] Quy: is this still true?<<}', '{>>[c1 2026-10-30T11:31Z] Quy: is this still true?<<}'),
+    },
+    async ({ page, served, saves }) => {
+      const reviewed = served.read('reviewed.md');
+      await openCard(page, 'c1');
+      await editButtons(page, 'c1').click();
+      await page.locator('.comment-input:visible').waitFor();
+      await page.keyboard.press('End');
+      await page.keyboard.type(' Still true.');
+      assert.equal(await saveVia(page, () => page.locator('.comment-save:visible').click()), 200);
+      assert.equal(
+        served.read('reviewed.md'),
+        reviewed.replace('{>>[c1 2026-10-30T11:31Z] Quy: is this still true?<<}', '{>>[c1 2026-10-30T11:31Z] Quy: is this still true? Still true.<<}')
+      );
+      assert.equal(saves.length, 1, 'one save');
+    }
+  )
 );

@@ -98,7 +98,7 @@ A doc carries one status in its frontmatter. The values are fixed, so the page h
 
 ## 5. Troubleshooting
 
-### {==Leaked Chrome==}{>>[c1] Quy: Add the Windows path.<<}
+### {==Leaked Chrome==}{>>[c1 2026-11-02T14:31Z] Quy: Add the Windows path.<<}
 
 Interrupted test runs can leave headless Chrome processes behind. Each one slows every later run, so look for them after an interrupted run. A leaked process has PID 1 as its parent and the flag `--disable-field-trial-config` on its command line, and it is safe to kill.
 

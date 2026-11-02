@@ -382,7 +382,9 @@ export function initComments(margent) {
     }
     let body;
     try {
-      body = d.build({ id: d.id ?? nextId(state.source), author: state.author, text });
+      // The UTC minute the note is written (decision 0044). An edit's build keeps the note's own time and ignores this.
+      const time = new Date().toISOString().slice(0, 16) + 'Z';
+      body = d.build({ id: d.id ?? nextId(state.source), author: state.author, text, time });
     } catch (err) {
       d.view.set(err.message, { error: true });
       return;

@@ -96,7 +96,7 @@ A doc carries one status in its frontmatter. The values are fixed, so the page h
 | accepted | reviewed, and the plan of record |
 | done | shipped and kept for reference |
 
-{>>[c1] Quy: "still changing" → Name the status owner.<<}
+{>>[c1 2026-11-02T14:31Z] Quy: "still changing" → Name the status owner.<<}
 
 ## 5. Troubleshooting
 
