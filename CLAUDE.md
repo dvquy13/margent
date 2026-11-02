@@ -74,4 +74,4 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 ## Rules
 
 - No silent fallbacks. Every error path exits non-zero with `{file}:{line}: {message}` (`RenderError`) and has a fixture proving it is loud.
-- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, and `docs/specs/m6-review-feedback.md` for F1 to F6. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
+- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, `docs/specs/m6-review-feedback.md` for F1 to F6, and `docs/specs/m7-polish.md` for P1 to P4. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.

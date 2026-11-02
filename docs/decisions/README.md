@@ -43,9 +43,11 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0037](0037-note-line-breaks-as-br.md) | A note's line breaks are stored as `<br>` | accepted | 2026-10-25 |
 | [0038](0038-serve-tells-pages-when-margent-changed.md) | `serve` tells open pages when margent changed on disk | accepted | 2026-10-26 |
 | [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted, amended by [0041](0041-quote-names-its-occurrence.md) | 2026-10-26 |
-| [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted | 2026-10-27 |
+| [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted, amended by [0043](0043-init-asks-which-file.md) | 2026-10-27 |
 | [0041](0041-quote-names-its-occurrence.md) | A quoted phrase names its occurrence when it repeats (amends 0039) | accepted | 2026-10-27 |
 | [0042](0042-update-command-updates-every-install.md) | `margent update` finds every install and updates it | accepted | 2026-10-27 |
+| [0043](0043-init-asks-which-file.md) | The skill asks which file gets the margent block, CLAUDE.local.md included (amends 0040) | accepted | 2026-11-02 |
+| [0044](0044-notes-carry-utc-time.md) | A note carries the UTC minute it was written | accepted | 2026-11-02 |
 
 ## Deferred
 

@@ -1,6 +1,7 @@
 ---
 title: init writes a margent block into the nearest AGENTS.md or CLAUDE.md
 status: accepted
+amended_by: 0043
 updated: 2026-10-27
 ---
 
