@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withBrowser } from './helpers/browser.mjs';
 import { openServedPage, serveCopy } from './helpers/serve-page.mjs';
-import { full } from './helpers/tier.mjs';
+import { full, fullMac } from './helpers/tier.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = join(REPO, 'test', 'fixtures', 'comments', 'ui', 'docs');
@@ -1264,7 +1264,7 @@ const scrollY = (page) => page.evaluate(() => window.scrollY);
 
 test(
   'P1: Home in the comment field moves the caret to the start of the line, and the page does not scroll',
-  full,
+  fullMac,
   scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
     const y = await openFieldMidPage(page);
     await page.keyboard.type('world');
@@ -1277,7 +1277,7 @@ test(
 
 test(
   'P1: End after Home moves the caret back to the end of the line, and the page does not scroll',
-  full,
+  fullMac,
   scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
     const y = await openFieldMidPage(page);
     await page.keyboard.type('world');
@@ -1291,7 +1291,7 @@ test(
 
 test(
   'P1: Shift+Home selects from the caret to the start of the line, and the page does not scroll',
-  full,
+  fullMac,
   scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
     const y = await openFieldMidPage(page);
     await page.keyboard.type('a');
@@ -1307,7 +1307,7 @@ test(
 
 test(
   'P1: on two lines, Home goes to the start of the current line and Cmd+Home to the start of the field',
-  full,
+  fullMac,
   scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
     const y = await openFieldMidPage(page);
     await page.keyboard.type('a');

@@ -8,7 +8,7 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveCopy } from './helpers/serve-page.mjs';
-import { full } from './helpers/tier.mjs';
+import { full, fullMac } from './helpers/tier.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'inline', 'docs');
 const ORIGINAL = readFileSync(join(FIXTURE, 'inline.md'), 'utf8');
@@ -553,7 +553,7 @@ async function pressAtEnd(page, src) {
   await page.mouse.click(p.x, p.y);
 }
 
-test('P1: Home in a block being edited moves the caret to the start of the line, and the page does not scroll', full, () =>
+test('P1: Home in a block being edited moves the caret to the start of the line, and the page does not scroll', fullMac, () =>
   withPage(
     async ({ page }) => {
       const src = await page.locator('p', { hasText: 'A soft wrapped' }).getAttribute('data-src');

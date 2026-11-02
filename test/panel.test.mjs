@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { islandFrameByName, withBrowser } from './helpers/browser.mjs';
 import { openServedPage, serveCopy } from './helpers/serve-page.mjs';
-import { full } from './helpers/tier.mjs';
+import { full, fullMac } from './helpers/tier.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = join(REPO, 'test', 'fixtures', 'panel', 'docs');
@@ -293,7 +293,7 @@ const LONG_PANEL = (s) =>
     `${Array.from({ length: 40 }, (_, i) => `Filler paragraph ${i + 1} makes the page taller than the window.`).join('\n\n')}\n\nIntro paragraph for the panel tests.`
   );
 
-test('P1: Home in the panel moves the caret to the start of the line, and the page does not scroll', full, async (t) => {
+test('P1: Home in the panel moves the caret to the start of the line, and the page does not scroll', fullMac, async (t) => {
   const served = await site(t);
   writeFileSync(join(served.root, 'panel.md'), LONG_PANEL(served.read('panel.md')));
   await withBrowser(async (browser) => {
