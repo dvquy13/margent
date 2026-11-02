@@ -41,6 +41,7 @@ const FIXTURES = [
   'tall-table.md',
   'links-in-highlight.md',
   'long-thread.md',
+  'long-table.md',
 ];
 const urls = Object.fromEntries(FIXTURES.map((name) => [name, pageFile(name, readFileSync(join(FIX, name), 'utf8')).url]));
 
@@ -77,8 +78,17 @@ async function layout(page) {
         const range = document.querySelector(`p.c-line span.c-thread[data-c="${id}"]`).closest('p.c-line').dataset.anchor;
         anchor = document.querySelector(`[data-src="${range}"]`);
       }
+      // A block card whose quote the page finds lines up with the match the quote names (#n, or the first one), as the
+      // rail does (P2). The quote and its occurrence are read from the thread in its block, which holds the same q.
+      let anchorTop = anchor.getBoundingClientRect().top;
+      const quoted = kind === 'block' ? document.querySelector(`p.c-line span.c-thread[data-c="${id}"] q.c-quote`) : null;
+      if (quoted) {
+        const occurrence = Number(quoted.dataset.occurrence ?? 1);
+        const match = MargentQuote.find(anchor, quoted.textContent)[occurrence - 1];
+        if (match) anchorTop = match.getBoundingClientRect().top;
+      }
       const r = card.getBoundingClientRect();
-      return { id, kind, top: r.top, bottom: r.bottom, left: r.left, right: r.right, anchorTop: anchor.getBoundingClientRect().top };
+      return { id, kind, top: r.top, bottom: r.bottom, left: r.left, right: r.right, anchorTop };
     });
     const column = [...main.children].filter((e) => !e.matches('.c-rail')).map((e) => e.getBoundingClientRect());
     const visible = (el) => getComputedStyle(el).display !== 'none';
@@ -106,7 +116,8 @@ function assertWideLayout(state, label) {
   assert.equal(state.threadsInBlocks, 0, `${label}: in-block threads are hidden`);
   assert.equal(state.linesShown, 0, `${label}: block comment lines are hidden`);
   let previous = null;
-  for (const card of state.cards) {
+  // Cards are walked in visual order, top to bottom: a card is pushed under the one above it.
+  for (const card of [...state.cards].sort((a, b) => a.top - b.top)) {
     const pushed = previous !== null && previous.bottom + 8 > card.anchorTop;
     if (pushed) {
       assert.ok(Math.abs(card.top - (previous.bottom + 8)) < 0.6, `${label}: ${card.id} is 8px under the card above`);
@@ -149,6 +160,27 @@ for (const [width, scheme] of wideCombos) {
     });
   }
 }
+
+// P2: a block comment that quotes a phrase lines its card up with that phrase, not with the block. In a long table the
+// two cards come in source order the reverse of page order, so the rail must sort them, and Tab order must follow.
+test('P2: a quoted block comment\'s card lines up with its phrase, in page order', full, async () => {
+  const { page, errors, close } = await open(1280, 'light', urls['long-table.md']);
+  try {
+    await settle(page);
+    const state = await layout(page);
+    assertWideLayout(state, 'long table');
+    const card = Object.fromEntries(state.cards.map((c) => [c.id, c]));
+    assert.ok(Math.abs(card.c1.top - card.c1.anchorTop) <= 4, `c1 (item 25) is at its phrase: top ${card.c1.top}, phrase ${card.c1.anchorTop}`);
+    assert.ok(Math.abs(card.c2.top - card.c2.anchorTop) <= 4, `c2 (item 03) is at its phrase: top ${card.c2.top}, phrase ${card.c2.anchorTop}`);
+    assert.ok(card.c2.top < card.c1.top - 200, `the row 3 card is above the row 25 card (${card.c2.top} < ${card.c1.top})`);
+    const domOrder = state.cards.map((c) => c.id);
+    const visualOrder = [...state.cards].sort((a, b) => a.top - b.top).map((c) => c.id);
+    assert.deepEqual(domOrder, visualOrder, 'the rail\'s DOM order matches the visual order, so Tab follows it');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
 
 test('A6: the content column keeps 900px at 1280 and 1512, and narrows at 1100', full, async () => {
   const widths = {};
