@@ -16,9 +16,12 @@ const {
   noteLines,
   noteFromField,
   fieldFromNote,
+  validTime,
 } = await import('../.build/comments/syntax.js');
 
-const notesIn = (text) => [...text.matchAll(NOTE)].map((m) => ({ ...m.groups }));
+// The groups of each note, without the groups that did not match (a note with no time has no time key).
+const notesIn = (text) =>
+  [...text.matchAll(NOTE)].map((m) => Object.fromEntries(Object.entries(m.groups).filter(([, v]) => v !== undefined)));
 
 test('R1.1: a thread is a highlight and its notes, and stripThread unwraps the highlight', () => {
   const block =
@@ -354,4 +357,57 @@ test('decision 0037: a multi-line note field is still one line of source that NO
   assert.equal(src, '{>>[c2] Quy: first<br><br>third<<}');
   assert.equal(src.split('\n').length, 1);
   assert.deepEqual(notesIn(src), [{ id: 'c2', author: 'Quy', text: 'first<br><br>third' }]);
+});
+
+test('P4: NOTE reads an optional UTC time after the ID, and a note without one has no time key', () => {
+  assert.deepEqual(notesIn('{>>[c1 2026-11-02T14:31Z] Quy: is it stable?<<}'), [
+    { id: 'c1', author: 'Quy', text: 'is it stable?', time: '2026-11-02T14:31Z' },
+  ]);
+  assert.deepEqual(notesIn('{>>[c1] Quy: is it stable?<<}'), [{ id: 'c1', author: 'Quy', text: 'is it stable?' }]);
+  assert.deepEqual(notesIn('{>>[c1 2026-11-02T14:31] Quy: no Z<<}'), []);
+});
+
+test('P4: noteSource writes the time and NOTE reads it back', () => {
+  const src = noteSource({ id: 'c7', author: 'Quy Dinh', text: 'a: b', time: '2026-11-02T14:31Z' });
+  assert.equal(src, '{>>[c7 2026-11-02T14:31Z] Quy Dinh: a: b<<}');
+  assert.deepEqual(notesIn(src), [{ id: 'c7', author: 'Quy Dinh', text: 'a: b', time: '2026-11-02T14:31Z' }]);
+});
+
+test('P4: noteSource throws on a time that is not a real UTC minute', () => {
+  const ok = { id: 'c1', author: 'Quy', text: 'fine' };
+  for (const time of ['2026-13-02T10:00Z', '2026-02-30T10:00Z', '2026-11-02T24:00Z', '2026-11-02T14:60Z', '2025-02-29T10:00Z', '2026-11-02T14:31']) {
+    assert.throws(() => noteSource({ ...ok, time }), /time/, time);
+  }
+});
+
+test('P4: validTime accepts a real UTC minute, leap days included, and rejects the rest', () => {
+  assert.equal(validTime('2024-02-29T23:59Z'), true);
+  assert.equal(validTime('2000-02-29T00:00Z'), true);
+  assert.equal(validTime('2026-11-02T00:00Z'), true);
+  assert.equal(validTime('2026-04-31T10:00Z'), false);
+  assert.equal(validTime('1900-02-29T10:00Z'), false);
+  assert.equal(validTime('2026-00-02T10:00Z'), false);
+  assert.equal(validTime('2026-11-02T10:00'), false);
+  assert.equal(validTime('2026-11-02 10:00Z'), false);
+});
+
+test('P4: appendNote writes the time it is given', () => {
+  const out = appendNote('{>>[c1] Quy: a<<}', 'c1', { id: 'c1', author: 'Claude', text: 'b', time: '2026-11-02T14:31Z' });
+  assert.equal(out, '{>>[c1] Quy: a<<}{>>[c1 2026-11-02T14:31Z] Claude: b<<}');
+});
+
+test('P4: replaceNote keeps the original time of the note it rewrites', () => {
+  assert.equal(
+    replaceNote('{>>[c1 2026-11-02T14:31Z] Quy: first<<}', 'c1', 0, 'changed'),
+    '{>>[c1 2026-11-02T14:31Z] Quy: changed<<}'
+  );
+  assert.equal(
+    replaceNote('{>>[c4 2026-11-02T14:31Z] Quy: "Reddit is out" #2 → why left out?<<}', 'c4', 0, 'why was it left out?'),
+    '{>>[c4 2026-11-02T14:31Z] Quy: "Reddit is out" #2 → why was it left out?<<}'
+  );
+});
+
+test('P4: nextId counts timed notes', () => {
+  assert.equal(nextId('{>>[c2 2026-11-02T14:31Z] Quy: a<<} {>>[c5] B: b<<}'), 'c6');
+  assert.equal(nextId('{>>[c3 2026-11-02T14:31Z] Quy: a<<}'), 'c4');
 });

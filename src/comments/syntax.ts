@@ -2,14 +2,17 @@
 // imports from node or the DOM, because esbuild bundles this file into the edit runtime as well as into the CLI.
 // Every function except nextId works on one block's source and skips backtick code spans.
 
-// {>>[c{n}] {author}: {text}<<}. The author has no ':' or ']', and the text is one non-empty line without '<<}'.
+// {>>[c{n}] {author}: {text}<<}, or {>>[c{n} {YYYY-MM-DDTHH:MMZ}] ...<<} with the UTC minute the note was written
+// (decision 0044; validTime checks it is a real minute). The author has no ':' or ']', and the text is one non-empty
+// line without '<<}'.
 export const NOTE =
-  /\{>>\[(?<id>c[1-9]\d*)\] (?<author>(?:(?!<<\})[^:\]\r\n])+): (?<text>(?:(?!<<\}).)+)<<\}/g;
+  /\{>>\[(?<id>c[1-9]\d*)(?: (?<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z))?\] (?<author>(?:(?!<<\})[^:\]\r\n])+): (?<text>(?:(?!<<\}).)+)<<\}/g;
 
 export interface NoteParts {
   id: string;
   author: string;
   text: string;
+  time?: string; // the UTC minute the note was written, as NOTE reads it: YYYY-MM-DDTHH:MMZ
 }
 
 // A thread as the renderer reports it (architecture "Comment HTML").
@@ -53,7 +56,20 @@ export function fieldFromNote(text: string): string {
   return text.replace(BREAK, '\n');
 }
 
-// The note text the grammar accepts. A note's text can't hold '<<}', and a note can't hold a line break.
+// True when t is a UTC minute that exists: YYYY-MM-DDTHH:MMZ with a real month, day (leap years included), hour and
+// minute. Pure, so the browser runtime can use it too.
+export function validTime(t: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})Z$/.exec(t);
+  if (!m) return false;
+  const [year, month, day, hour, minute] = m.slice(1).map(Number);
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12) return false;
+  return day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59;
+}
+
+// The note text the grammar accepts. A note's text can't hold '<<}', and a note can't hold a line break. The time,
+// when given, must be a real UTC minute.
 export function noteSource(n: NoteParts): string {
   if (!/^c[1-9]\d*$/.test(n.id)) {
     throw new Error(`noteSource: id ${JSON.stringify(n.id)} must look like c1, c2, ... (no leading zero)`);
@@ -66,7 +82,11 @@ export function noteSource(n: NoteParts): string {
   if (n.text.trim() === '') throw new Error('noteSource: the note text is empty');
   if (/[\r\n]/.test(n.text)) throw new Error(`noteSource: the note text ${JSON.stringify(n.text)} must be one line`);
   if (n.text.includes('<<}')) throw new Error(`noteSource: the note text ${JSON.stringify(n.text)} must not hold '<<}'`);
-  return `{>>[${n.id}] ${n.author}: ${n.text}<<}`;
+  if (n.time !== undefined && !validTime(n.time)) {
+    throw new Error(`noteSource: the time ${JSON.stringify(n.time)} must be a real UTC minute like 2026-11-02T14:31Z`);
+  }
+  const head = n.time === undefined ? n.id : `${n.id} ${n.time}`;
+  return `{>>[${head}] ${n.author}: ${n.text}<<}`;
 }
 
 // The next free ID in a whole file: one above the highest in any note, or c1. Gaps are fine.
@@ -122,6 +142,7 @@ function findNotes(block: string): FoundNote[] {
       id: idOf(m),
       author: m.groups?.author ?? '',
       text: m.groups?.text ?? '',
+      time: m.groups?.time,
       start,
       end,
     });
@@ -190,7 +211,8 @@ export function replaceNote(block: string, id: string, index: number, text: stri
   const onBlockLine = index === 0 && block.slice(lineStart, note.start) === '';
   const { quote, occurrence } = onBlockLine ? splitQuote(note.text) : { quote: undefined, occurrence: undefined };
   const body = quote === undefined ? text : quotedText(quote, text, occurrence);
-  return block.slice(0, note.start) + noteSource({ id, author: note.author, text: body }) + block.slice(note.end);
+  const source = noteSource({ id, author: note.author, text: body, time: note.time });
+  return block.slice(0, note.start) + source + block.slice(note.end);
 }
 
 // Removes every note with this ID. When the thread's first note sits directly after a highlight, the highlight's

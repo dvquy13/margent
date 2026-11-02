@@ -4,7 +4,7 @@
 // the core rule raises the RenderError with the file line.
 import type { MarkdownIt, StateCore, StateInline, Token } from 'markdown-it';
 import { RenderError } from '../errors.js';
-import { NOTE, noteLines, splitQuote, type NoteParts, type Thread } from '../comments/syntax.js';
+import { NOTE, noteLines, splitQuote, validTime, type NoteParts, type Thread } from '../comments/syntax.js';
 import { escapeHtml, isBlank, lineRange } from './lines.js';
 import { displayPath } from './root.js';
 
@@ -42,8 +42,9 @@ type ThreadMeta = {
 
 // The NOTE grammar, anchored, for one whole note. NOTE itself is global, so it is never tested directly.
 const WHOLE_NOTE = new RegExp(`^(?:${NOTE.source})$`);
-// A note whose head is right but whose text is empty, such as {>>[c1] Quy: <<} or one that is only breaks.
-const EMPTY_NOTE = /^\{>>\[c[1-9]\d*\] [^:\]\r\n]+:(?:\s|<br\s*\/?>)*<<\}$/i;
+// A note whose head is right but whose text is empty, such as {>>[c1] Quy: <<} or one that is only breaks. The head
+// may carry a time.
+const EMPTY_NOTE = /^\{>>\[c[1-9]\d*(?: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z)?\] [^:\]\r\n]+:(?:\s|<br\s*\/?>)*<<\}$/i;
 // ASCII punctuation, which a backslash escapes in markdown.
 const ASCII_PUNCT = /[!-/:-@[-`{-~]/;
 const ISLAND_MARKER = /^<!--\s*island\b/;
@@ -188,9 +189,14 @@ function noteRule(state: StateInline, silent: boolean): boolean {
   if (highlightDepth(state) > 0) {
     return errorToken(state, at, "a note cannot sit inside a highlight: put it after the ==}", end);
   }
+  // A time that NOTE reads but the calendar doesn't have, such as month 13, is an error at its line (decision 0044).
+  if (groups?.time !== undefined && !validTime(groups.time)) {
+    return errorToken(state, at, `comment time ${groups.time} is not a valid UTC time`, end);
+  }
   // A text of only breaks and spaces has no words, so it is an empty note.
   if (groups && groups.author.trim() !== '' && noteLines(groups.text).join('').trim() !== '') {
     const note: NoteParts = { id: groups.id, author: groups.author, text: groups.text };
+    if (groups.time !== undefined) note.time = groups.time;
     const tok = state.push('c_note', 'span', 0);
     tok.meta = { at, note, src: raw } satisfies NoteMeta;
     state.pos = end;
@@ -199,7 +205,12 @@ function noteRule(state: StateInline, silent: boolean): boolean {
   if (EMPTY_NOTE.test(raw)) {
     return errorToken(state, at, 'comment note has no text: write the note after "{author}: "', end);
   }
-  return errorToken(state, at, 'malformed comment note: expected {>>[c{n}] {author}: {text}<<}', end);
+  return errorToken(
+    state,
+    at,
+    'malformed comment note: expected {>>[c{n}] {author}: {text}<<} or {>>[c{n} {YYYY-MM-DDTHH:MMZ}] {author}: {text}<<}',
+    end
+  );
 }
 
 // ---- renderer rules -------------------------------------------------------
@@ -227,7 +238,12 @@ export function registerComments(md: MarkdownIt): void {
         const text = quoted
           ? `<q class="c-quote"${occurrence}>${escapeHtml(meta.quote!)}</q> ${noteHtml(splitQuote(n.text).body)}`
           : noteHtml(n.text);
-        return `<span class="c-note"><b class="c-author">${escapeHtml(n.author)}</b> ${text}</span>`;
+        // The time's text is the UTC minute as written, so print and no-JS readers see it (decision 0044).
+        const time =
+          n.time === undefined
+            ? ''
+            : ` <time class="c-time" datetime="${n.time}">${n.time.slice(0, 10)} ${n.time.slice(11, 16)} UTC</time>`;
+        return `<span class="c-note"><b class="c-author">${escapeHtml(n.author)}</b>${time} ${text}</span>`;
       })
       .join('');
     return (
