@@ -182,6 +182,19 @@ test('P2: a quoted block comment\'s card lines up with its phrase, in page order
   }
 });
 
+// P2: below 1100px the drawer lists the same cards, and in page order too.
+test('P2: the drawer lists quoted block comments in page order', full, async () => {
+  const { page, errors, close } = await open(390, 'light', urls['long-table.md']);
+  try {
+    await settle(page);
+    const ids = await page.evaluate(() => [...document.querySelectorAll('.c-rail .c-card')].map((c) => c.dataset.c));
+    assert.deepEqual(ids, ['c2', 'c1'], 'the row 3 card comes first');
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
 test('A6: the content column keeps 900px at 1280 and 1512, and narrows at 1100', full, async () => {
   const widths = {};
   for (const width of [1100, 1280, 1512]) {

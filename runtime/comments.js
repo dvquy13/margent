@@ -228,6 +228,8 @@
     if (!wide.matches) {
       for (const card of cards.values()) card.style.top = '';
       if (draft !== null && draft.box.parentNode === rail) dockDraft(draft.box);
+      // The drawer lists the cards in page order too.
+      orderCards([...cards].map(([id, card]) => ({ card, top: wantedTop(id) })).sort((a, b) => a.top - b.top).map((e) => e.card));
       return;
     }
     if (draft !== null && draft.place.note === undefined && draft.box.parentNode !== rail) showDraft(draft.box, draft.place);
