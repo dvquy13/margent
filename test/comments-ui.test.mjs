@@ -1229,3 +1229,96 @@ test(
     );
   })
 );
+
+// ---- P1 Home and End in the comment field (macOS) -----------------------------------------------------------------
+
+// Forty filler paragraphs before the plain paragraph, so the page scrolls and the paragraph sits mid-page.
+const LONG_PAGE = (s) =>
+  s.replace(
+    PLAIN,
+    `${Array.from({ length: 40 }, (_, i) => `Filler paragraph ${i + 1} makes the page taller than the window.`).join('\n\n')}\n\n${PLAIN}`
+  );
+
+// Scrolls the paragraph holding `text` to the middle of the window, as a reader who scrolled down would see it.
+async function centerOn(page, text) {
+  await page.evaluate((text) => {
+    const el = [...document.querySelectorAll('p')].find((p) => p.textContent.includes(text));
+    el.scrollIntoView({ block: 'center' });
+  }, text);
+}
+
+// Marks 'plain' in the mid-page paragraph, opens the comment field, and returns the page's scroll position. The test
+// compares the position after its keys with this one: a page that scrolls on Home fails.
+async function openFieldMidPage(page) {
+  await centerOn(page, PLAIN);
+  await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });
+  assert.equal(await selectedText(page), 'plain');
+  await openNote(page);
+  const y = await page.evaluate(() => window.scrollY);
+  assert.ok(y > 0, 'the page is scrolled down before the keys are pressed');
+  return y;
+}
+
+const commentField = (page) => page.locator('.comment-box .comment-input');
+const scrollY = (page) => page.evaluate(() => window.scrollY);
+
+test(
+  'P1: Home in the comment field moves the caret to the start of the line, and the page does not scroll',
+  full,
+  scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
+    const y = await openFieldMidPage(page);
+    await page.keyboard.type('world');
+    await page.keyboard.press('Home');
+    await page.keyboard.type('hello ');
+    assert.equal(await commentField(page).inputValue(), 'hello world');
+    assert.equal(await scrollY(page), y);
+  })
+);
+
+test(
+  'P1: End after Home moves the caret back to the end of the line, and the page does not scroll',
+  full,
+  scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
+    const y = await openFieldMidPage(page);
+    await page.keyboard.type('world');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('End');
+    await page.keyboard.type('!');
+    assert.equal(await commentField(page).inputValue(), 'world!', 'End is the end of the line');
+    assert.equal(await scrollY(page), y);
+  })
+);
+
+test(
+  'P1: Shift+Home selects from the caret to the start of the line, and the page does not scroll',
+  full,
+  scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
+    const y = await openFieldMidPage(page);
+    await page.keyboard.type('a');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('bc');
+    await page.keyboard.press('Shift+Home');
+    // The selection runs from the start of the second line (2) to the caret (4), not from the start of the field.
+    const sel = await commentField(page).evaluate((el) => [el.selectionStart, el.selectionEnd]);
+    assert.deepEqual(sel, [2, 4]);
+    assert.equal(await scrollY(page), y);
+  })
+);
+
+test(
+  'P1: on two lines, Home goes to the start of the current line and Cmd+Home to the start of the field',
+  full,
+  scenario({ author: 'Ada', prepare: LONG_PAGE }, async ({ page }) => {
+    const y = await openFieldMidPage(page);
+    await page.keyboard.type('a');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('bc');
+    await page.keyboard.press('Home');
+    await page.keyboard.type('X');
+    assert.equal(await commentField(page).inputValue(), 'a\nXbc', 'Home is the start of the second line');
+    await page.keyboard.press('Meta+Home');
+    await page.keyboard.type('Y');
+    assert.equal(await commentField(page).inputValue(), 'Ya\nXbc', 'Cmd+Home is the start of the field');
+    assert.equal(await scrollY(page), y);
+  })
+);

@@ -4,7 +4,7 @@
 // Run `npm run build` first (or `npm test`).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { islandFrameByName, withBrowser } from './helpers/browser.mjs';
@@ -280,6 +280,40 @@ test('R5.1: blocks that pass the gate get no edit control; every other block get
     assert.equal(Math.round(box.x), 0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 0, `no horizontal page scroll (overflow ${overflow}px)`);
+    assert.deepEqual(errors, []);
+  });
+});
+
+// ---- P1 Home and End in the panel (macOS) -------------------------------------------------------------------------
+
+// Forty filler paragraphs before the intro paragraph, so the page scrolls and the paragraph sits mid-page.
+const LONG_PANEL = (s) =>
+  s.replace(
+    'Intro paragraph for the panel tests.',
+    `${Array.from({ length: 40 }, (_, i) => `Filler paragraph ${i + 1} makes the page taller than the window.`).join('\n\n')}\n\nIntro paragraph for the panel tests.`
+  );
+
+test('P1: Home in the panel moves the caret to the start of the line, and the page does not scroll', full, async (t) => {
+  const served = await site(t);
+  writeFileSync(join(served.root, 'panel.md'), LONG_PANEL(served.read('panel.md')));
+  await withBrowser(async (browser) => {
+    const { page, errors, close } = await openServedPage(browser, served, 'panel.md');
+    t.after(close);
+    // The table's block (its range moved with the filler), scrolled to the middle of the window.
+    const src = await page.locator('table').first().evaluate((el) => el.closest('[data-src]').getAttribute('data-src'));
+    await page.evaluate(() => document.querySelector('table').scrollIntoView({ block: 'center' }));
+    await page.locator(`[data-src="${src}"]`).hover();
+    await page.locator(`[data-src="${src}"] .edit-control`).click();
+    const text = page.locator('.edit-panel-text');
+    await text.waitFor();
+    // A click past the end of the first line puts the caret at its end, so Home has somewhere to go.
+    await text.click({ position: { x: 200, y: 12 } });
+    const y = await page.evaluate(() => window.scrollY);
+    assert.ok(y > 0, 'the page is scrolled down before the keys are pressed');
+    await page.keyboard.press('Home');
+    await page.keyboard.type('X');
+    assert.ok((await text.inputValue()).startsWith('X|'), 'the X is at the start of the first line');
+    assert.equal(await page.evaluate(() => window.scrollY), y);
     assert.deepEqual(errors, []);
   });
 });

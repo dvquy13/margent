@@ -3,6 +3,8 @@
 // the block's lines. While the panel is open its text is unsaved, so it is the page's dirty state (spec R7.3).
 // Sets margent.openPanel(range, { text, errors, notice }).
 
+import { lineKeys } from './keys.js';
+
 const EVENT_PANEL = 'margent:panel';
 const RANGE = /^(\d+)-(\d+)$/;
 
@@ -202,6 +204,7 @@ export function initPanel(margent) {
   saveBtn.addEventListener('click', submit);
   cancelBtn.addEventListener('click', cancel);
   panel.addEventListener('keydown', (e) => {
+    if (lineKeys(e)) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       cancel();

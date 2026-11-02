@@ -3,6 +3,7 @@
 // the thread's card. A new comment is a draft card; a reply is a field at the foot of its thread's card; an owner's edit
 // replaces its note's text with the field. Every save is one margent.save of one block (decision 0021): the block's new
 // source is built here from its markdown with the syntax module.
+import { IS_MAC, lineKeys } from './keys.js';
 import {
   appendNote,
   fieldFromNote,
@@ -21,7 +22,6 @@ const PENDING = 'margent-pending';
 
 // The comment shortcut: Cmd+Option+M on macOS, Ctrl+Alt+M elsewhere (as Google Docs). The island's guest matches the same
 // keys (guest.js). e.code, not e.key: Option+M types µ on a Mac.
-const IS_MAC = /Mac/.test(navigator.platform);
 const SHORTCUT = IS_MAC
   ? { keys: 'Meta+Alt+M', label: '⌥⌘M' }
   : { keys: 'Control+Alt+M', label: 'Ctrl+Alt+M' };
@@ -401,6 +401,7 @@ export function initComments(margent) {
 
   function attachDraft(d) {
     d.editor.addEventListener('keydown', (e) => {
+      if (lineKeys(e)) return;
       // Shift+Enter, and Enter while composing, keep the field's own newline (decision 0037).
       if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
       e.preventDefault();
