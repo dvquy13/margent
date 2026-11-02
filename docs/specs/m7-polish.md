@@ -1,6 +1,6 @@
 ---
 title: M7 spec · Polish
-status: accepted
+status: done
 updated: 2026-11-02
 ---
 
@@ -19,4 +19,9 @@ M7 fixes two annoyances in the served page and adds two features the user asked 
 
 ## Results
 
-Not yet run.
+- P1 met. The new tests fail on the old runtime because Home left the caret where it was. Headless Chrome didn't scroll the page, so the caret assertions prove the fix, not the scroll checks. The tests run on macOS only (`fullMac` in `test/helpers/tier.mjs`), since other platforms keep the browser's keys.
+- P2 met, in the rail and in the drawer, which lists cards in page order too. Not covered: a phrase quoted inside an island still lines up with the island's top, since the page can't measure inside the frame. That needs the guest to report the phrase's rect.
+- P3 met. `claude plugin eval` passes.
+- P4 met. Served-page tests and the edit corpus pin the browser clock (`PINNED_NOW` in `test/helpers/serve-page.mjs`), so new notes in the corpus expected files carry `2026-11-02T14:31Z`.
+- `npm run test:full`: 768 pass, 0 fail, 1 skipped (the screenshot test, which runs only with `UPDATE_SHOTS`).
+- Not yet checked: a real review round on the release that ships M7.

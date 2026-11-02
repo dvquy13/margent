@@ -2,7 +2,7 @@
 title: margent design
 status: draft
 version: v0.1
-updated: 2026-10-27
+updated: 2026-11-02
 ---
 
 # margent design
@@ -213,8 +213,9 @@ The filter keeps {==96% of GitHub issues==}{>>[c3] Quy: is that stable across re
 
 - **Creating one:** select text in a served page and type a note. The page maps the selection to the block's source through house turndown, snapping it outward to whole formatting, links and code ([0020](../decisions/0020-selection-maps-through-turndown-sentinels.md)). Tables, islands, code, figures and HTML blocks take a block comment line instead, a paragraph of notes right after the block, so island data never holds comment markup.
 - **Saving:** every comment operation is an ordinary block save through the M2 save path, with the author taken from git ([0021](../decisions/0021-comment-operations-are-block-saves.md)).
-- **Display:** highlights in the text, notes in the margin or under their block where there is no room, and an open-comment count in the header.
+- **Display:** highlights in the text, notes in the margin (level with their highlight, or with the quoted phrase of a block comment) or under their block where there is no room, and an open-comment count in the header.
 - **Threads:** replies are further comments with the same ID.
+- **Time:** a note can carry the UTC minute it was written, `{>>[c3 2026-11-02T14:31Z] Quy: …<<}`. The page writes it on new notes and replies, agents write it on theirs, and cards show it as a relative time ([0044](../decisions/0044-notes-carry-utc-time.md)).
 - **Agent contract:** `margent comments {path}` lists the threads. For each one that needs the agent, make the change when the comment asks for exactly that change, then reply with one line saying what changed and where. Reply too for a question, a judgment call or a disagreement. The thread stays open either way, because only the user resolves it, and the reply is how they see what the agent did (decision 0035). Finish by reporting how many threads still need the agent and how many need you.
 - **Sharing:** `margent export {path} --md --clean` writes a markdown copy with comments and island markers stripped, for sending markdown to someone else.
 
@@ -227,7 +228,7 @@ For detail, see the [M3 spec](../specs/m3-comments.md).
 | Skill `margent` | The format rules (sections [Doc format](#doc-format) and [Islands](#islands)), when an island earns its place, and the comment contract. It loads `/design-principles` before designing a new island. |
 | Skills `docs-open`, `docs-serve`, `docs-review` | The user-invoked commands (`disable-model-invocation: true`): render and open a doc, serve a folder for review, and work through open comments. |
 | CLI | `open`, `serve`, `check`, `comments`, `export`, `init`, `teardown`. Agents call `check` to confirm a doc builds. Failures exit non-zero with `file:line`. |
-| One marked block of project setup | The skill runs `margent init`, which writes a short block into the nearest `AGENTS.md` or `CLAUDE.md`, so a colleague's agent without the skill still keeps comment markup and runs `check` ([0040](../decisions/0040-init-writes-nearest-agents-file.md)). `margent teardown` removes it. Nothing else changes: no config file, no gitignore entry. Agents learn the full workflow from the skill, which loads when they write or edit a doc. `serve` takes the docs folder as an argument. Islands resolve by walking up from the doc to the nearest `islands/` folder. Renders never land in the repo. |
+| One marked block of project setup | The skill runs `margent init`, which writes a short block into the nearest `AGENTS.md` or `CLAUDE.md`, so a colleague's agent without the skill still keeps comment markup and runs `check` ([0040](../decisions/0040-init-writes-nearest-agents-file.md)). The first time in a repository, the skill asks the user which file gets it; `CLAUDE.local.md` keeps it to the user alone, out of git through the repository's own exclude file ([0043](../decisions/0043-init-asks-which-file.md)). `margent teardown` removes it. Nothing else changes: no config file, no shared gitignore entry. Agents learn the full workflow from the skill, which loads when they write or edit a doc. `serve` takes the docs folder as an argument. Islands resolve by walking up from the doc to the nearest `islands/` folder. Renders never land in the repo. |
 
 ### First user migration
 
