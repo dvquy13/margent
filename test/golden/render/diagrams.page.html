@@ -289,6 +289,97 @@ footer.wrap::before { content: ""; display: block; border-top: 1px solid var(--b
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
+/* Mermaid diagrams, drawn by pele (spec D4, D1.5, D1.6). Inlined only on pages with a diagram, after shell.css.
+   Every colour, font and radius is a page token, so the theme toggle and dark mode need no re-render.
+   The two ink colours are the only literals: pele picks a label's ink by the luminance of the fill it sits on,
+   so they stay dark and light whatever the theme. */
+
+.diagram {
+  /* pele's variables (node_modules/pele/dist), set from the page tokens */
+  --pele-bg: var(--bg);
+  --pele-fg: var(--text);
+  --pele-muted: var(--text-muted);
+  --pele-line: var(--text-muted);
+  --pele-surface: var(--bg2);
+  --pele-surface-alt: var(--bg3);
+  --pele-border: color-mix(in srgb, var(--text) 30%, var(--bg));
+  --pele-accent: var(--accent);
+  --pele-critical: var(--red);
+  --pele-error: var(--red);
+  --pele-fg-on-light: #0a0a0a;
+  --pele-fg-on-dark: #ffffff;
+  --pele-font: var(--font-ui);
+  --pele-font-mono: var(--mono);
+  --pele-radius: var(--radius-sm);
+
+  /* Series palette: accent first, then steps of accent and grey. Status colours stay out of it. */
+  --pele-series-1: var(--accent);
+  --pele-series-2: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+  --pele-series-3: var(--text-muted);
+  --pele-series-4: color-mix(in srgb, var(--accent) 60%, var(--pele-fg-on-dark));
+  --pele-series-5: color-mix(in srgb, var(--text) 70%, var(--bg));
+  --pele-series-6: color-mix(in srgb, var(--accent) 70%, var(--text));
+  --pele-series-7: color-mix(in srgb, var(--text-muted) 50%, var(--bg));
+  --pele-series-8: color-mix(in srgb, var(--accent) 45%, var(--text-muted));
+
+  container-type: inline-size;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Two layouts, one shown. Below 640px of figure width the narrow one; print always the wide one (below). */
+.diagram .diagram-narrow { display: none; }
+@container (max-width: 639.98px) {
+  .diagram .diagram-wide { display: none; }
+  .diagram .diagram-narrow { display: block; }
+}
+@media print {
+  .diagram .diagram-narrow { display: none; }
+  .diagram .diagram-wide { display: block; }
+}
+
+/* An SVG takes its figure's width up to its natural width (--w), and never goes below 75% of it: then the figure scrolls.
+   min-width beats the max-width pele sets inline. */
+.diagram svg {
+  display: block;
+  width: min(100%, var(--w));
+  min-width: calc(var(--w) * 0.75);
+  height: auto;
+}
+@media print {
+  .diagram svg { min-width: 0; }
+}
+
+/* Named styles on nodes: a node's shape takes --node-fill and --node-stroke, its label --node-label. */
+.diagram .pele-node:is(.accent, .muted, .go, .warn, .stop, .done) > :is(rect, circle, ellipse, polygon, path):not(.pele-divider) {
+  fill: var(--node-fill);
+  stroke: var(--node-stroke);
+}
+.diagram .pele-node:is(.accent, .muted, .go, .warn, .stop, .done) .pele-label {
+  fill: var(--node-label);
+}
+.diagram .pele-node.accent {
+  --node-fill: var(--accent-light); --node-stroke: var(--accent); --node-label: var(--text);
+}
+.diagram .pele-node.muted {
+  --node-fill: var(--bg2); --node-stroke: var(--border); --node-label: var(--text-muted);
+}
+/* The four status tones take the colours the kit's tone() gives them (runtime/kit.js): go green, warn amber, stop red, done accent. */
+.diagram .pele-node.go {
+  --node-fill: color-mix(in srgb, var(--green) 14%, var(--bg)); --node-stroke: var(--green); --node-label: var(--text);
+}
+.diagram .pele-node.warn {
+  --node-fill: color-mix(in srgb, var(--amber) 14%, var(--bg)); --node-stroke: var(--amber); --node-label: var(--text);
+}
+.diagram .pele-node.stop {
+  --node-fill: color-mix(in srgb, var(--red) 14%, var(--bg)); --node-stroke: var(--red); --node-label: var(--text);
+}
+.diagram .pele-node.done {
+  --node-fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); --node-stroke: var(--accent); --node-label: var(--text);
+}
+
 /* Page-level island styles. Colors come from theme tokens only (defined on :root by the shell). */
 agent-island {
   display: block;
