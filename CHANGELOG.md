@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/dvquy13/margent/compare/v0.9.0...v0.10.0) (2026-11-03)
+
+
+### Features
+
+* the serve index is a collapsible folder tree ([ff4f67d](https://github.com/dvquy13/margent/commit/ff4f67d77e1aaf6482e8349063f5e964dea004f4))
+
 ## [0.9.0](https://github.com/dvquy13/margent/compare/v0.8.0...v0.9.0) (2026-11-02)
 
 
