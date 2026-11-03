@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.11.0](https://github.com/dvquy13/margent/compare/v0.10.0...v0.11.0) (2026-11-03)
+
+
+### Features
+
+* a comment after a mermaid fence anchors to the diagram ([ed1e2e6](https://github.com/dvquy13/margent/commit/ed1e2e67e32530ed4e11c21f38b00dd3715ffb97))
+* a diagram's edit control is labelled as a diagram ([1d870ce](https://github.com/dvquy13/margent/commit/1d870ce941f2340bc9cdd79f6ee78777cd7a040e))
+* check fails on a diagram too wide for the page column ([17794bb](https://github.com/dvquy13/margent/commit/17794bbf9aad03a43efee3a825a1a4afabb28a07))
+* comments quote and mark phrases in a diagram's shown layout ([ed2d16b](https://github.com/dvquy13/margent/commit/ed2d16bc4077170274d0d399c1e51d802641d860))
+* diagrams take the page tokens, named styles and a layout per width ([59f9374](https://github.com/dvquy13/margent/commit/59f937487ba420515e04210bac61656fabe8dd0d))
+* mermaid errors are render errors at their line in the doc ([1c58478](https://github.com/dvquy13/margent/commit/1c58478bd4a4188c47371a2ad5bb27c7dc637f67))
+* mermaid fences render as inline SVG through pele, in two layouts ([562949c](https://github.com/dvquy13/margent/commit/562949c605474de697efeabba0b9c992a24e2812))
+* the skill draws diagrams as Mermaid first, then SVG, then islands ([ffc6119](https://github.com/dvquy13/margent/commit/ffc6119715a4e31134f4ecf742a29c2c56f1272f))
+
+
+### Bug Fixes
+
+* a diagram's comment button names it a diagram, as its edit control does ([1b16ec4](https://github.com/dvquy13/margent/commit/1b16ec4442351278bdf333632ed7b6c97ae4ba6d))
+* licence notices are found through a symlinked node_modules too ([7d1be7e](https://github.com/dvquy13/margent/commit/7d1be7e9b770376fd6e8a86a43233947ab0a774b))
+
+
+### Performance
+
+* pele is its own dist/pele.cjs, so a run without diagrams doesn't parse it ([bb65c13](https://github.com/dvquy13/margent/commit/bb65c13e56f11fe88dc048c3330fd2ed4d8ab5f9))
+
+
+### Documentation
+
+* architecture and README for Mermaid diagrams ([7b53dfa](https://github.com/dvquy13/margent/commit/7b53dfab83dad9df5e323b148d583e3ce61dcd2e))
+* close M8, Mermaid diagrams ([2a9db0b](https://github.com/dvquy13/margent/commit/2a9db0b9a59a312f22af65e6b5884a3a7609374b))
+* M8 Mermaid diagrams, decisions 0045 and 0046, spec and plan ([4f708f9](https://github.com/dvquy13/margent/commit/4f708f94934a8407df252f7f7abed1032ca8fd7e))
+* M8 Phase 0, highlights on SVG text, label fit and baselines ([0254aad](https://github.com/dvquy13/margent/commit/0254aada86704434e1227125d918be6dba13124c))
+* M8 plan, Phase 1 done ([efdb9b3](https://github.com/dvquy13/margent/commit/efdb9b3e0c8e978da31025962c11e0bd84796d1c))
+* M8 plan, Phase 3 done and T14 recorded ([eaecf15](https://github.com/dvquy13/margent/commit/eaecf15fbc42015aade3e39599671af348c58504))
+* M8 plan, Phases 2 and 3 progress ([132cb49](https://github.com/dvquy13/margent/commit/132cb49b9d9d620fa645e1e218c600f6308a62aa))
+* status lists the 0.9.0 and 0.10.0 releases ([e909e53](https://github.com/dvquy13/margent/commit/e909e53ed1a7375e5f26e50dafb05297aade938d))
+* the edit runtime's save path as a Mermaid diagram ([cff98dd](https://github.com/dvquy13/margent/commit/cff98dd5bdf9d65f32100e1d487f634390b9f03d))
+
 ## [0.10.0](https://github.com/dvquy13/margent/compare/v0.9.0...v0.10.0) (2026-11-03)
 
 
