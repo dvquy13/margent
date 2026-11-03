@@ -355,6 +355,26 @@ test('the index shows a doc with bad frontmatter with its file:line, never drops
   assert.match(r.text, /bad-meta\.md:3: invalid frontmatter YAML: Flow sequence/);
 });
 
+test('the index is a folder tree: closed folders before the root docs, nested, each counting what it holds', async (t) => {
+  const s = await site(t);
+  mkdirSync(join(s.root, 'sub', 'deeper'));
+  writeFileSync(join(s.root, 'sub', 'deeper', 'leaf.md'), '# Leaf\n');
+  writeFileSync(join(s.root, 'sub', 'deeper', 'bad.md'), '---\ntitle: [unclosed\n---\n# Bad\n');
+  const r = await request(s.port, { path: '/', headers: { Cookie: s.cookie } });
+  assert.equal(r.status, 200);
+  assert.doesNotMatch(r.text, /<details[^>]* open/, 'every folder starts closed');
+  const sub = r.text.indexOf('<details class="index-folder"><summary><span class="folder-name">sub/</span>');
+  const deeper = r.text.indexOf('<span class="folder-name">deeper/</span>');
+  assert.ok(sub !== -1 && deeper > sub, 'deeper/ sits inside sub/');
+  assert.ok(r.text.indexOf('href="sub/deeper/leaf.html"') > deeper, 'a nested doc sits inside its folder');
+  assert.ok(r.text.indexOf('href="valid.html"') > deeper, 'the root docs come after the folders');
+  assert.match(
+    r.text,
+    /<span class="folder-name">sub\/<\/span><span class="fact">3 docs<\/span><span class="fact fact-error">1 error<\/span><\/summary>/,
+    'a closed folder counts the docs and errors of its subfolders, so an error is never hidden'
+  );
+});
+
 test('the index on the frozen margent docs lists every .md that markdownUnder finds (read only)', async (t) => {
   const h = await startServer({ root: MARGENT_CORPUS, port: 0 });
   t.after(() => h.close());

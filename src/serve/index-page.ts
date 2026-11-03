@@ -1,8 +1,9 @@
-// The doc index served at `/` (spec R1.3). Every .md under the root, grouped by folder, with the title, status and
-// updated from frontmatter. A doc whose frontmatter fails to parse is listed with its error, never dropped.
+// The doc index served at `/` (spec R1.3). Every .md under the root as a folder tree, with the title, status and
+// updated from frontmatter. Folders are native <details>, closed until clicked, so the page still runs no script.
+// A doc whose frontmatter fails to parse is listed with its error, never dropped.
 import { readFileSync } from 'node:fs';
 import MarkdownIt from 'markdown-it';
-import { basename, dirname, join, relative, sep } from 'node:path';
+import { basename, join, relative, sep } from 'node:path';
 // markdown-it-front-matter ships no type declarations.
 // @ts-ignore
 import frontMatterPlugin from 'markdown-it-front-matter';
@@ -77,14 +78,64 @@ function entryHtml(entry: IndexEntry): string {
   return `<li><a href="${escapeHtml(href)}">${escapeHtml(entry.title)}</a>${facts}${path}${error}</li>`;
 }
 
+interface Folder {
+  name: string;
+  folders: Map<string, Folder>;
+  docs: IndexEntry[];
+}
+
+function newFolder(name: string): Folder {
+  return { name, folders: new Map(), docs: [] };
+}
+
+function allDocs(folder: Folder): IndexEntry[] {
+  return [...folder.docs, ...[...folder.folders.values()].flatMap(allDocs)];
+}
+
+// Subfolders by name, then the folder's own docs, as a file browser lists them.
+function folderBody(folder: Folder): string {
+  const subfolders = [...folder.folders.values()]
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+    .map(folderHtml)
+    .join('');
+  const docs = folder.docs.length > 0 ? `<ul class="index-list">${folder.docs.map(entryHtml).join('')}</ul>` : '';
+  return subfolders + docs;
+}
+
+// A closed folder still says what it holds: its doc count, open threads and errors, counted through every subfolder,
+// so an error is never hidden behind a closed folder.
+function folderHtml(folder: Folder): string {
+  const docs = allDocs(folder);
+  const open = docs.reduce((n, d) => n + d.open, 0);
+  const errors = docs.filter((d) => d.error !== undefined).length;
+  const facts = [
+    `<span class="fact">${docs.length === 1 ? '1 doc' : `${docs.length} docs`}</span>`,
+    open > 0 ? `<span class="fact">${open} open</span>` : '',
+    errors > 0 ? `<span class="fact fact-error">${errors === 1 ? '1 error' : `${errors} errors`}</span>` : '',
+  ].join('');
+  return `<details class="index-folder"><summary><span class="folder-name">${escapeHtml(folder.name)}/</span>${facts}</summary><div class="folder-body">${folderBody(folder)}</div></details>`;
+}
+
 const INDEX_CSS = `
-.index-folder { margin-top: var(--gap-lg); }
-.index-folder h2 { font-size: var(--font-sm); font-weight: 600; color: var(--text-muted); margin: 0 0 var(--gap-sm); }
+/* The scrollbar's gutter is kept while the index is short, so opening a folder never shifts the column */
+html { scrollbar-gutter: stable; }
+/* The tree's rows: top-level folders, then the root's own docs, like a file browser */
+.index-tree { --chev: 1.5rem; }
+.index-folder > summary { display: flex; align-items: baseline; cursor: pointer; list-style: none; padding: var(--gap-sm) 0; }
+.index-folder > summary::-webkit-details-marker { display: none; }
+.index-folder > summary::before { content: '›'; flex: none; align-self: center; width: var(--chev); text-align: center; font-size: 1.4rem; line-height: 1; color: var(--text-muted); transition: transform 0.1s; }
+.index-folder[open] > summary::before { transform: rotate(90deg); color: var(--accent); }
+.index-folder > summary:hover .folder-name { color: var(--accent); }
+.folder-name { font-family: var(--mono); font-weight: 600; color: var(--text); }
+/* Each level steps in one chevron column, so a child's chevron sits under its parent's name */
+.folder-body { padding-left: var(--chev); }
 .index-list { list-style: none; margin: 0; padding: 0; }
-.index-list li { padding: var(--gap-sm) 0; border-top: 1px solid var(--border); }
+/* A doc keeps the chevron's column empty, so doc titles and folder names share one left edge per level */
+.index-list li { padding: var(--gap-sm) 0 var(--gap-sm) var(--chev); max-width: none; }
 .index-list a { color: var(--text); font-weight: 600; text-decoration: none; }
 .index-list a:hover { color: var(--accent); }
-.index-list .fact { margin-left: var(--gap-sm); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.fact { margin-left: var(--gap-sm); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.fact-error { color: var(--red); }
 .index-list .entry-path { display: block; margin-top: var(--gap-xs); font-family: var(--mono); font-size: var(--font-sm); color: var(--text-muted); overflow-wrap: anywhere; }
 .entry-error { margin: var(--gap-xs) 0 0; color: var(--red); font-size: var(--font-sm); }
 .entry-error code { font-family: var(--mono); white-space: pre-wrap; }
@@ -92,25 +143,23 @@ const INDEX_CSS = `
 
 // The index page for a served root. Throws when the root cannot be read (the server answers 500 with the message).
 export function indexPage(root: string): string {
-  const folders = new Map<string, IndexEntry[]>();
+  const tree = newFolder('');
   const files = markdownUnder(root);
   for (const file of files) {
     const entry = entryFor(file, root);
-    const folder = dirname(entry.rel) === '.' ? '' : dirname(entry.rel);
-    const list = folders.get(folder) ?? [];
-    list.push(entry);
-    folders.set(folder, list);
+    const parts = entry.rel.split('/').slice(0, -1);
+    let folder = tree;
+    for (const part of parts) {
+      let next = folder.folders.get(part);
+      if (!next) {
+        next = newFolder(part);
+        folder.folders.set(part, next);
+      }
+      folder = next;
+    }
+    folder.docs.push(entry);
   }
-  // The root's own docs first, then each folder by path.
-  const order = [...folders.keys()].sort((a, b) => (a === b ? 0 : a === '' ? -1 : b === '' ? 1 : a < b ? -1 : 1));
-  const sections = order
-    .map((folder) => {
-      const entries = folders.get(folder) ?? [];
-      return `<section class="index-folder"><h2>${escapeHtml(folder === '' ? 'Top level' : folder)}</h2><ul class="index-list">${entries
-        .map(entryHtml)
-        .join('')}</ul></section>`;
-    })
-    .join('\n');
+  const sections = files.length > 0 ? `<div class="index-tree">${folderBody(tree)}</div>` : '';
   const name = escapeHtml(projectName(root));
   const count = files.length === 1 ? '1 doc' : `${files.length} docs`;
   return `<!doctype html>
