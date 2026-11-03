@@ -11,7 +11,7 @@ function loadPele(): Pele {
   return pele;
 }
 
-// The page's --font-ui (shell/shell.css), so a diagram's text is set in the page's font.
+// A copy of the page's --font-ui (shell/shell.css), so a diagram's text is set in the page's font. Change both together.
 const FONT_UI = "'Google Sans Flex', 'Inter', system-ui, -apple-system, sans-serif";
 const WIDE_MAX = 900; // the page column (spec D1.2)
 const NARROW_MAX = 358; // a phone-width figure (spec D1.2)

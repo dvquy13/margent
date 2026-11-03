@@ -339,8 +339,8 @@ For milestone detail, see the [M1 spec](../specs/m1-render-islands.md), the [M2 
 | M2 Serve + edit | Done | Local server with a session token, live reload, in-place prose editing behind the gate, side panel, stale-save check. | 40+ scripted edits on the first user's docs in Chrome each give their expected file, with no byte changed outside the edited block. |
 | M3 Comments | Done | Select-to-comment, margin notes, open count, the `comments` command, the agent contract and `export --clean`. | 25+ scripted comment cases in Chrome give their expected files, and the agent resolves or answers every comment on a real review. |
 | M5 Ship | Done | Island sandbox (a frame per island, checks run in the guest), a script policy on every page, no island code run in Node, comments inside islands, `doctor`, and a README section for agents. | everything works on this machine, including a local install from the `npm pack` tarball ([0026](../decisions/0026-m5-done-when-it-works-on-this-machine.md)). |
-| M8 Mermaid diagrams | Next | `mermaid` fences drawn by pele as inline SVG in the page's theme, named node styles, comments on diagrams, and the three visual tiers in the skill. | the acceptance checks pass and the user reviews and accepts a Mermaid diagram in a real doc. |
+| M8 Mermaid diagrams | Done | `mermaid` fences drawn by pele as inline SVG in the page's theme, named node styles, comments on diagrams, and the three visual tiers in the skill. | the acceptance checks pass and the user reviews and accepts a Mermaid diagram in a real doc. |
 
-*M1, M2, M3 and M5 are done, and M8 is next. M4 (a shared island catalog) is cut, see [0034](../decisions/0034-no-island-catalog.md).*
+*M1, M2, M3, M5 and M8 are done. M4 (a shared island catalog) is cut, see [0034](../decisions/0034-no-island-catalog.md).*
 
 Spike evidence is in the pre-public archive.

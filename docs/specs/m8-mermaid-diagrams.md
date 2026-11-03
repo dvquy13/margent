@@ -1,6 +1,6 @@
 ---
 title: M8 spec · Mermaid diagrams
-status: draft
+status: done
 updated: 2026-11-03
 ---
 
@@ -114,6 +114,26 @@ Each item is checked by a test or a recorded run on this machine.
 | A7 | `margent --version` and `check` on a doc without diagrams are as fast as on `main`, and `dist/cli.js`'s size is recorded. | Recorded run |
 | A8 | `claude plugin eval` passes every case 3/3, the D8.3 cases included. | Recorded run |
 | A9 | The real doc: the user reviews the diagram in `serve` in both themes, leaves at least one comment on it, and accepts it. | Recorded review |
+
+## Results
+
+Closed 2026-11-03 on branch `m8-mermaid-diagrams`, not yet released.
+
+- **A1 met.** `npm run test:full`: 828 tests, 827 pass and the opt-in `UPDATE_SHOTS` screenshots skip. `npm run typecheck` exits 0. The branch adds one golden (`test/golden/render/diagrams.page.html`) and changes none.
+- **A2 met.** `test/fixtures/render/docs/diagrams.md` holds one diagram of each listed type and matches its golden; D1.4 in `test/diagrams.test.mjs` renders it under `TZ=UTC` and `TZ=America/Los_Angeles` and compares the bytes.
+- **A3 met.** `test/diagrams-errors.test.mjs` runs the fixtures in `test/fixtures/diagrams/errors/` (`syntax`, `semantic`, `limit`, `unsupported`, `relative-link`) through `check`, `open` and `export`.
+- **A4 met.** `test/diagrams-fit.test.mjs` (full tier) at 390 and 1280 px, both themes, with the web font loaded and with it blocked and taken out of the stack. Not covered by the label check: mindmap text nodes, which have no shape, and gantt, pie, quadrant and xychart, which have no `pele-node`; for those only the spill checks apply.
+- **A5 met.** `test/diagrams-check.test.mjs` (a 1365 px diagram fails `check`, `fits.md` under 1200 px passes) and the A5 test in `test/diagrams-fit.test.mjs` (its figure scrolls, the page doesn't).
+- **A6 met.** Edit corpus cases `test/edit-corpus/cases/diagrams/` (a selection and a repeated phrase), and D5.2 and D5.4 in `test/diagrams-comments.test.mjs` (a missing quote fails `check` naming `diagram`; hovering the card marks the phrase in the shown layout and lines the card up with it).
+- **A7 met.** 15 alternating runs against a `main` build at `e909e53`, load about 3.5: `--version` median 53.2 ms against 53.0, `check` on `test/fixtures/render/docs/basic.md` 60.5 ms against 59.6. `dist/cli.js` is 845,440 bytes (`main` 836,779) and `dist/pele.cjs` 737,323.
+- **A8 met.** `claude plugin eval . -j 3`, with and without the plugin: all 13 cases pass 3/3 with it, the three D8.3 cases included; mean Δ +0.69.
+- **A9 met.** The edit runtime's save path in [architecture.md](../architecture.md#edit-runtime), reviewed by the user in `serve` in both themes. Two comments on it anchored to the diagram and quoted a two-line node label and a decision label, `check` passed with them, and the user accepted the diagram.
+
+What differed from the spec:
+
+- No requirement changed. Choices the spec left open: `directionBreakpoint` is 1200, and a diagram's caption is the italic paragraph after its fence, with no `figcaption`.
+- A diagram's comment button first said "figure" while its edit control said "diagram". Both now take their label from one `kindOf` in `runtime/edit/panel.js`.
+- Writing the A9 diagram showed that a decision nested under a decision steps to the right, so long labels made the narrow layout wider than a phone column (539 px). Shorter outcome labels brought it to 466 px, within the 75% floor. D3.2 allows the scroll; the doc avoided it.
 
 ## Risks
 

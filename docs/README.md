@@ -11,7 +11,7 @@ Where each kind of doc lives, the rules for writing them, and the status of ever
 | Decisions | `docs/decisions/{NNNN}-{slug}.md` | one decision per file, append-only |
 | Specs (one milestone, testable) | `docs/specs/{milestone}-{slug}.md` | |
 | Plans (task order) | `docs/plans/{milestone}-{slug}.md` | Tracker section at the top. Delete when the milestone closes, once its contracts are in `architecture.md` and its outcomes in the spec's Results; git history keeps it |
-| Diagrams | `docs/assets/{name}.svg` | standalone SVG, see Diagrams |
+| Diagrams | a `mermaid` fence in the doc, or `docs/assets/{name}.svg` | Mermaid by default, SVG when the layout carries meaning, see Diagrams |
 | Doc islands | `docs/islands/{name}.island.js` | island modules used by the docs in `docs/` |
 
 If a fact fits two homes, put it in one and link from the other. Don't duplicate it.
@@ -51,6 +51,8 @@ Update `updated:` on every content change, and keep `docs/README.md`'s table in 
 
 ## Diagrams
 
+- Draw a diagram as a `mermaid` fence in the doc, with an italic caption line after it ([0046](decisions/0046-three-visual-tiers.md)). The `margent` skill's `references/diagrams.md` has the types, named styles and width rule. Look at it in the page at desktop and phone widths before keeping it.
+- Draw a standalone SVG only when the layout carries meaning that auto-layout can't give, or a Mermaid diagram fails that look.
 - Each SVG is standalone: `xmlns`, `class="mg-d"`, `data-asset="{name}.svg"`, `role="img"`, an `aria-label` stating its claim, and an embedded `<style>`. Copy the `<style>` from an existing asset.
 - Colors use `var(--page-token, var(--d-fallback))`. Standalone (GitHub, image viewers), the `--d-*` fallbacks apply, including a dark-mode media query. Inlined into a rendered page, the page's tokens win, so the page's theme switch works.
 - A doc references a diagram as an image, followed by an italic caption line:
@@ -74,5 +76,4 @@ Update `updated:` on every content change, and keep `docs/README.md`'s table in 
 | [specs/m5-ship.md](specs/m5-ship.md) | done | 2026-10-25 |
 | [specs/m6-review-feedback.md](specs/m6-review-feedback.md) | done | 2026-10-27 |
 | [specs/m7-polish.md](specs/m7-polish.md) | done | 2026-11-02 |
-| [specs/m8-mermaid-diagrams.md](specs/m8-mermaid-diagrams.md) | draft | 2026-11-03 |
-| [plans/m8-mermaid-diagrams.md](plans/m8-mermaid-diagrams.md) | draft | 2026-11-03 |
+| [specs/m8-mermaid-diagrams.md](specs/m8-mermaid-diagrams.md) | done | 2026-11-03 |
