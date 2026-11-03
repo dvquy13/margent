@@ -44,6 +44,7 @@ export interface RenderedDoc {
   islands: { name: string; kind: string; line: number }[]; // in document order
   deps: string[]; // sorted absolute paths: the .md, each island module used, each inlined SVG
   comments: Thread[]; // in document order
+  diagrams: { line: number; width: number }[]; // in document order: each mermaid fence, its wide width in px (`margent check` reads them)
   policy: string; // the Content-Security-Policy of this page: `serve` sends it as a header (M5 R2.4)
 }
 
@@ -177,6 +178,7 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
     islands,
     deps: [...new Set(deps)].sort(),
     comments: body.comments,
+    diagrams: body.diagrams,
     policy,
   };
 }
