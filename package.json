@@ -26,7 +26,8 @@
     "margent": "dist/cli.js"
   },
   "files": [
-    "dist/cli.js"
+    "dist/cli.js",
+    "dist/pele.cjs"
   ],
   "engines": {
     "node": ">=22"
@@ -43,6 +44,7 @@
     "esbuild": "^0.25.0",
     "markdown-it": "^15.0.3",
     "markdown-it-front-matter": "^0.2.4",
+    "pele": "1.13.0",
     "playwright-core": "^1.64.1",
     "turndown": "^7.2.4",
     "typescript": "^5.9.0",

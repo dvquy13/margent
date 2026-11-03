@@ -3,6 +3,7 @@ import shellHtml from '../../shell/shell.html?raw';
 import shellCss from '../../shell/shell.css?raw';
 import islandCss from '../../runtime/island.css?raw';
 import commentsCss from '../../shell/comments.css?raw';
+import diagramsCss from '../../shell/diagrams.css?raw';
 import commentsJs from '../../runtime/comments.js?raw';
 import quoteJs from '../../runtime/quote.js?raw';
 import themeJs from '../../runtime/theme.js?raw';
@@ -44,6 +45,7 @@ export interface RenderedDoc {
   islands: { name: string; kind: string; line: number }[]; // in document order
   deps: string[]; // sorted absolute paths: the .md, each island module used, each inlined SVG
   comments: Thread[]; // in document order
+  diagrams: { line: number; width: number }[]; // in document order: each mermaid fence, its wide width in px (`margent check` reads them)
   policy: string; // the Content-Security-Policy of this page: `serve` sends it as a header (M5 R2.4)
 }
 
@@ -127,14 +129,17 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   // page always carries it, so the draft of a doc's first note can sit in the rail (decision 0023).
   const hasComments = body.comments.length > 0;
   const withRail = hasComments || edit !== undefined;
+  // Diagram styles join only pages with a mermaid fence (spec D4), so other pages stay byte-identical.
+  const hasDiagrams = body.diagrams.length > 0;
   if (/<\/style/i.test(commentsCss)) throw new Error('shell/comments.css contains "</style"');
+  if (/<\/style/i.test(diagramsCss)) throw new Error('shell/diagrams.css contains "</style"');
   if (/<\/script/i.test(quoteJs) || quoteJs.includes('<!--')) {
     throw new Error('runtime/quote.js contains "</script" or "<!--", which would break the page');
   }
   if (/<\/script/i.test(commentsJs) || commentsJs.includes('<!--')) {
     throw new Error('runtime/comments.js contains "</script" or "<!--", which would break the page');
   }
-  const styles = `${shellCss}\n${withRail ? `${commentsCss}\n` : ''}${islandCss}${edit ? `\n${edit.css}` : ''}`;
+  const styles = `${shellCss}\n${hasDiagrams ? `${diagramsCss}\n` : ''}${withRail ? `${commentsCss}\n` : ''}${islandCss}${edit ? `\n${edit.css}` : ''}`;
   if (styles.includes('</style')) throw new Error('shell or runtime CSS contains "</style"');
   if (themeJs.includes('</script')) throw new Error('runtime/theme.js contains "</script"');
 
@@ -177,6 +182,7 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
     islands,
     deps: [...new Set(deps)].sort(),
     comments: body.comments,
+    diagrams: body.diagrams,
     policy,
   };
 }

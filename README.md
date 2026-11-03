@@ -1,6 +1,6 @@
 # margent
 
-margent renders markdown docs into designed pages. Data-driven visuals ("islands", such as charts and boards) keep their data in the markdown, so the source stays the single copy. Review comments written in the page are saved back into the `.md`. Agents write the markdown; people read and review the rendered page.
+margent renders markdown docs into designed pages. Data-driven visuals ("islands", such as charts and boards) keep their data in the markdown, so the source stays the single copy. A Mermaid fence becomes an inline SVG diagram in the page's theme, with no script. Review comments written in the page are saved back into the `.md`. Agents write the markdown; people read and review the rendered page.
 
 ## Install
 

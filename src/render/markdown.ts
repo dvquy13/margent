@@ -13,6 +13,7 @@ import { islandRule, type IslandRecord } from '../islands/parse.js';
 import type { Thread } from '../comments/syntax.js';
 import { commentsRule, hasCommentTokens, plainText, registerComments } from './comments.js';
 import { escapeHtml, isBlank, lineRange } from './lines.js';
+import { renderDiagram, type DiagramRecord } from './diagrams.js';
 
 export interface BodyOptions {
   file: string; // absolute path of the .md
@@ -40,6 +41,7 @@ export interface BodyResult {
   refs: LinkRef[]; // in document order: the local links and #fragment links, for `margent check`
   islands: IslandRecord[]; // in document order
   comments: Thread[]; // in document order
+  diagrams: DiagramRecord[]; // in document order: each mermaid fence
 }
 
 // Shared state for one render. Core rules and renderer rules read and write it.
@@ -56,6 +58,7 @@ export interface RenderEnv extends BodyOptions {
   slugger: Slugger;
   islands: IslandRecord[];
   comments: Thread[];
+  diagrams: DiagramRecord[];
 }
 
 interface CoreRule {
@@ -434,10 +437,22 @@ function createMarkdownIt(): MarkdownItInstance {
   const attrs = (t: Token): string => md.renderer.renderAttrs(t);
 
   // <pre data-src><code class="language-x">: the attributes go on <pre>, which is the outermost element.
-  md.renderer.rules.fence = (tokens: Token[], idx: number) => {
+  md.renderer.rules.fence = (tokens: Token[], idx: number, options, env: unknown) => {
     const t = tokens[idx];
     const info = md.utils.unescapeAll(t.info).trim();
     const lang = info.split(/\s+/g)[0] ?? '';
+    if (lang === 'mermaid') {
+      const renv = env as RenderEnv;
+      const line = t.map![0] + 1;
+      const d = renderDiagram(t.content, {
+        file: displayPath(renv.file),
+        line,
+        index: renv.diagrams.length,
+        attrs: attrs(t),
+      });
+      renv.diagrams.push({ line, width: d.width });
+      return d.html;
+    }
     const cls = lang ? ` class="language-${escape(lang)}"` : '';
     return `<pre${attrs(t)}><code${cls}>${escape(t.content)}</code></pre>\n`;
   };
@@ -544,6 +559,7 @@ export function renderBody(source: string, opts: BodyOptions): BodyResult {
     slugger: new Slugger(),
     islands: [],
     comments: [],
+    diagrams: [],
   };
 
   // markdown-it-front-matter reads an unclosed block as frontmatter to the end of the file, hiding the whole doc.
@@ -593,5 +609,6 @@ export function renderBody(source: string, opts: BodyOptions): BodyResult {
     anchors: [...env.anchors].sort(),
     refs: env.refs,
     comments: env.comments,
+    diagrams: env.diagrams,
   };
 }

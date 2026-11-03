@@ -48,7 +48,11 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0042](0042-update-command-updates-every-install.md) | `margent update` finds every install and updates it | accepted | 2026-10-27 |
 | [0043](0043-init-asks-which-file.md) | The skill asks which file gets the margent block, CLAUDE.local.md included (amends 0040) | accepted | 2026-11-02 |
 | [0044](0044-notes-carry-utc-time.md) | A note carries the UTC minute it was written | accepted | 2026-11-02 |
+| [0045](0045-mermaid-fences-render-through-pele.md) | Mermaid fences render through pele at render time | accepted | 2026-11-03 |
+| [0046](0046-three-visual-tiers.md) | Three visual tiers, with Mermaid as the default for diagrams | accepted | 2026-11-03 |
 
 ## Deferred
 
 - **Thread IDs are reused after a resolve.** A new thread takes the ID one above the highest in the file (`nextId` in `src/comments/syntax.ts`), so resolving the highest thread frees its ID for the next one. Rail cards show IDs and users quote them in chat ([M6 spec](../specs/m6-review-feedback.md) F3), so a `c5` named in one round can mean another thread in the next. Avoiding it needs a record of resolved IDs.
+- **Project themes.** A project can't change margent's look: every page uses the house tokens in `shell/shell.css`. The likely shape is a file in the docs root that overrides `:root` tokens only, so pages, islands, inline SVGs and diagrams change together in both themes. Overriding the whole shell is the heavier alternative. Left out of M8 by the user on 2026-11-03.
+- **Comments on a diagram node.** A diagram comment quotes a label ([M8 spec](../specs/m8-mermaid-diagrams.md) D5). pele tags each node with its Mermaid ID (`data-id`), so a quote could name a node instead (`"@B" → …`) and survive a label change. Sequence message IDs (`i0`, `i1`) shift when a message is inserted, so they would keep quoting text. Waits for a real review that needs it.

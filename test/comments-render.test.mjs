@@ -391,3 +391,18 @@ test('decision 0037: a note of only breaks is a RenderError at its line, with th
     assert.equal(err.detail, 'comment note has no text: write the note after "{author}: "');
   }
 });
+
+// ---- M8: a comment after a mermaid fence anchors to the diagram
+
+test('D5.1: a block comment after a mermaid fence anchors to the diagram, in the record and in `comments`', () => {
+  const file = join(FIX, 'quoted-diagram.md');
+  const r = render(file);
+  assert.equal(r.comments.length, 1);
+  assert.equal(r.comments[0].kind, 'block');
+  assert.equal(r.comments[0].anchorKind, 'diagram');
+  assert.equal(r.comments[0].quote, 'Render the page');
+  assert.equal(r.comments[0].anchor, '9-12');
+  const out = spawnSync(process.execPath, [CLI, 'comments', relative(repo, file)], { cwd: repo, encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /block comment on the diagram at line 9, at "Render the page"/);
+});
