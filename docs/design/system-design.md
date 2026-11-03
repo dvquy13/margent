@@ -1,8 +1,8 @@
 ---
 title: margent design
 status: draft
-version: v0.1
-updated: 2026-11-02
+version: v0.2
+updated: 2026-11-03
 ---
 
 # margent design
@@ -83,7 +83,7 @@ The markdown is the only thing anyone edits. Everything to its right is generate
 
 ## Doc format
 
-A doc is plain markdown with frontmatter, plus two small additions: island markers and CriticMarkup comments. Raw, it should read like something you would write by hand.
+A doc is plain markdown with frontmatter, plus two small additions: island markers and CriticMarkup comments. Diagrams are standard `mermaid` fences. Raw, it should read like something you would write by hand.
 
 ### Island, table-backed
 
@@ -114,9 +114,21 @@ When the data is nested and has no table shape, it goes in a fenced `island` blo
 *Each milestone ships end to end. Later ones add depth.*
 ````
 
+### Diagram
+
+A common structure (a flow, a sequence of messages, states, entities, a plan) is a `mermaid` fence. Render draws it as inline SVG styled with the page tokens, so it follows the theme, and GitHub shows the same fence as a diagram. A node takes a named style (`:::accent`), never a hex colour. Hand-drawn SVG stays for illustrations whose layout carries meaning, and islands for visuals computed from data ([0046](../decisions/0046-three-visual-tiers.md)).
+
+````md
+```mermaid
+flowchart LR
+  md[doc.md]:::accent --> render[render] --> page[page]
+```
+*The markdown is the only source; the page is rebuilt from it.*
+````
+
 ### Caption
 
-The italic line right after an island states its claim, the same rule the first user's docs already use for SVG diagrams. An agent reading the markdown gets the point of the visual without running it.
+The italic line right after an island or a diagram states its claim, the same rule the first user's docs already use for SVG diagrams. An agent reading the markdown gets the point of the visual without running it.
 
 ### Comments
 
@@ -179,7 +191,8 @@ A deterministic script: the same markdown gives the same bytes, every time, in w
 
 - **Entry points, one renderer.** `margent serve {docs root}` renders in memory for browsing and editing ([Editing in the page](#editing-in-the-page)). `margent open {file}` renders one doc into a cache folder outside the repo and opens it in the browser. `margent check {path}` renders without writing anything and reports errors. `margent export {path} --out {dir}` writes standalone HTML wherever you ask, for sending to someone.
 - **Parser:** markdown-it. Every top-level block gets `data-src="{start}-{end}"` from its token map, which is what editing and comments anchor to.
-- **Shell:** one house shell in margent, built with `/design-principles`, holds the header, table of contents, typography, tokens (including amber and red for status) and the theme toggle. A project can override it with `{docs}/_shell.html`. Changing the look of every doc is a shell edit.
+- **Shell:** one house shell in margent, built with `/design-principles`, holds the header, table of contents, typography, tokens (including amber and red for status) and the theme toggle. Changing the look of every doc is a shell edit. A project can't override it yet: project themes are deferred ([decisions/README.md](../decisions/README.md#deferred)).
+- **Diagrams:** a `mermaid` fence renders in Node through pele as inline SVG, in a wide and a narrow layout, with no script in the page ([0045](../decisions/0045-mermaid-fences-render-through-pele.md)).
 - **Islands are inlined** into the page as module text, and each runs in its own sandboxed frame. A rendered file still opens straight from disk with no server.
 - **Links:** a link to another `.md` that has a render is rewritten to its `.html`, keeping the anchor.
 - **Renders never land in the repo.** They exist in memory or in the cache, and are regenerated on every change. That retires the first user's provenance hashes, the stale-render check, and the rule against editing HTML, because there is nothing to keep in sync by hand.
@@ -225,7 +238,7 @@ For detail, see the [M3 spec](../specs/m3-comments.md).
 
 | Piece | What it does |
 |---|---|
-| Skill `margent` | The format rules (sections [Doc format](#doc-format) and [Islands](#islands)), when an island earns its place, and the comment contract. It loads `/design-principles` before designing a new island. |
+| Skill `margent` | The format rules (sections [Doc format](#doc-format) and [Islands](#islands)), which visual tier to use (Mermaid, hand-drawn SVG or island), when an island earns its place, and the comment contract. It loads `/design-principles` before designing a new island. |
 | Skills `docs-open`, `docs-serve`, `docs-review` | The user-invoked commands (`disable-model-invocation: true`): render and open a doc, serve a folder for review, and work through open comments. |
 | CLI | `open`, `serve`, `check`, `comments`, `export`, `init`, `teardown`. Agents call `check` to confirm a doc builds. Failures exit non-zero with `file:line`. |
 | One marked block of project setup | The skill runs `margent init`, which writes a short block into the nearest `AGENTS.md` or `CLAUDE.md`, so a colleague's agent without the skill still keeps comment markup and runs `check` ([0040](../decisions/0040-init-writes-nearest-agents-file.md)). The first time in a repository, the skill asks the user which file gets it; `CLAUDE.local.md` keeps it to the user alone, out of git through the repository's own exclude file ([0043](../decisions/0043-init-asks-which-file.md)). `margent teardown` removes it. Nothing else changes: no config file, no shared gitignore entry. Agents learn the full workflow from the skill, which loads when they write or edit a doc. `serve` takes the docs folder as an argument. Islands resolve by walking up from the doc to the nearest `islands/` folder. Renders never land in the repo. |
@@ -255,6 +268,8 @@ Each decision has a record in [decisions/README.md](../decisions/README.md).
 | Soft-break marker (editing) | None in the page. The edit runtime reads a soft break from the newline the DOM keeps, on a clone, before turndown. Rejected: a marker element, which shifted glyphs (109 pixels on one doc). | [0019](../decisions/0019-soft-breaks-read-from-the-dom.md) |
 | Comment anchoring (selection) | A selection maps to the block's source by running house turndown on a copy with two sentinel characters at its snapped boundaries. Only gated blocks; every other block takes a block comment line. Rejected: searching the source for the selected text, which fails across formatting and is ambiguous when the text repeats. | [0020](../decisions/0020-selection-maps-through-turndown-sentinels.md) |
 | Comment writes (save path) | Create, reply and resolve are ordinary block saves through `POST /_save`, with the author from `serve --author` or git. Rejected: a comment endpoint that anchors on the server. | [0021](../decisions/0021-comment-operations-are-block-saves.md) |
+| Diagrams (render path) | `mermaid` fences render in Node through pele as inline SVG in two layouts, styled from page tokens, no script in the page. Rejected: Mermaid.js in the page (1.6 MB, layout at load time), diagrams as islands (a frame hides the text from comments), hand SVG as the default (a redraw per edit). | [0045](../decisions/0045-mermaid-fences-render-through-pele.md) |
+| Visual tiers (agent choice) | Mermaid for common structures and small illustrative charts, hand SVG when layout carries meaning, islands when readers check the numbers. Rejected: Mermaid for every chart, which takes numbers out of tables. | [0046](../decisions/0046-three-visual-tiers.md) |
 | M3 done (acceptance) | A scripted comment corpus in Chrome plus one real review that the agent fully handles. Rejected: scripted only, which can't judge the agent's choices. | [0022](../decisions/0022-m3-done-when-corpus-and-real-review.md) |
 
 ## Risks and open questions
@@ -268,6 +283,7 @@ Each decision has a record in [decisions/README.md](../decisions/README.md).
 | Agent and browser edit at once | A save could overwrite the agent's newer text. | The hash check refuses stale saves. Tested with a concurrent write. |
 | Island quality drifts | Modules are code the agent writes once and rarely revisits. | `margent check` renders each island headless at two widths and fails on errors or overflow ([0014](../decisions/0014-check-tests-overflow-at-two-widths.md)). |
 | Islands run as code | Before M5, opening a doc runs its islands with the page's full access, including the write endpoint. That is fine for your own docs and unsafe for a cloned repo. | M5 ships the sandboxed frame, the page script policy and no island code in Node ([0025](../decisions/0025-islands-run-only-in-a-sandboxed-frame.md)). Residual risk: an island that loops freezes its tab, accepted in 0025. The hostile-fixture acceptance check (M5 A2) tests the rest. |
+| pele is young | margent's diagrams depend on one outside renderer, released 2026-10-31 and moving fast. | Pinned version, bumped on purpose with the M8 render and fit checks rerun. Spike S7 covered 39 diagrams. |
 | Small samples | S0 covers 3 days of one project, and S1 has 3 pairs with one designer each. | Re-measure after a month of real use: render events, islands made and reused, gate failure rate. |
 
 ## Shipping
@@ -314,7 +330,7 @@ What is left is an island that loops and freezes its tab, because a frame runs i
 
 Each milestone is usable alone, and the first one already removes the double edit.
 
-For milestone detail, see the [M1 spec](../specs/m1-render-islands.md), the [M2 spec](../specs/m2-serve-edit.md), the [M3 spec](../specs/m3-comments.md) and the [M5 spec](../specs/m5-ship.md).
+For milestone detail, see the [M1 spec](../specs/m1-render-islands.md), the [M2 spec](../specs/m2-serve-edit.md), the [M3 spec](../specs/m3-comments.md), the [M5 spec](../specs/m5-ship.md) and the [M8 spec](../specs/m8-mermaid-diagrams.md).
 
 <!-- island milestones -->
 | Milestone | Status | What it adds | Done when |
@@ -323,7 +339,8 @@ For milestone detail, see the [M1 spec](../specs/m1-render-islands.md), the [M2 
 | M2 Serve + edit | Done | Local server with a session token, live reload, in-place prose editing behind the gate, side panel, stale-save check. | 40+ scripted edits on the first user's docs in Chrome each give their expected file, with no byte changed outside the edited block. |
 | M3 Comments | Done | Select-to-comment, margin notes, open count, the `comments` command, the agent contract and `export --clean`. | 25+ scripted comment cases in Chrome give their expected files, and the agent resolves or answers every comment on a real review. |
 | M5 Ship | Done | Island sandbox (a frame per island, checks run in the guest), a script policy on every page, no island code run in Node, comments inside islands, `doctor`, and a README section for agents. | everything works on this machine, including a local install from the `npm pack` tarball ([0026](../decisions/0026-m5-done-when-it-works-on-this-machine.md)). |
+| M8 Mermaid diagrams | Next | `mermaid` fences drawn by pele as inline SVG in the page's theme, named node styles, comments on diagrams, and the three visual tiers in the skill. | the acceptance checks pass and the user reviews and accepts a Mermaid diagram in a real doc. |
 
-*M1, M2, M3 and M5 are done. M4 (a shared island catalog) is cut, see [0034](../decisions/0034-no-island-catalog.md).*
+*M1, M2, M3 and M5 are done, and M8 is next. M4 (a shared island catalog) is cut, see [0034](../decisions/0034-no-island-catalog.md).*
 
 Spike evidence is in the pre-public archive.
