@@ -205,6 +205,19 @@ Splice: 1-based inclusive lines, each line keeps its own terminator, new lines t
 
 In-place editing (`inline.js`) makes one gated block `contenteditable`, saves on blur and Cmd+S, and hands 409s to `stale` and 422s to `openPanel`. Normalization of Chrome's editing DOM runs only on the clone that turndown reads, so native undo keeps working.
 
+```mermaid
+flowchart TD
+  edit[A block blurs or gets Cmd+S, or the panel saves] --> post["margent.save: POST /_save"]
+  post --> fresh{Hash current?}
+  fresh -- no --> stale[409: reopen the panel]:::warn
+  fresh -- yes --> render{Renders?}
+  render -- no --> refused[422: show the errors]:::warn
+  render -- yes --> write[Atomic write, 200]:::go
+  write --> reload[Reload, keeping scroll]
+```
+
+*Every edit and comment goes through one save, and the server's hash check and render decide whether it lands.*
+
 Islands take part too. A selection inside an island is in its frame, which the page can't read, so the guest's `selection` message arrives as a `margent:island-selection` event on the `<agent-island>` (`host.js` converts its rect to page coordinates). `comments.js` makes a block comment on the island that quotes the text, places the note box from the frame's rect, and marks the phrase inside the frame with `margentIslands.mark`. Marking happens in the guest through `MargentQuote.find` (`runtime/quote.js`), which ignores whitespace: a quote from a selection across elements has spaces the text nodes lack. The rail uses the same mark when a card is hovered or focused.
 
 Diagrams take part as ordinary blocks, through the layout that is shown. A `figure.diagram` is not a gated block, so a selection in it is a block comment that quotes the selected text (`openBlockComment` in `runtime/edit/comments.js`), with `#n` when the phrase repeats in the figure. `MargentQuote.find` searches only the shown text: a subtree with `display: none` is skipped, so the hidden layout's copy of each label is never counted, and a quote's matches, its `#n` and `check`'s count all refer to the layout on screen. Marks use the existing Custom Highlight path, as tables do. Under `serve`, a diagram's edit and comment controls are labelled `diagram` (`kindOf` in `runtime/edit/panel.js`), the edit control opens the panel with its fence source, and a save that makes pele fail is refused with the 422 every render error gets ([m8-mermaid-diagrams](specs/m8-mermaid-diagrams.md) D5, D6).
