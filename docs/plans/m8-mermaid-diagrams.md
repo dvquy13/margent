@@ -24,13 +24,13 @@ Task order for [the M8 spec](../specs/m8-mermaid-diagrams.md) (D1 to D9, A1 to A
   - [x] T9 Anchor kind `diagram` (D5.1)
   - [x] T10 Quotes in the shown layout, selection, marks and card alignment (D5.2 to D5.4)
   - [x] T11 `serve` panel and `export` (D6)
-- [ ] Phase 3 · Agent side
+- [x] Phase 3 · Agent side
   - [x] T12 Skill tiers and `references/diagrams.md` (D8.1, D8.2)
-  - [ ] T13 Evals (D8.3, A8): the three new cases pass 3/3; the whole suite still needs its run
+  - [x] T13 Evals (D8.3, A8): all 13 cases pass 3/3
 - [ ] Phase 4 · Acceptance and close
-  - [ ] T14 Acceptance tests and runs (A1 to A7), `npm run test:full`
-  - [ ] T15 Docs (D9)
-  - [ ] T16 Real doc reviewed by the user (A9)
+  - [x] T14 Acceptance tests and runs (A1 to A7), `npm run test:full`: 827 pass, 1 opt-in skip, typecheck clean
+  - [ ] T15 Docs (D9): `architecture.md` and `README.md` done; the spec's Results and `CLAUDE.md` wait for the close
+  - [ ] T16 Real doc reviewed by the user (A9): the save path in `architecture.md`, waiting on the user's review
 
 ## How the work runs
 
@@ -148,11 +148,15 @@ Done when: a served-page test edits a diagram's source in the panel and sees the
 
 Three new cases in `evals/` (D8.3), shaped like `positive-design-note` and `positive-add-visual`. Then `claude plugin eval` must pass every case 3/3. A miss sends the fix back to T12's wording, not to the eval.
 
+Outcome (2026-11-03, `claude plugin eval . -j 3`, with and without the plugin): all 13 cases pass 3/3 with it, mean Δ +0.69, 651 s, $8.81.
+
 ## Phase 4 · Acceptance and close
 
 ### T14 Acceptance
 
 A1 `npm test` and typecheck; A2 the diagrams fixture golden under two `TZ` values; A3 from T6; A4 a full-tier browser test at 390 and 1280px, both themes, fonts loaded and blocked; A5 from T7 and T8; A6 from T10; A7 against T3's baselines. Then `npm run test:full`.
+
+A4 and A5's browser half are `test/diagrams-fit.test.mjs`. Mindmap text nodes have no shape and are skipped, and gantt, pie, quadrant and xychart have no `pele-node`, so only the spill checks apply to them. A7 (2026-11-03, load about 3.5, 15 alternating runs against a `main` build at `e909e53`): `--version` median 53.2 ms against 53.0, `check` on `basic.md` 60.5 ms against 59.6; `dist/cli.js` 845,440 bytes (`main` 836,779) and `dist/pele.cjs` 737,323. `npm run test:full` at `cff98dd`: 828 tests, 827 pass and the opt-in `UPDATE_SHOTS` screenshots skip, in 6 min 45 s; `npm run typecheck` exits 0.
 
 ### T15 Docs
 
