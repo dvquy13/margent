@@ -77,9 +77,9 @@ Evidence: spike S7, recorded in [0045](../decisions/0045-mermaid-fences-render-t
 
 ### D7 Bundle
 
-1. pele is a devDependency pinned to an exact version, bundled into `dist/cli.js`, and started lazily on the first diagram.
-2. A command that draws no diagram doesn't start pele: `margent --version` and `check` on a doc without diagrams take no longer than before M8.
-3. `dist/cli.js` keeps the licence notices of pele and of every other bundled dependency. Today's build strips them all (`legalComments: 'none'`).
+1. pele is a devDependency pinned to an exact version, bundled into its own `dist/pele.cjs`, which the npm package ships next to `dist/cli.js`. `dist/cli.js` requires it on the first diagram.
+2. A command that draws no diagram doesn't start pele: `margent --version` and `check` on a doc without diagrams take no longer than before M8. Bundled into `dist/cli.js` behind a lazy init, pele was never evaluated but still cost about 12 ms per run to parse, which is why it is a file of its own.
+3. Each `dist/` file ends with the full `LICENSE` file of every package bundled into it. esbuild's `legalComments` can't do this: most packages, pele included, carry no licence comment in their code.
 
 ### D8 Agent side
 

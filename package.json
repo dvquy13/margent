@@ -26,7 +26,8 @@
     "margent": "dist/cli.js"
   },
   "files": [
-    "dist/cli.js"
+    "dist/cli.js",
+    "dist/pele.cjs"
   ],
   "engines": {
     "node": ">=22"

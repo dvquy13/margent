@@ -61,20 +61,45 @@ if (/<\/script/i.test(editJs) || /<\/style/i.test(editJs)) {
   throw new Error(`${relative(root, editOut)} contains "</script" or "</style", which would break the page`);
 }
 
-// (b) the CLI: one self-contained file, executable, with a shebang.
+// (b) the CLI: one file, executable, with a shebang. pele is the one package left out of it: it is built as its own
+// dist/pele.cjs, which src/render/diagrams.ts requires on the first diagram. Bundled in, its 730 KB would be parsed on
+// every run, `margent --version` included, even though it is never evaluated (spec D7.2).
+const peleOut = join(root, 'dist', 'pele.cjs');
+const peleApart = {
+  name: 'pele-apart',
+  setup(b) {
+    b.onResolve({ filter: /^pele$/ }, () => ({ path: './pele.cjs', external: true }));
+  },
+};
 const cliOut = join(root, 'dist', 'cli.js');
 const cli = await build({
   ...shared,
   entryPoints: [join(root, 'src', 'cli.ts')],
   outfile: cliOut,
   banner: { js: `#!/usr/bin/env node\n${shared.banner.js}` },
+  plugins: [...shared.plugins, peleApart],
   metafile: true,
 });
 // The edit runtime is inlined into the CLI as text, so its packages (turndown) ship in dist/cli.js too.
 await appendFile(cliOut, await licenceNotices([...Object.keys(cli.metafile.inputs), ...Object.keys(edit.metafile.inputs)]));
 await chmod(cliOut, 0o755);
 
-// The LICENSE file of every package bundled into the CLI, sorted by name, as one comment at the end of the file.
+const pele = await build({
+  stdin: { contents: "module.exports = require('pele');", resolveDir: root, loader: 'js' },
+  outfile: peleOut,
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  minifyWhitespace: true, // pele ships minified; esbuild would otherwise print it out at a third more size
+  target: 'node22',
+  sourcemap: false,
+  legalComments: 'none',
+  logLevel: 'warning',
+  metafile: true,
+});
+await appendFile(peleOut, await licenceNotices(Object.keys(pele.metafile.inputs)));
+
+// The LICENSE file of every package bundled into a dist/ file, sorted by name, as one comment at the end of that file.
 // Most packages carry no licence comment in their code, so esbuild's legalComments would keep almost none of them.
 async function licenceNotices(inputs) {
   // Inputs are relative to the working directory, and a symlinked node_modules resolves outside it (../x/node_modules/…).
@@ -86,7 +111,7 @@ async function licenceNotices(inputs) {
   const parts = [];
   for (const [name, dir] of [...dirs].sort(([a], [b]) => (a < b ? -1 : 1))) {
     const file = (await readdir(dir)).find((f) => /^(licen[cs]e|copying)([.-]|$)/i.test(f));
-    if (!file) throw new Error(`node_modules/${name} is bundled into dist/cli.js but has no LICENSE file`);
+    if (!file) throw new Error(`node_modules/${name} is bundled into dist/ but has no LICENSE file`);
     const { version } = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'));
     const text = (await readFile(join(dir, file), 'utf8')).trim().replace(/\*\//g, '* /');
     parts.push(`${name} ${version}\n\n${text}`);

@@ -125,22 +125,33 @@ test('golden page for the diagrams fixture: one of each type, with captions', ()
   assertGolden('diagrams.page', out.html);
 });
 
-test('D7.2 the CLI bundle starts pele only from loadPele, so a command with no diagram never evaluates it', () => {
-  // esbuild wraps the ESM package in a lazy init (`__esm`); the only call to it is inside loadPele().
+test('D7.2 pele is its own dist/pele.cjs, which the CLI requires only from loadPele, so a command with no diagram never parses it', () => {
   const cli = readFileSync(CLI, 'utf8');
-  assert.ok(cli.includes('var init_pele = __esm({'), 'pele is a lazy __esm module');
-  const calls = [...cli.matchAll(/init_pele\(\)/g)].map((m) => m.index);
-  assert.equal(calls.length, 1, 'exactly one call starts pele');
+  const peleCjs = readFileSync(join(repo, 'dist', 'pele.cjs'), 'utf8');
+  // A message from pele's pie chart code: it is in pele.cjs, and none of pele's code is in cli.js.
+  const marker = 'Negative values are not allowed in pie charts';
+  assert.ok(peleCjs.includes(marker), 'pele.cjs holds pele');
+  assert.ok(!cli.includes(marker), 'cli.js does not');
+  const calls = [...cli.matchAll(/require\("\.\/pele\.cjs"\)/g)].map((m) => m.index);
+  assert.equal(calls.length, 1, 'exactly one require loads pele');
   const loader = cli.indexOf('function loadPele() {');
-  assert.ok(loader >= 0 && calls[0] > loader && calls[0] < cli.indexOf('\n}\n', loader), 'the call is inside loadPele');
+  assert.ok(loader >= 0 && calls[0] > loader && calls[0] < cli.indexOf('\n}\n', loader), 'the require is inside loadPele');
+  const pkg = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
+  assert.deepEqual(pkg.files, ['dist/cli.js', 'dist/pele.cjs'], 'the npm package ships both');
 });
 
-test('D7.3 the CLI bundle ends with the LICENSE text of every package it bundles, pele and the edit runtime\'s turndown included', () => {
-  const cli = readFileSync(CLI, 'utf8');
-  const notices = cli.slice(cli.lastIndexOf('/*! Bundled third-party licences'));
-  for (const name of ['pele', 'turndown', 'markdown-it', 'yaml']) {
+test('D7.3 each dist/ file ends with the LICENSE text of every package bundled into it', () => {
+  const notices = (path) => {
+    const text = readFileSync(path, 'utf8');
+    return text.slice(text.lastIndexOf('/*! Bundled third-party licences'));
+  };
+  const has = (block, name) => {
     const { version } = JSON.parse(readFileSync(join(repo, 'node_modules', name, 'package.json'), 'utf8'));
-    assert.ok(notices.includes(`\n${name} ${version}\n`), `${name} ${version} has its notice`);
-  }
-  assert.ok(notices.includes('Copyright (c) 2026 kepano'), "pele's MIT copyright line ships");
+    return block.includes(`\n${name} ${version}\n`);
+  };
+  const cli = notices(CLI);
+  for (const name of ['turndown', 'markdown-it', 'yaml']) assert.ok(has(cli, name), `cli.js carries the notice of ${name}`);
+  const pele = notices(join(repo, 'dist', 'pele.cjs'));
+  assert.ok(has(pele, 'pele'), 'pele.cjs carries the notice of pele');
+  assert.ok(pele.includes('Copyright (c) 2026 kepano'), "pele's MIT copyright line ships");
 });
