@@ -59,7 +59,7 @@ test('D6.1: a diagram opens the panel with its fence source, and a saved edit sh
   await withBrowser(async (browser) => {
     const { page, errors, close } = await openServedPage(browser, served, 'flow.md');
     t.after(close);
-    await openDiagramEdit(page, '10-13', 'Edit figure, lines 10–13');
+    await openDiagramEdit(page, '10-13', 'Edit diagram, lines 10–13');
     assert.equal(await page.locator('.edit-panel-title').textContent(), 'Lines 10–13');
     assert.equal(await page.locator('.edit-panel-text').inputValue(), FENCE, 'the panel holds the fence source');
     const changed = FENCE.replace('[Render the page]', '[Render the diagram]');
@@ -81,7 +81,7 @@ test('D6.2: a save that leaves a pele error is refused with the error in the pan
     const { page, errors, close } = await openServedPage(browser, served, 'flow.md');
     t.after(close);
     const before = served.read('flow.md');
-    await openDiagramEdit(page, '10-13', 'Edit figure, lines 10–13');
+    await openDiagramEdit(page, '10-13', 'Edit diagram, lines 10–13');
     // An edge with no target: pele cannot draw it.
     const typed = '```mermaid\nflowchart LR\n  A[Write the doc] --> \n```';
     await typeIntoPanel(page, typed);
