@@ -1,0 +1,21 @@
+{
+  "doc": "diagrams.md",
+  "steps": [
+    {
+      "select": {
+        "text": "Publish"
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Say who publishes."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}

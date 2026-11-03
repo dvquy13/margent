@@ -10,21 +10,25 @@ var MargentQuote = (function () {
     return text.replace(/\s+/g, ' ').trim().replaceAll('"', "'");
   }
 
-  // Every match of phrase in root's text, as a Range each. Whitespace is ignored on both sides: a quote taken from a
+  // Every match of phrase in root's shown text, as a Range each. Whitespace is ignored on both sides: a quote taken from a
   // selection across elements has a space or line break where the text nodes have none ("are out HN" against "are
   // out" + "HN"), and one taken before 2026-10-24 has none at block boundaries ("gate.Spread"). A quote stores ' for
   // each " of the page (store above), so " is read as ' on both sides. A match may run across text nodes (two list
   // items, or text around bold). Matches do not overlap: the search resumes after each match.
+  // Only the shown text is searched: a subtree that is display: none is skipped, so a phrase counts once. A diagram holds
+  // both of its layouts (wide and narrow, M8 D5.3), each with the same labels, and CSS shows one of them.
   function find(root, phrase) {
     var needle = String(phrase).replace(/\s+/g, '').replaceAll('"', "'");
     if (needle === '') return [];
     // Each non-space character of the root's text, with its text node and offset in that node. The text of a style or
     // script element is not page text: an island may render one into its shadow root.
     var chars = [];
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
-        var p = n.parentElement;
-        return p && (p.tagName === 'STYLE' || p.tagName === 'SCRIPT') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        if (n.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
+        var tag = n.tagName;
+        if (tag === 'STYLE' || tag === 'SCRIPT') return NodeFilter.FILTER_REJECT;
+        return getComputedStyle(n).display === 'none' ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
       }
     });
     for (var node = walker.nextNode(); node; node = walker.nextNode()) {

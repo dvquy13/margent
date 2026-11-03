@@ -1,0 +1,22 @@
+{
+  "doc": "diagrams.md",
+  "steps": [
+    {
+      "select": {
+        "text": "review",
+        "nth": 2
+      }
+    },
+    {
+      "control": {
+        "label": "Comment"
+      }
+    },
+    {
+      "type": "Name the reviewer."
+    },
+    {
+      "press": "Enter"
+    }
+  ]
+}
