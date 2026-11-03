@@ -77,14 +77,14 @@ await chmod(cliOut, 0o755);
 // The LICENSE file of every package bundled into the CLI, sorted by name, as one comment at the end of the file.
 // Most packages carry no licence comment in their code, so esbuild's legalComments would keep almost none of them.
 async function licenceNotices(inputs) {
-  const names = new Set();
+  // Inputs are relative to the working directory, and a symlinked node_modules resolves outside it (../x/node_modules/…).
+  const dirs = new Map();
   for (const input of inputs) {
-    const m = /^node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(input);
-    if (m) names.add(m[1]);
+    const m = /(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(input);
+    if (m) dirs.set(m[1], resolve(input.slice(0, m.index + m[0].length)));
   }
   const parts = [];
-  for (const name of [...names].sort()) {
-    const dir = join(root, 'node_modules', name);
+  for (const [name, dir] of [...dirs].sort(([a], [b]) => (a < b ? -1 : 1))) {
     const file = (await readdir(dir)).find((f) => /^(licen[cs]e|copying)([.-]|$)/i.test(f));
     if (!file) throw new Error(`node_modules/${name} is bundled into dist/cli.js but has no LICENSE file`);
     const { version } = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'));
