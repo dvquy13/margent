@@ -20,13 +20,13 @@ Task order for [the M8 spec](../specs/m8-mermaid-diagrams.md) (D1 to D9, A1 to A
   - [x] T6 Errors and their fixtures (D2)
   - [x] T7 Diagram stylesheet: tokens, palette, named styles, layouts, width floor (D1.5, D1.6, D4)
   - [x] T8 `check` width rule (D3)
-- [ ] Phase 2 · Comments, serve and export, full tier green
-  - [ ] T9 Anchor kind `diagram` (D5.1)
-  - [ ] T10 Quotes in the shown layout, selection, marks and card alignment (D5.2 to D5.4)
-  - [ ] T11 `serve` panel and `export` (D6)
+- [x] Phase 2 · Comments, serve and export (fast tier green; full tier not yet run as a whole)
+  - [x] T9 Anchor kind `diagram` (D5.1)
+  - [x] T10 Quotes in the shown layout, selection, marks and card alignment (D5.2 to D5.4)
+  - [x] T11 `serve` panel and `export` (D6)
 - [ ] Phase 3 · Agent side
-  - [ ] T12 Skill tiers and `references/diagrams.md` (D8.1, D8.2)
-  - [ ] T13 Evals (D8.3, A8)
+  - [x] T12 Skill tiers and `references/diagrams.md` (D8.1, D8.2)
+  - [ ] T13 Evals (D8.3, A8): the three new cases pass 3/3; the whole suite still needs its run
 - [ ] Phase 4 · Acceptance and close
   - [ ] T14 Acceptance tests and runs (A1 to A7), `npm run test:full`
   - [ ] T15 Docs (D9)
