@@ -22,6 +22,7 @@ import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
 import { commandUpdate } from './cli/update.js';
 import { linkProblems } from './cli/links.js';
+import { diagramProblems } from './cli/diagrams.js';
 import { cleanSource } from './comments/clean.js';
 import { startServer } from './serve/server.js';
 import { writeAtomic } from './serve/splice.js';
@@ -216,6 +217,7 @@ async function commandCheck(target: string): Promise<number> {
 
   const problems = set.errors.map((e) => e.message);
   problems.push(...linkProblems(set.docs));
+  problems.push(...diagramProblems(set.docs));
   const withPage = set.docs.filter(
     (d) => d.rendered.islands.length > 0 || d.rendered.comments.some((t) => t.quote !== undefined)
   );
