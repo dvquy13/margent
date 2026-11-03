@@ -43,7 +43,7 @@ Never edit the margent block by hand. Run `init` again instead.
 
 ## Doc format
 
-```md
+````md
 ---
 title: M0 report
 status: draft
@@ -58,26 +58,35 @@ One or two paragraphs that say what this doc is and what it concludes.
 
 Prose, lists, tables, code. Each `##` becomes a section and a table-of-contents entry.
 
-![Pipeline in three stages: ingest, know, act.](../assets/pipeline.svg)
-
-*Legend or claim for the diagram, as an italic line right after the image.*
+```mermaid
+flowchart LR
+  ingest[Ingest] --> know[Know] --> act[Act]:::accent
 ```
+
+*Three stages. Only Act writes back to the source.*
+````
 
 - Frontmatter `title`, `status`, `updated` and `version` go to the page header. Write dates as `YYYY-MM-DD`.
 - One `#` title. Sections are `##`. Use `###` inside a section when it really has parts.
-- A local `.svg` image is inlined so it follows the theme. Style it with the page tokens (`var(--text)`, `var(--accent)`, ...) with fallbacks.
+- A `mermaid` fence renders as a diagram in the page. A local `.svg` image is inlined so it follows the theme. Style an SVG with the page tokens (`var(--text)`, `var(--accent)`, ...) with fallbacks.
 - Link other docs with relative `.md` links (`[eval setup](../evals/eval-setup.md#gold-labels)`). The renderer points them at the rendered page.
 - Escape a literal dollar sign as `\$`.
 
 ## When a diagram earns its place
 
-Before writing a spec, design note or report, list the structures it describes. Draw one SVG diagram for each structure the reader would otherwise rebuild in their head from prose:
+Before writing a spec, design note or report, list the structures it describes. Draw a diagram for each structure the reader would otherwise rebuild in their head from prose: parts and the boundaries between them, a flow, messages across processes, states and the transitions between them. Place the diagram before the prose that walks through it. Skip it for a short list of steps or a two-part comparison.
 
-- parts and the boundaries between them: components, processes, trust or ownership lines
-- a flow: a pipeline, a request path, a sequence of messages across processes
-- states and the transitions between them
+Draw each one at the lowest tier that shows its point:
 
-A doc that adds or changes one of these gets the diagram, placed before the prose that walks through it. Skip it when the structure is a short list of steps or has two parts. Put the file in an `assets/` folder at the top of the docs tree unless the project's docs say otherwise, and give it the same caption test as an island: one italic sentence stating what the reader should take from it.
+1. **Mermaid fence**, the default. Use it for a flowchart, sequence, state, ER, class, gantt, timeline or mindmap, and for a pie of a few shares or a quadrant that illustrates a point. Write it as text in a `mermaid` fence. It renders in the page and follows the theme.
+2. **Hand-drawn SVG** in an `assets/` folder at the top of the docs tree, unless the project's docs say otherwise. Use it when the layout carries meaning that auto-layout can't give: a layered stack, a map of a space, a before-and-after, callouts on parts of one thing. Also use it when a Mermaid diagram fails the look test below and no change to its source fixes it.
+3. **Island** when the visual is computed from data the reader should check or comment on cell by cell. See "When an island earns its place".
+
+Look at every Mermaid diagram before you keep it: run `margent open` and view the page. Move up a tier when the layout crosses edges, buries its point, or is too wide after you turn it top-to-bottom.
+
+Every visual gets a caption: one italic sentence right after the fence or image, stating what the reader should take from it.
+
+Before drawing a Mermaid diagram, read [references/diagrams.md](references/diagrams.md).
 
 ## When an island earns its place
 
@@ -87,7 +96,7 @@ An island is a small JS module that draws a visual from data that stays in the m
 - a shape: a flow, a timeline, stages, depth across milestones
 - a comparison across many rows that a table makes the reader do in their head
 
-Stay with prose or a plain table when the table is short and reads fine, when the visual would only restyle the cells (pills and colors on the same grid), when the point is one number, or when the visual would need facts that are not in the doc. A static structure that never changes with the data is an SVG diagram, not an island.
+Stay with prose or a plain table when the table is short and reads fine, when the visual would only restyle the cells (pills and colors on the same grid), when the point is one number, or when the visual would need facts that are not in the doc. A static structure that never changes with the data is a Mermaid diagram or an SVG, not an island.
 
 Test it first: write the caption, one italic sentence stating the claim the visual makes. If you can't write that sentence, don't build the island.
 
