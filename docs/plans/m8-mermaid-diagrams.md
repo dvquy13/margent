@@ -14,12 +14,12 @@ Task order for [the M8 spec](../specs/m8-mermaid-diagrams.md) (D1 to D9, A1 to A
   - [x] T1 Custom Highlight on SVG `<text>` in Chrome (D5.4): it paints, the existing path stays
   - [x] T2 Label fit with Google Fonts blocked (D1, A4): node labels fit, no `measurer`
   - [x] T3 Baselines on `main`: CLI time and size (A7)
-- [ ] Phase 1 · Render, fast tier green
-  - [ ] T4 Bundle pele (D7)
-  - [ ] T5 Fence to figure, two layouts, gantt (D1)
-  - [ ] T6 Errors and their fixtures (D2)
-  - [ ] T7 Diagram stylesheet: tokens, palette, named styles, layouts, width floor (D1.5, D1.6, D4)
-  - [ ] T8 `check` width rule (D3)
+- [x] Phase 1 · Render, fast tier green
+  - [x] T4 Bundle pele (D7): its own `dist/pele.cjs`, see T4
+  - [x] T5 Fence to figure, two layouts, gantt (D1)
+  - [x] T6 Errors and their fixtures (D2)
+  - [x] T7 Diagram stylesheet: tokens, palette, named styles, layouts, width floor (D1.5, D1.6, D4)
+  - [x] T8 `check` width rule (D3)
 - [ ] Phase 2 · Comments, serve and export, full tier green
   - [ ] T9 Anchor kind `diagram` (D5.1)
   - [ ] T10 Quotes in the shown layout, selection, marks and card alignment (D5.2 to D5.4)
@@ -74,6 +74,8 @@ Recorded 2026-11-03 at `4f708f9` (same code as `main`), load average about 3: `d
 3. `scripts/build.mjs` sets `legalComments: 'none'`, which strips the licence notice of every bundled dependency (markdown-it, turndown and yaml today). Switch the CLI bundle to `legalComments: 'eof'` or `'linked'` so every notice ships, pele's included.
 
 Done when: `dist/cli.js` holds pele and the bundled licences, and a test shows `margent --version` doesn't evaluate pele (or the T3 timings hold).
+
+Outcome: the lazy `__esm` wrapper held, but the 730 KB still cost about 12 ms of parsing per run (`--version` 52 to 65 ms, `check` 60 to 74 ms against a `main` build, same load). pele is now built as `dist/pele.cjs`, which `loadPele` requires, and the timings match `main` within 1 ms (`dist/cli.js` 845,498 bytes, `dist/pele.cjs` 737,323). The licences come from each package's `LICENSE` file, since pele and most others carry no licence comment.
 
 ### T5 Fence to figure
 
