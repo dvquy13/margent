@@ -10,10 +10,10 @@ Task order for [the M8 spec](../specs/m8-mermaid-diagrams.md) (D1 to D9, A1 to A
 
 ## Tracker
 
-- [ ] Phase 0 · Settle the risks
-  - [ ] T1 Custom Highlight on SVG `<text>` in Chrome (D5.4)
-  - [ ] T2 Label fit with Google Fonts blocked (D1, A4)
-  - [ ] T3 Baselines on `main`: CLI time and size (A7)
+- [x] Phase 0 · Settle the risks
+  - [x] T1 Custom Highlight on SVG `<text>` in Chrome (D5.4): it paints, the existing path stays
+  - [x] T2 Label fit with Google Fonts blocked (D1, A4): node labels fit, no `measurer`
+  - [x] T3 Baselines on `main`: CLI time and size (A7)
 - [ ] Phase 1 · Render, fast tier green
   - [ ] T4 Bundle pele (D7)
   - [ ] T5 Fence to figure, two layouts, gantt (D1)
@@ -62,6 +62,8 @@ Done when: the result and any `measurer` choice are in the spec.
 ### T3 Baselines
 
 On `main`, record `dist/cli.js`'s size and the median of 10 runs of `margent --version` and of `check` on a doc without diagrams (`test/fixtures/` has one). A7 compares against these.
+
+Recorded 2026-11-03 at `4f708f9` (same code as `main`), load average about 3: `dist/cli.js` is 827,506 bytes; `node dist/cli.js --version` 60.2 ms median (51.7 to 181.7); `node dist/cli.js check test/fixtures/render/docs/basic.md` 60.8 ms median (59.3 to 67.2).
 
 ## Phase 1 · Render
 
