@@ -4,6 +4,7 @@
 // replaces its note's text with the field. Every save is one margent.save of one block (decision 0021): the block's new
 // source is built here from its markdown with the syntax module.
 import { IS_MAC, lineKeys } from './keys.js';
+import { kindOf } from './panel.js';
 import {
   appendNote,
   fieldFromNote,
@@ -44,20 +45,6 @@ const linesOf = (range) => {
   const [start, end] = range.split('-');
   return `lines ${start}–${end}`;
 };
-
-// What a block is, for a label (the same words panel.js uses).
-function kindOf(el) {
-  if (el.tagName === 'AGENT-ISLAND') return `island ${el.getAttribute('name')}`;
-  if (el.querySelector('table')) return 'table';
-  if (el.tagName === 'PRE') return 'code block';
-  if (el.tagName === 'FIGURE') return 'figure';
-  if (el.tagName === 'BLOCKQUOTE') return 'blockquote';
-  if (el.tagName === 'HR') return 'rule';
-  if (el.tagName === 'UL' || el.tagName === 'OL') return 'list';
-  if (el.tagName === 'P') return 'paragraph';
-  if (/^H[1-6]$/.test(el.tagName)) return 'heading';
-  return 'block';
-}
 
 // The top-level block (a [data-src] not inside another) that holds a node, or null.
 function topBlockOf(node) {

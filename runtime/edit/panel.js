@@ -23,8 +23,8 @@ function frontmatterRange(source) {
   return `1-${close + 1}`;
 }
 
-// What a block is, for its control's label.
-function kindOf(el) {
+// What a block is, for its control's label and its comment button's (comments.js).
+export function kindOf(el) {
   if (el.tagName === 'AGENT-ISLAND') return `island ${el.getAttribute('name')}`;
   if (el.querySelector('table')) return 'table';
   if (el.tagName === 'PRE') return 'code block';

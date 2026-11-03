@@ -60,6 +60,8 @@ test('D6.1: a diagram opens the panel with its fence source, and a saved edit sh
     const { page, errors, close } = await openServedPage(browser, served, 'flow.md');
     t.after(close);
     await openDiagramEdit(page, '10-13', 'Edit diagram, lines 10–13');
+    assert.equal(await page.getByRole('button', { name: 'Comment on diagram, lines 10–13', exact: true }).count(), 1,
+      'the comment button names the diagram as the edit control does');
     assert.equal(await page.locator('.edit-panel-title').textContent(), 'Lines 10–13');
     assert.equal(await page.locator('.edit-panel-text').inputValue(), FENCE, 'the panel holds the fence source');
     const changed = FENCE.replace('[Render the page]', '[Render the diagram]');
