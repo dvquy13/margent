@@ -286,7 +286,8 @@ function anchorKindOf(t: Token, prev: Token | undefined): string {
     case 'table_open':
       return prev?.type === 'html_block' && ISLAND_MARKER.test(prev.content) ? 'island' : 'table';
     case 'fence':
-      return /^island(\s|$)/.test(t.info.trim()) ? 'island' : 'code';
+      if (/^island(\s|$)/.test(t.info.trim())) return 'island';
+      return /^mermaid(\s|$)/.test(t.info.trim()) ? 'diagram' : 'code';
     case 'code_block':
       return 'code';
     case 'html_block':
