@@ -2,7 +2,7 @@
 
 Renders markdown docs into designed pages with data-driven islands, shipped as an npm CLI (`margent`), skills for any agent (`npx skills add`), and a thin Claude Code plugin.
 
-**Status:** M1–M3, M5, M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) and M7 (polish P1–P4, released in 0.9.0 on 2026-11-02) done. M8 (Mermaid diagrams D1–D9, released in 0.11.0 on 2026-11-03) done. M9 (user theme U1–U7, `~/.margent/theme.css` and `design.md`, decision 0047) is open on branch `m9-user-theme`. 0.10.0 (2026-11-03) made the `serve` index a collapsible folder tree. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
+**Status:** M1–M3, M5, M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) and M7 (polish P1–P4, released in 0.9.0 on 2026-11-02) done. M8 (Mermaid diagrams D1–D9, released in 0.11.0 on 2026-11-03) and M9 (user theme U1–U7: `~/.margent/theme.css` and `design.md`, decision 0047, closed 2026-11-09) done; no milestone is open. 0.10.0 (2026-11-03) made the `serve` index a collapsible folder tree. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
 
 ## Where to look
 
@@ -68,6 +68,7 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 - `--allowedTools` takes several values, so a prompt after it is read as a tool name. Put the prompt right after `-p`.
 - A headless `claude -p "/margent:docs-serve …"` never exits, because it waits on the server it started in the background. Read the URL from its output, then kill the session and the `cli.js serve` process.
 - After editing `skills/margent/SKILL.md`, rerun `claude plugin eval` (cases in `evals/`). Keep "load it first" in the description: without it, "write a report as a doc" does not trigger the skill. The name `margent` says nothing about docs, so the description must name every trigger: without "address review comments", the review case fired 1 time in 3.
+- `claude plugin eval` keeps only the last of several `--case` flags: pass one glob. Run traces are deleted unless `--keep-temp`. A `tool_used` grader names one tool, so "looked for X with any tool" is an `llm` grader with `focus: trace` (focus takes `trace`, `last_message`, `files` or `mock_calls`).
 - `npx skills add` silently skips a skill whose frontmatter isn't strict YAML (an unquoted `: ` in a description), though Claude Code reads it. `test/scaffold.test.mjs` parses every skill strictly.
 - Set `BROWSER=true` for headless runs that reach `margent open`, or each run opens a browser tab.
 - The `docs-open`, `docs-serve` and `docs-review` skills are user-invoked (`disable-model-invocation: true`): `/margent:docs-open` through the plugin.

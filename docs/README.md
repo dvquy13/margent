@@ -77,5 +77,4 @@ Update `updated:` on every content change, and keep `docs/README.md`'s table in 
 | [specs/m6-review-feedback.md](specs/m6-review-feedback.md) | done | 2026-10-27 |
 | [specs/m7-polish.md](specs/m7-polish.md) | done | 2026-11-02 |
 | [specs/m8-mermaid-diagrams.md](specs/m8-mermaid-diagrams.md) | done | 2026-11-03 |
-| [specs/m9-user-theme.md](specs/m9-user-theme.md) | draft | 2026-11-09 |
-| [plans/m9-user-theme.md](plans/m9-user-theme.md) | draft | 2026-11-09 |
+| [specs/m9-user-theme.md](specs/m9-user-theme.md) | done | 2026-11-09 |

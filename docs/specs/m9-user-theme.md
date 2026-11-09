@@ -1,6 +1,6 @@
 ---
 title: M9 spec · User theme
-status: draft
+status: done
 updated: 2026-11-09
 ---
 
@@ -87,3 +87,25 @@ M9 is done when every acceptance check below passes and the user reads a doc of 
 | A7 | `doctor` prints the theme and design lines, and fails the theme line for a theme holding `</style` | U6 |
 | A8 | `claude plugin eval` passes: asked for a Google font, the agent points to `theme.css`; adding a visual, it looks for `design.md` | U7 |
 | A9 | The user reads a doc of this repo through `serve` in a Google font from their theme, islands included | all |
+
+## Results
+
+Closed 2026-11-09 on branch `m9-user-theme`.
+
+- **A1 met.** `npm run test:full`: 861 tests, 860 pass, the opt-in `UPDATE_SHOTS` screenshots skip. `npm run typecheck` exits 0. No golden changed. Tests: A1 and U2.2 in `test/user-theme.test.mjs`.
+- **A2 met.** A2 and U1.3 in `test/user-theme.test.mjs` (`export` fails with `theme.css:3:`, and with the path of a `chmod 000` theme).
+- **A3 met for `export` and `check`.** A3 in `test/user-theme.test.mjs`. `open` goes through the same `renderSet` call with the theme and has no test of its own.
+- **A4 met.** `test/user-theme-browser.test.mjs`: page and island `--accent` in light, then dark after the header toggle; the frame head holds the theme text; no theme style without a theme.
+- **A5 met.** `test/user-theme-serve.test.mjs`: an SSE client gets `changed` when `theme.css` is created, edited and deleted. The same file covers the theme on the doc and index pages and the error page for a broken theme.
+- **A6 met.** A6 in `test/user-theme-cli.test.mjs`, including the starter's declarations compared with `shell/shell.css` block by block.
+- **A7 met.** A7 in `test/user-theme-cli.test.mjs`.
+- **A8 met.** `claude plugin eval`: `positive-user-font` 3/3 with the plugin and 0/3 without, run before and after its prompt moved to a Google font; `positive-user-design-guide` 5 of 6 with the plugin across two runs, 0 of 3 without; `positive-add-visual` 3/3.
+- **A9 met.** The user read this repo's docs through `serve` with their theme and closed the milestone. Chrome's platform-font report (`CSS.getPlatformFontsForNode`) on an exported `design/system-design.md` with `@import` of Be Vietnam Pro, which isn't installed here: page prose and the `milestones` island's text are both drawn in it.
+
+What differed from the spec:
+
+- Fonts are scoped to Google Fonts (the user, 2026-11-09). The spec first had `doctor` ask Chrome which font drew each font token (U6.3), for fonts installed on the reading machine. It was built, then removed with that scope; [0047](../decisions/0047-user-theme-and-design-guide-in-margent-home.md) records why.
+- `serve` also reads the theme at start and fails before anything opens when it is broken. A theme that breaks while serving makes each doc the error page; the index shows the message and renders without the theme.
+- In an island frame the theme sits before the frame's own style, so a theme rule on `body` can't change the frame's margins or background.
+- `margent comments` writes no page, so it doesn't read the theme.
+- The design-guide eval grades with an `llm` grader over the run's trace: the agent looks for `~/.margent` with whatever tool it has (often `ls`), which a `tool_used` grader on `Read` missed.
