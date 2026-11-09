@@ -9,11 +9,10 @@ const HEADER = `/* Your margent theme. It restyles every page margent makes for 
    the house styles, so the values here win.
    To change a token, remove the comment markers around its line. The three blocks are light, dark (system setting)
    and dark (header toggle). Keep their selectors, so your values apply in each.
-   A font must be installed on the machine that runs the browser, and named in a token, such as
-   --font-prose: 'OPPO Sans 4.0', sans-serif;. Or load a web font with an @import at the top of this file, from
-   fonts.googleapis.com only (other hosts are blocked), such as
-   @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
-   margent doctor shows which font Chrome drew each font token with. */`;
+   To use a Google font, import it on the first line and name it first in a font token:
+   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap');
+   --font-prose: 'Inter', sans-serif;
+   Fonts load only from Google Fonts: the page policy blocks other hosts. */`;
 
 // The house selectors, exactly as shell/shell.css writes them. Each one must appear there (see houseDeclarations).
 const BLOCKS: { wrapper?: string; prelude: string }[] = [
@@ -34,11 +33,6 @@ function houseDeclarations(css: string, prelude: string): [string, string][] {
     const m = /^\s*(--[\w-]+)\s*:\s*([\s\S]*?)\s*$/.exec(piece);
     return m ? [[m[1], m[2]] as [string, string]] : [];
   });
-}
-
-// The light tokens of the house shell (its first :root block), by name. doctor compares fonts against these.
-export function houseLightTokens(css: string): Map<string, string> {
-  return new Map(houseDeclarations(css, ':root {'));
 }
 
 // The starter theme: a header, then the three house blocks with each declaration in a comment.

@@ -16,7 +16,8 @@ Task order for [the M9 spec](../specs/m9-user-theme.md), on branch `m9-user-them
 - [x] T4 `margent theme init` and `doctor` lines (U5, U6; A6, A7)
 - [x] T5 Skill reads `design.md`, eval case (U7; A8). Font case 3/3; design-guide case 5 of 6 across two runs, 0 without the plugin
 - [x] T6 Docs: architecture, system design, README, CLAUDE.md; full tier green (861/863 on the first run; the one failure, an F3 keyboard test, passed alone under load)
-- [ ] T7 The user reads a doc in OPPO Sans 4.0 (A9). Probed 2026-11-09: page prose and the `milestones` island text both drawn in OPPO Sans 4.0; waiting on the user's look
+- [x] T7a Scope to Google Fonts: drop the `doctor` font probe, reframe docs, skill and eval (user, 2026-11-09)
+- [ ] T7 The user reads a doc through `serve` in a Google font from their theme (A9). Probed 2026-11-09 with Be Vietnam Pro: page prose and the `milestones` island text both drawn in it
 
 ## Tasks
 
@@ -26,7 +27,7 @@ Task order for [the M9 spec](../specs/m9-user-theme.md), on branch `m9-user-them
 
 **T3.** `startServer` takes the theme path, reads it on each render, passes it to `indexPage` and `errorPage`, and watches it with `watchFile` like `self`, scheduling every open page as an "other" change.
 
-**T4.** `theme init` builds the starter from `shell/shell.css` at run time. `doctor` gains the theme and design lines, and the font check through CDP `CSS.getPlatformFontsForNode` on three probe elements.
+**T4.** `theme init` builds the starter from `shell/shell.css` at run time. `doctor` gains the theme and design lines.
 
 **T5.** Step 3 of `skills/margent/SKILL.md` and the first line of `references/design-guide.md`. One eval case.
 

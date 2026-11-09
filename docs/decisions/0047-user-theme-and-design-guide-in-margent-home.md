@@ -16,6 +16,8 @@ updated: 2026-11-09
   - `@font-face { src: url(file:///…) }` was blocked by `font-src`.
   - A font file served from the page's own server drew OPPO Sans, but only after adding `'self'` to `font-src`.
 - The browser draws the text, so the fonts that count are the ones on the machine running the browser, not the one running margent.
+- A Google font works under the existing policy. `@import` of Be Vietnam Pro (not installed) in the page's CSS drew both the page text and an island's text in it, once the import also reached the island frame.
+- Serving a font that isn't on Google Fonts to a browser that lacks it needs more machinery (below), and OPPO Sans's terms forbid other download channels. The user put fonts outside Google Fonts out of scope on 2026-11-09.
 - Islands run in sandboxed frames (opaque origin). A frame copies only the page's Google Fonts link, and takes the token values through the kit. A `@font-face` or `@import` added to the page alone never reaches an island.
 - How an agent designs an island is the author's choice and lands in committed files. How a page looks is the reader's choice and lands nowhere.
 
@@ -26,7 +28,7 @@ updated: 2026-11-09
   - **`design.md`**: the user's design guide for islands. The `margent` skill reads it before designing an island, ahead of any design skill and the bundled `design-guide.md`. It may hold the rules or name another file to read, such as a design skill's `SKILL.md`.
 - There is no config file. Fonts are tokens, so they need no setting of their own.
 - `margent theme init` writes a starter `theme.css` that lists every house token, commented out, under the house selectors.
-- The page policy is unchanged. A font is installed on the reader's machine and named in a token, or imported from Google Fonts in `theme.css`.
+- Fonts come from Google Fonts: an `@import` on the first line of `theme.css`, and the family named first in a font token. The page policy is unchanged. A font installed on the reading machine also works by name, as in any CSS, but margent neither documents nor checks it.
 - When project themes land (deferred), the order is house, then project, then user, so the reader's own preference wins.
 
 ## Consequences
@@ -34,7 +36,7 @@ updated: 2026-11-09
 - The same `.md` renders differently on two machines when their users have different themes. Renders are never committed ([0015](0015-renders-are-never-committed.md)), so nothing shared changes, except a page `export`ed and sent on, which carries the sender's theme.
 - `check` measures islands with the user's fonts. A wide font can fail the 390px overflow check on one machine and pass on another. That is the honest result for what the user reads.
 - pele measures diagram text with the house font's metrics (`FONT_UI` in `src/render/diagrams.ts`), so a much wider user font can crowd diagram labels.
-- A font named in a token but not installed falls back silently in the browser. `margent doctor` reports the font Chrome actually used for each font token, so a misspelled name shows up there.
+- A misspelled family falls back to the next one in its token without an error, and margent doesn't catch it. A `doctor` check that asked Chrome which font drew each token (`CSS.getPlatformFontsForNode`) was built for installed fonts and removed with them: about 100 lines and a second Chrome launch, for an error the page itself shows.
 - Tests must never read the developer's own `~/.margent`. `npm test` and `npm run test:full` set `MARGENT_HOME` to a folder that doesn't exist, and a test that needs a theme sets its own.
 - `design.md` shapes committed islands, so two authors with different guides make islands in different styles in one repo. A project guide, if one is added, should win inside its repo.
 

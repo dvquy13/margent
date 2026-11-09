@@ -42,7 +42,7 @@ function pageWith(theme) {
   return renderDoc({ file: DOC, source: readFileSync(DOC, 'utf8'), root: dirname(DOC), outFile, theme }).html;
 }
 
-const THEME_CSS = 'body { font-family: "OPPO Sans 4.0", sans-serif; }\n:root { --accent: #1a5fb4; }';
+const THEME_CSS = 'body { font-family: "Inter", sans-serif; }\n:root { --accent: #1a5fb4; }';
 
 // ---- U1 home folder
 

@@ -168,7 +168,6 @@ export class ChromeSession {
   private readonly exited: Promise<void>;
   private readonly stderrTail = { text: '' };
   private sessionId = '';
-  private domReady: Promise<void> | null = null;
 
   constructor(child: ChildProcess, profile: string) {
     this.child = child;
@@ -245,21 +244,6 @@ export class ChromeSession {
       throw new Error(`evaluating the island check failed: ${describeException(result.exceptionDetails)}`);
     }
     return result.result.value;
-  }
-
-  // The platform fonts Chrome drew the first element matching selector with, and how many glyphs each one drew. The
-  // page must already hold the text (doctor's font check, spec U6.3).
-  async platformFonts(selector: string): Promise<{ familyName: string; glyphCount: number }[]> {
-    this.domReady ??= (async () => {
-      await this.cdp.send('DOM.enable', {}, this.sessionId);
-      await this.cdp.send('CSS.enable', {}, this.sessionId);
-    })();
-    await this.domReady;
-    const { root } = await this.cdp.send('DOM.getDocument', { depth: 0 }, this.sessionId);
-    const { nodeId } = await this.cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector }, this.sessionId);
-    if (nodeId === 0) throw new Error(`no element matches ${selector}`);
-    const { fonts } = await this.cdp.send('CSS.getPlatformFontsForNode', { nodeId }, this.sessionId);
-    return fonts.map((f: { familyName: string; glyphCount: number }) => ({ familyName: f.familyName, glyphCount: f.glyphCount }));
   }
 
   // The first line of each uncaught exception since the last navigate().

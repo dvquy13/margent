@@ -23,7 +23,7 @@ When the user asks to update margent, run `margent update` (or `npx -y margent@l
 
 If a margent command fails for an environment reason (Chrome not found, no browser opener, cache not writable), run `margent doctor` and show the user its `fail` lines. It also runs a sample island in its frame, so it shows whether islands render on this machine.
 
-The user's own look lives outside the repo, in `~/.margent/` (`$MARGENT_HOME` when set): `theme.css` overrides the page tokens (fonts, colors, spacing) on every page margent makes for them, island frames included, and `design.md` is their design guide for islands. When the user asks to change how their pages look, edit `theme.css` (run `margent theme init` first when it doesn't exist; it lists every token, commented out), never margent's files or the doc. A font works when it is installed on the machine running the browser and named in a token, or `@import`ed from Google Fonts in `theme.css`; fonts from other hosts are blocked. `margent doctor` shows which font Chrome drew each font token with.
+The user's own look lives outside the repo, in `~/.margent/` (`$MARGENT_HOME` when set): `theme.css` overrides the page tokens (fonts, colors, spacing) on every page margent makes for them, island frames included, and `design.md` is their design guide for islands. When the user asks to change how their pages look, edit `theme.css` (run `margent theme init` first when it doesn't exist; it lists every token, commented out), never margent's files or the doc. For a font, `@import` it from Google Fonts on the first line of `theme.css` and name it first in a font token (`--font-ui`, `--font-prose` or `--mono`); fonts from other hosts are blocked.
 
 ## Workflow
 

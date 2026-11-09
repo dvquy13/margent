@@ -1,5 +1,5 @@
 // The theme commands (M9 spec U5, U6; acceptance A6, A7): `theme init` writes the starter theme, and `doctor` reports the
-// theme, the design guide and the fonts Chrome drew. Each test spawns dist/cli.js with its own MARGENT_HOME. Run after
+// theme and the design guide. Each test spawns dist/cli.js with its own MARGENT_HOME. Run after
 // `npm run build`. The doctor tests need an installed Chrome.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { full, fullMac } from './helpers/tier.mjs';
+import { full } from './helpers/tier.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = join(REPO, 'dist', 'cli.js');
@@ -131,7 +131,7 @@ test('A7 U6.1 U6.2 doctor with no theme or design guide says so', full, () => {
   assert.doesNotMatch(r.stdout, /^(fail|warn) (theme|design)/m);
 });
 
-test('A7 U6.1 U6.2 doctor names the theme and design files it reads', full, () => {
+test('A7 U6.1 U6.2 doctor names the theme and design files it reads', () => {
   const home = homeWith({ 'theme.css': ':root { --bg: #fff; }\n', 'design.md': '# Design\n' });
   const r = cli(['doctor'], { home });
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -145,22 +145,6 @@ test('A7 U6.1 doctor with a theme holding "</style" fails the theme line, exits 
   assert.equal(r.status, 1, r.stdout);
   assert.match(r.stdout, /^fail theme: .*theme\.css:2: theme\.css must not contain "<\/style"$/m);
   assert.match(r.stdout, /^ok islands: /m);
-});
-
-test('A7 U6.3 doctor warns that a font family is not installed, and exits 0', () => {
-  const home = homeWith({ 'theme.css': ":root { --font-prose: 'Margent No Such Font', serif; }\n" });
-  const r = cli(['doctor'], { home });
-  assert.match(
-    r.stdout,
-    /^warn font-prose: 'Margent No Such Font' is not available to this machine's Chrome, so text falls back to /m
-  );
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-});
-
-test('A7 U6.3 doctor reports an installed font by its name (macOS)', { ...full, ...fullMac }, () => {
-  const home = homeWith({ 'theme.css': ":root { --font-prose: 'Helvetica', serif; }\n" });
-  const r = cli(['doctor'], { home });
-  assert.match(r.stdout, /^ok font-prose: Helvetica$/m);
 });
 
 function escape(text) {

@@ -8,7 +8,7 @@ updated: 2026-11-09
 
 M9 lets a user change how margent looks on their side, with an optional `theme.css`, and how their agent designs islands, with an optional `design.md`, both in `~/.margent/` ([0047](../decisions/0047-user-theme-and-design-guide-in-margent-home.md)). Requirement IDs are U1 to U7, and test names cite them.
 
-M9 is done when every acceptance check below passes and the user reads a doc of this repo in OPPO Sans 4.0 through `serve`, islands included.
+M9 is done when every acceptance check below passes and the user reads a doc of this repo through `serve` in a Google font set in their theme, islands included.
 
 ## Scope
 
@@ -18,13 +18,14 @@ M9 is done when every acceptance check below passes and the user reads a doc of 
 2. The theme in pages (U2) and in island frames (U3).
 3. `serve` reloads pages when the theme changes (U4).
 4. `margent theme init` (U5).
-5. `doctor` reports the theme, the design guide and the fonts Chrome used (U6).
+5. `doctor` reports the theme and the design guide (U6).
 6. The skill reads `design.md` (U7).
 
 **Out**
 
 - Project themes. Still deferred, with the order fixed by 0047.
-- `serve` sending font files. Deferred in [decisions/README.md](../decisions/README.md#deferred).
+- Fonts from anywhere but Google Fonts. A font installed on the reading machine works by name, as in any CSS, but margent neither checks nor documents it. `serve` sending font files is deferred in [decisions/README.md](../decisions/README.md#deferred).
+- Checking that a font named in a token actually loads.
 - Diagram text measured with the user's font.
 
 ## Requirements
@@ -57,7 +58,7 @@ M9 is done when every acceptance check below passes and the user reads a doc of 
 ### U5 `margent theme init`
 
 1. Writes `{home}/theme.css`, creating the home, and prints the path.
-2. The file starts with a comment that says what the file does, that installed fonts are named in a token, that web fonts load only from Google Fonts (`@import`), and that `margent doctor` shows the fonts Chrome used.
+2. The file starts with a comment that says what the file does, how to remove the comment markers, and how to use a Google font: an `@import` on the first line and the family first in a font token. Fonts from other hosts are blocked.
 3. Then the house token blocks with the house selectors (`:root`, the two dark blocks), every declaration commented out. With the comment markers removed, each declaration equals the house value.
 4. An existing `theme.css` is never overwritten: `{path} already exists; edit it, or delete it to start again`, exit 1.
 
@@ -65,7 +66,7 @@ M9 is done when every acceptance check below passes and the user reads a doc of 
 
 1. A theme line: `ok theme: {path}`, `ok theme: none ({path} not found)`, or `fail theme: {reason}` for U1.3 and U2.3.
 2. A design line: `ok design: {path}` or `ok design: none ({path} not found)`.
-3. With a theme, the sample page renders with it. For each of `--font-ui`, `--font-prose` and `--mono`, doctor asks Chrome which font it drew text in that token with: `ok font-prose: OPPO Sans 4.0`, or, when it is not the token's first family, `warn font-prose: 'OPPO Sans' is not available to this machine's Chrome, so text falls back to Helvetica. Install the font, or @import it from Google Fonts in theme.css`. A warning doesn't change the exit code.
+3. With a theme, the islands check renders the sample with it.
 
 ### U7 Skill
 
@@ -83,6 +84,6 @@ M9 is done when every acceptance check below passes and the user reads a doc of 
 | A4 | In Chrome, a theme setting `--accent` changes the page's accent and the island's `kit.tokens.accent`, in light and dark; the frame document holds the theme text | U3 |
 | A5 | A served page reloads when the theme file is created, changed and deleted | U4 |
 | A6 | `theme init` writes the starter, refuses a second run, and the uncommented starter equals the house tokens | U5 |
-| A7 | `doctor` prints the theme and design lines, and `warn font-prose` for a family that isn't installed | U6 |
-| A8 | `claude plugin eval` passes, with a case where a user `design.md` is read | U7 |
-| A9 | The user reads a doc of this repo through `serve` in OPPO Sans 4.0, islands included | all |
+| A7 | `doctor` prints the theme and design lines, and fails the theme line for a theme holding `</style` | U6 |
+| A8 | `claude plugin eval` passes: asked for a Google font, the agent points to `theme.css`; adding a visual, it looks for `design.md` | U7 |
+| A9 | The user reads a doc of this repo through `serve` in a Google font from their theme, islands included | all |
