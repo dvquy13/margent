@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0](https://github.com/dvquy13/margent/compare/v0.11.0...v0.12.0) (2026-11-09)
+
+
+### Features
+
+* margent theme init, and doctor reports the theme, design guide and fonts drawn (M9 U5, U6) ([e171e2e](https://github.com/dvquy13/margent/commit/e171e2e362860118f2dd0a6a04f4062f644054e5))
+* serve themes every page and reloads them when theme.css changes (M9 U2, U4) ([b81c106](https://github.com/dvquy13/margent/commit/b81c106a3026eb19a45bb0d5097b32dd67c4c6b7))
+* the user theme reaches island frames (M9 U3) ([5bb0d1a](https://github.com/dvquy13/margent/commit/5bb0d1ad9f68a4345121c9fbb3f700e0713fe1e1))
+* user theme from ~/.margent/theme.css in every rendered page (M9 U1, U2) ([3d91f3a](https://github.com/dvquy13/margent/commit/3d91f3a509af78b424eed92a11dabc6e897951ac))
+
+
+### Documentation
+
+* close M9, user theme ([890e9b6](https://github.com/dvquy13/margent/commit/890e9b645384c576e558f3d2e6257e6232318ac1))
+* M9 plan tracker, T1 to T6 done ([eda45f8](https://github.com/dvquy13/margent/commit/eda45f81113ee314046c940785c911b93618f45a))
+* M9 user theme, decision 0047, spec and plan ([958ba2d](https://github.com/dvquy13/margent/commit/958ba2dee89a9fa098d9d0552b625d47c3c18b17))
+* status lists the 0.11.0 release ([1be8964](https://github.com/dvquy13/margent/commit/1be89646cf0e671787e13cbc1fa83b90b16b9841))
+* user theme and design guide in architecture, README and the margent skill (M9 U7) ([27a220f](https://github.com/dvquy13/margent/commit/27a220fc41af82bc1c880bed99560b6e10598a27))
+
 ## [0.11.0](https://github.com/dvquy13/margent/compare/v0.10.0...v0.11.0) (2026-11-03)
 
 
