@@ -51,13 +51,18 @@
     }
     var fonts = document.querySelector('link[rel="stylesheet"][href^="https://fonts.googleapis.com/"]');
     if (!fonts) throw new Error('the page has no Google Fonts stylesheet link for island frames');
+    // The user's theme text (spec U3.1) follows the fonts link, so its @import and @font-face rules reach the frame. It
+    // goes before the frame's own style, so a theme rule on body can't change the frame's margins or background. A page
+    // without a theme adds nothing, so its frames stay byte-identical (U3.2).
+    var userTheme = document.getElementById('margent-user-theme');
+    var themeStyle = userTheme ? '<style>' + userTheme.textContent + '</style>' : '';
     var json = JSON.stringify({ name: name, path: path, kind: kind, data: payload.data, rowLines: payload.rowLines, module: module })
       .replace(/</g, '\\u003c');
     // The frame takes the page's language and text-size-adjust, so its lines break and its fonts fall back as the page's do.
     var lang = document.documentElement.getAttribute('lang') || '';
     return '<!doctype html><html' + (lang ? ' lang="' + attr(lang) + '"' : '') + '><head><meta charset="utf-8">' +
       '<meta http-equiv="Content-Security-Policy" content="' + attr(GUEST_POLICY) + '">' +
-      '<link rel="stylesheet" href="' + attr(fonts.getAttribute('href')) + '">' +
+      '<link rel="stylesheet" href="' + attr(fonts.getAttribute('href')) + '">' + themeStyle +
       '<style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } html, body { margin: 0; background: transparent; overflow: hidden; }</style>' +
       '</head><body>' +
       '<script type="application/json" id="margent-island">' + json + '<\/script>' +

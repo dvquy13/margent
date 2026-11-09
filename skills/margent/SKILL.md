@@ -23,6 +23,8 @@ When the user asks to update margent, run `margent update` (or `npx -y margent@l
 
 If a margent command fails for an environment reason (Chrome not found, no browser opener, cache not writable), run `margent doctor` and show the user its `fail` lines. It also runs a sample island in its frame, so it shows whether islands render on this machine.
 
+The user's own look lives outside the repo, in `~/.margent/` (`$MARGENT_HOME` when set): `theme.css` overrides the page tokens (fonts, colors, spacing) on every page margent makes for them, island frames included, and `design.md` is their design guide for islands. When the user asks to change how their pages look, edit `theme.css` (run `margent theme init` first when it doesn't exist; it lists every token, commented out), never margent's files or the doc. For a font, `@import` it from Google Fonts on the first line of `theme.css` and name it first in a font token (`--font-ui`, `--font-prose` or `--mono`); fonts from other hosts are blocked.
+
 ## Workflow
 
 1. Write or edit the `.md`.
@@ -104,7 +106,7 @@ Test it first: write the caption, one italic sentence stating the claim the visu
 
 1. Read [references/island-contract.md](references/island-contract.md) before writing any module. It is the full contract: data forms, module shape, schema, column patterns, kit API and rules.
 2. Choose the backing. Default to a table: put `<!-- island {name} -->` on the line directly above an existing table, and leave the table's wording alone. Use a YAML fence only for nested data with no table shape.
-3. Design it. If a design skill such as `/design-principles` is available, load it and follow it. Otherwise read [references/design-guide.md](references/design-guide.md).
+3. Design it. First read the user's design guide, `~/.margent/design.md` (`$MARGENT_HOME/design.md` when `MARGENT_HOME` is set), if it exists, and every file it names, and follow them. If it exists but can't be read, or names a file that doesn't exist, tell the user which file and ask how to go on. Without one, if a design skill such as `/design-principles` is available, load it and follow it. Otherwise read [references/design-guide.md](references/design-guide.md).
 4. Write `islands/{name}.island.js`. Islands are found by walking up from the doc's folder, and the topmost folder that holds `islands/` is the docs root. For a project's first island, create `islands/` at the top of the docs tree (for example `docs/islands/`), so every doc below it can use it.
 5. For every column whose wording the module parses (a cost like `\$1.58 (41%)`, a verdict like `Proceed, Adjust judge`), declare a pattern in the schema. A cell that stops matching then shows a warning badge and fails `check`, so a reworded cell is never silently dropped.
 6. Put the caption, an italic line stating the claim, right after the table.

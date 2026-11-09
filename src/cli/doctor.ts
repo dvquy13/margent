@@ -1,10 +1,11 @@
 // `margent doctor` (spec R7): one line per environment check, exit 1 when any check fails. The islands check renders
 // a built-in sample doc in a temp dir (removed afterwards) and runs its island in headless Chrome.
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { resolveAuthor } from '../serve/author.js';
 import { VERSION } from '../version.js';
+import { margentHome, readUserTheme, type UserTheme } from '../user/home.js';
 import { findChrome } from './chrome.js';
 import { cacheRoot, renderOne } from './collect.js';
 import { runPages } from './pages-run.js';
@@ -114,7 +115,7 @@ const SAMPLE_ISLAND = [
 ].join('\n');
 
 // Renders the sample doc and runs its island in Chrome. Any problem, or a failure to run, is a fail line.
-async function checkIslands(): Promise<Check> {
+async function checkIslands(theme: UserTheme | null): Promise<Check> {
   const dir = mkdtempSync(join(tmpdir(), 'margent-doctor-'));
   try {
     mkdirSync(join(dir, 'islands'));
@@ -122,7 +123,7 @@ async function checkIslands(): Promise<Check> {
     const file = join(dir, 'sample.md');
     writeFileSync(file, SAMPLE_DOC);
     const html = join(dir, 'sample.html');
-    const rendered = renderOne(file, dir, html);
+    const rendered = renderOne(file, dir, html, theme);
     writeFileSync(html, rendered.html);
     const problems = await runPages([{ file: 'margent doctor sample', html, islands: rendered.islands, quotes: [] }]);
     if (problems.length > 0) return { status: 'fail', line: `fail islands: ${problems[0]}` };
@@ -134,14 +135,34 @@ async function checkIslands(): Promise<Check> {
   }
 }
 
+// The theme in the margent home (spec U6.1). A theme that can't be read is a fail line, and doctor goes on without one.
+function checkTheme(): { check: Check; theme: UserTheme | null } {
+  try {
+    const theme = readUserTheme();
+    if (theme) return { check: { status: 'ok', line: `ok theme: ${theme.file}` }, theme };
+    const file = join(margentHome(), 'theme.css');
+    return { check: { status: 'ok', line: `ok theme: none (${file} not found)` }, theme: null };
+  } catch (err) {
+    return { check: { status: 'fail', line: `fail theme: ${errorMessage(err)}` }, theme: null };
+  }
+}
+
+// The design guide in the margent home (spec U6.2). Only its presence is checked here.
+function checkDesign(): Check {
+  const file = join(margentHome(), 'design.md');
+  if (existsSync(file) && statSync(file).isFile()) return { status: 'ok', line: `ok design: ${file}` };
+  return { status: 'ok', line: `ok design: none (${file} not found)` };
+}
+
 // margent doctor: prints every check in order and returns 1 when any of them fails, else 0.
 export async function commandDoctor(): Promise<number> {
   const checks: Check[] = [checkNode(), { status: 'ok', line: `ok margent: ${VERSION}` }];
   const chrome = checkChrome();
-  checks.push(chrome, checkOpener(), checkCache(), checkAuthor());
+  const theme = checkTheme();
+  checks.push(chrome, checkOpener(), checkCache(), checkAuthor(), theme.check, checkDesign());
   checks.push(
     chrome.status === 'ok'
-      ? await checkIslands()
+      ? await checkIslands(theme.theme)
       : { status: 'fail', line: 'fail islands: skipped, Chrome is not available' }
   );
   for (const check of checks) process.stdout.write(`${check.line}\n`);

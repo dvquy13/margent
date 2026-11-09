@@ -81,13 +81,14 @@ test('the usage lists doctor after check', () => {
 // ---- doctor (R7)
 
 test('doctor on this machine exits 0 and prints the ok lines in order (author may warn instead)', full, () => {
-  const r = cli(['doctor']);
+  // An empty home, so a developer's own theme (M9 U6) doesn't add font lines here.
+  const r = cli(['doctor'], { env: { MARGENT_HOME: scratch('doctor-home') } });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.equal(r.stderr, '');
   const lines = r.stdout.trim().split('\n');
   for (const line of lines) assert.match(line, /^(ok|warn) /, line);
   const names = lines.map((line) => line.split(':')[0]).filter((name) => name !== 'warn author' && name !== 'ok author');
-  assert.deepEqual(names, ['ok node', 'ok margent', 'ok chrome', 'ok opener', 'ok cache', 'ok islands']);
+  assert.deepEqual(names, ['ok node', 'ok margent', 'ok chrome', 'ok opener', 'ok cache', 'ok theme', 'ok design', 'ok islands']);
   assert.match(r.stdout, /^ok islands: a sample island rendered in its sandboxed frame$/m);
 });
 

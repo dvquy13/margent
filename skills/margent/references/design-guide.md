@@ -1,6 +1,6 @@
 # Design guide for islands
 
-Use this when no design skill is installed. If the project or the user has one, it takes precedence.
+Use this when the user has no design guide (`~/.margent/design.md`) and no design skill is installed. If they have either, it takes precedence.
 
 ## Start from the claim
 

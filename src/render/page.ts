@@ -17,6 +17,7 @@ import { RenderError } from '../errors.js';
 import type { IslandRecord } from '../islands/parse.js';
 import type { Thread } from '../comments/syntax.js';
 import { pagePolicy } from './policy.js';
+import { assertThemeSafe, type UserTheme } from '../user/home.js';
 import { relative, sep } from 'node:path';
 
 // What the edit runtime needs to know about the page it runs in. `path` is relative to the docs root.
@@ -34,6 +35,8 @@ export interface RenderDocInput {
   outFile: string; // absolute path of the .html that will be written
   // Set only by `margent serve`. The edit CSS joins the page style, and the state and the bundle go last in the body.
   edit?: { state: EditState; js: string; css: string };
+  // The user's theme (M9 U2): its style element follows the house style. Null or absent means no theme.
+  theme?: UserTheme | null;
 }
 
 export interface RenderedDoc {
@@ -115,7 +118,7 @@ function fillShell(template: string, values: Record<Slot, string>): string {
 }
 
 export function renderDoc(input: RenderDocInput): RenderedDoc {
-  const { file, source, root, outFile, edit } = input;
+  const { file, source, root, outFile, edit, theme } = input;
   const body = renderBody(source, { file, root, outFile });
 
   // runtime/ and shell/ CSS and JS are inlined, so they must not be able to close their own element.
@@ -142,6 +145,9 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   const styles = `${shellCss}\n${hasDiagrams ? `${diagramsCss}\n` : ''}${withRail ? `${commentsCss}\n` : ''}${islandCss}${edit ? `\n${edit.css}` : ''}`;
   if (styles.includes('</style')) throw new Error('shell or runtime CSS contains "</style"');
   if (themeJs.includes('</script')) throw new Error('runtime/theme.js contains "</script"');
+  // The user's theme is checked again here, so a theme from any caller is safe (spec U2.3).
+  if (theme) assertThemeSafe(theme);
+  const userTheme = theme ? `\n<style id="margent-user-theme">\n${theme.css}\n</style>` : '';
 
   const meta = [body.meta.status, body.meta.version, body.meta.updated].filter((v): v is string => v !== undefined);
   if (hasComments) meta.push(`${body.comments.length} open`);
@@ -160,7 +166,7 @@ export function renderDoc(input: RenderDocInput): RenderedDoc {
   const values: Record<Slot, string> = {
     title: escapeText(body.title),
     policy: escapeText(policy),
-    head: `<meta name="generator" content="margent ${VERSION}">\n<style>\n${styles}\n</style>`,
+    head: `<meta name="generator" content="margent ${VERSION}">\n<style>\n${styles}\n</style>${userTheme}`,
     wordmark,
     meta: escapeText(meta.join(' · ')),
     hero: body.hero,

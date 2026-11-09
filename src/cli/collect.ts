@@ -6,6 +6,7 @@ import { homedir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { RenderError } from '../errors.js';
 import { renderDoc, type RenderedDoc } from '../render/page.js';
+import type { UserTheme } from '../user/home.js';
 
 export interface DocSeed {
   file: string; // absolute path of the .md
@@ -25,6 +26,7 @@ export interface RenderSet {
 export interface RenderOptions {
   follow: boolean; // true: also render every .md a rendered doc links to, breadth-first, each once
   outFileFor: (file: string, root: string) => string;
+  theme?: UserTheme | null; // the user's theme, read once by the CLI (spec U2); every page gets it
 }
 
 // Renders the seeds (and, when following, their linked docs). A RenderError is recorded and the walk goes on;
@@ -37,7 +39,7 @@ export function renderSet(seeds: DocSeed[], opts: RenderOptions): RenderSet {
     const { file, root } = next;
     const outFile = opts.outFileFor(file, root);
     try {
-      const rendered = renderOne(file, root, outFile);
+      const rendered = renderOne(file, root, outFile, opts.theme);
       set.docs.push({ file, root, outFile, rendered });
       if (opts.follow) {
         for (const link of rendered.links) {
@@ -129,6 +131,6 @@ export function htmlUnder(dir: string, base: string, file: string): string {
 }
 
 // Renders one doc for the page at outFile. Errors propagate as RenderError.
-export function renderOne(file: string, root: string, outFile: string): RenderedDoc {
-  return renderDoc({ file, source: readFileSync(file, 'utf8'), root, outFile });
+export function renderOne(file: string, root: string, outFile: string, theme?: UserTheme | null): RenderedDoc {
+  return renderDoc({ file, source: readFileSync(file, 'utf8'), root, outFile, theme });
 }

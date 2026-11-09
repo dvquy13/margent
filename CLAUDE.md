@@ -2,7 +2,7 @@
 
 Renders markdown docs into designed pages with data-driven islands, shipped as an npm CLI (`margent`), skills for any agent (`npx skills add`), and a thin Claude Code plugin.
 
-**Status:** M1–M3, M5, M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) and M7 (polish P1–P4, released in 0.9.0 on 2026-11-02) done. M8 (Mermaid diagrams D1–D9, released in 0.11.0 on 2026-11-03) done; no milestone is open. 0.10.0 (2026-11-03) made the `serve` index a collapsible folder tree. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
+**Status:** M1–M3, M5, M6 (review feedback F1–F6, released in 0.7.0 on 2026-10-27) and M7 (polish P1–P4, released in 0.9.0 on 2026-11-02) done. M8 (Mermaid diagrams D1–D9, released in 0.11.0 on 2026-11-03) and M9 (user theme U1–U7: `~/.margent/theme.css` and `design.md`, decision 0047, closed 2026-11-09) done; no milestone is open. 0.10.0 (2026-11-03) made the `serve` index a collapsible folder tree. 0.1.0 is the first public release (decision 0031): public repo `dvquy13/margent` with fresh history (the earlier history is the local tag `archive/pre-public`, never pushed), on npm as `margent`, releases through release-please. M4 Catalog is cut (decision 0034).
 
 ## Where to look
 
@@ -38,6 +38,7 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 - Don't edit `src/`, `shell/` or `runtime/` while a test run is going: tests built `.build/` and `dist/cli.js` when the run started, and some compare a source file with the build (`test/page-edit.test.mjs` checks the inlined `comments.css`), so they fail on an edit made mid-run.
 - Close every `serve` server a test starts, even when the page fails to open (`t.after(() => served.close())` right after `serveCopy`). A leaked one keeps its test file's process alive, so `npm test` hangs with no failure shown. Leftover recursive `fs.watch` watchers in one process also make macOS deliver change events late or drop them.
 - Editing tests drive real keyboard and mouse input. Setting `innerHTML` or `textContent` to simulate an edit doesn't test editing.
+- Tests must never read your own `~/.margent`: `npm test` and `npm run test:full` set `MARGENT_HOME` to a folder that doesn't exist. A file run on its own needs it too (`MARGENT_HOME=/nonexistent node --test test/{file}.test.mjs`), or a CLI test that compares page bytes fails on your theme. A test that needs a theme sets its own `MARGENT_HOME`.
 - Machine load makes the browser tests slow and flaky: several runs at once (parallel worktrees), or macOS background jobs, push the full tier's timing checks (A7, A8/A9 shots) past their limits. Judge a failure by rerunning that file alone (`MARGENT_TIER=full node --test test/{file}.test.mjs` for a full-tier test). A slow fast run needs no rerun.
 - Leaked headless Chromes (parent PID 1, `--disable-field-trial-config` in the command line) from interrupted runs slow every later run. Find them with `ps -Ao pid,ppid,command | grep disable-field-trial-config`.
 - A mouse drag that starts on link text becomes a link drag in Chrome, so no selection forms. Start a corpus `select` just before the link.
@@ -67,6 +68,7 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 - `--allowedTools` takes several values, so a prompt after it is read as a tool name. Put the prompt right after `-p`.
 - A headless `claude -p "/margent:docs-serve …"` never exits, because it waits on the server it started in the background. Read the URL from its output, then kill the session and the `cli.js serve` process.
 - After editing `skills/margent/SKILL.md`, rerun `claude plugin eval` (cases in `evals/`). Keep "load it first" in the description: without it, "write a report as a doc" does not trigger the skill. The name `margent` says nothing about docs, so the description must name every trigger: without "address review comments", the review case fired 1 time in 3.
+- `claude plugin eval` keeps only the last of several `--case` flags: pass one glob. Run traces are deleted unless `--keep-temp`. A `tool_used` grader names one tool, so "looked for X with any tool" is an `llm` grader with `focus: trace` (focus takes `trace`, `last_message`, `files` or `mock_calls`).
 - `npx skills add` silently skips a skill whose frontmatter isn't strict YAML (an unquoted `: ` in a description), though Claude Code reads it. `test/scaffold.test.mjs` parses every skill strictly.
 - Set `BROWSER=true` for headless runs that reach `margent open`, or each run opens a browser tab.
 - The `docs-open`, `docs-serve` and `docs-review` skills are user-invoked (`disable-model-invocation: true`): `/margent:docs-open` through the plugin.
@@ -74,4 +76,4 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 ## Rules
 
 - No silent fallbacks. Every error path exits non-zero with `{file}:{line}: {message}` (`RenderError`) and has a fixture proving it is loud.
-- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, `docs/specs/m6-review-feedback.md` for F1 to F6, `docs/specs/m7-polish.md` for P1 to P4, and `docs/specs/m8-mermaid-diagrams.md` for D1 to D9. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
+- IDs like R3.1 or A6 in code and test names refer to the spec of the milestone that added the code: `docs/specs/m1-render-islands.md` for render, islands and the CLI, `docs/specs/m2-serve-edit.md` for `src/serve/` and `runtime/edit/`, `docs/specs/m6-review-feedback.md` for F1 to F6, `docs/specs/m7-polish.md` for P1 to P4, `docs/specs/m8-mermaid-diagrams.md` for D1 to D9, and `docs/specs/m9-user-theme.md` for U1 to U7. Never cite a plan's task IDs (T9) in code: plans are deleted when their milestone closes.
