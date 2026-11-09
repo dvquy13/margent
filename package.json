@@ -1,6 +1,6 @@
 {
   "name": "margent",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Render markdown docs into designed pages with data-driven islands",
   "keywords": [
     "markdown",
