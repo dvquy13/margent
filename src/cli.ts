@@ -21,6 +21,7 @@ import { margentHome, readUserTheme, type UserTheme } from './user/home.js';
 import { runPages, type CheckPage } from './cli/pages-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
+import { commandThemeInit } from './cli/theme.js';
 import { commandUpdate } from './cli/update.js';
 import { linkProblems } from './cli/links.js';
 import { diagramProblems } from './cli/diagrams.js';
@@ -54,6 +55,7 @@ const USAGE = `usage:
   margent export {path} --out {dir} [--md] [--clean]
   margent init {path} [--dry-run] [--into {file}]
   margent teardown {path}
+  margent theme init
   margent serve {docs root} [--port {n}] [--no-open] [--author {name}]
   margent --version`;
 
@@ -525,6 +527,9 @@ async function main(argv: string[]): Promise<number> {
     }
     case 'teardown':
       return commandTeardown(singlePath(command, rest));
+    case 'theme':
+      if (rest.length !== 1 || rest[0] !== 'init') throw new UsageError('theme takes only init');
+      return commandThemeInit();
     case 'doctor':
       if (rest.length > 0) throw new UsageError('doctor takes no arguments');
       return commandDoctor();
