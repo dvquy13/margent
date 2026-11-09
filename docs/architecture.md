@@ -1,7 +1,7 @@
 ---
 title: margent architecture (as built)
 status: accepted
-updated: 2026-11-03
+updated: 2026-11-09
 ---
 
 # margent architecture
@@ -17,8 +17,9 @@ This file describes only what exists in code. For the intended system, see [desi
 | `src/render/` | frontmatter, slugs, markdown-it setup ([0011](decisions/0011-markdown-it-for-parsing.md)), docs root, `comments.ts` (comment markup rules and thread records), `page.ts` (`renderDoc`, which fills the shell and lists every script hash), `diagrams.ts` (`renderDiagram`: a `mermaid` fence to a figure with both layouts, through pele, loaded on the first diagram), `policy.ts` (`pagePolicy`, `scriptHash`: the page's Content-Security-Policy) |
 | `src/comments/` | `syntax.ts`: the note grammar and pure edits on one block's source (`noteSource`, `nextId`, `appendNote`, `replaceNote`, `stripThread`, `stripAll`), shared by node and the edit runtime; `clean.ts`: `cleanSource` for `export --clean` |
 | `src/islands/` | `parse.ts` (markers and fences to `<agent-island>`), `lookup.ts` (module lookup), `validate.ts` (`loadIsland`: reads a module as text and wraps it with the kit's `moduleScript`; no module code runs in Node) |
-| `src/cli.ts`, `src/cli/` | `open`, `check`, `comments`, `export`, `serve`, `init`, `teardown`, `doctor`, `update`, `--version`; `update.ts` the install detection and updates behind `update`, `agents-block.ts` the margent block behind `init` and `teardown`, `pages-run.ts` is the headless page run behind `check` (islands and quoted comments), `comments.ts` the thread list, `doctor.ts` the environment check behind `doctor`, `diagrams.ts` (`diagramProblems`: the width line `check` prints for a diagram) |
+| `src/cli.ts`, `src/cli/` | `open`, `check`, `comments`, `export`, `serve`, `init`, `teardown`, `theme init`, `doctor`, `update`, `--version`; `theme.ts` the starter theme behind `theme init`, `update.ts` the install detection and updates behind `update`, `agents-block.ts` the margent block behind `init` and `teardown`, `pages-run.ts` is the headless page run behind `check` (islands and quoted comments), `comments.ts` the thread list, `doctor.ts` the environment check behind `doctor`, `diagrams.ts` (`diagramProblems`: the width line `check` prints for a diagram) |
 | `src/serve/` | `server.ts` (the `serve` HTTP server), `watch.ts` (`watchTree`: Node's recursive watcher on macOS and Windows, one watcher per folder on Linux, where Node 22's recursive watcher loses a file replaced by a rename), `splice.ts` (hash, splice, validate, atomic write), `index-page.ts` (the `/` doc index) |
+| `src/user/` | `home.ts`: the margent home (`$MARGENT_HOME`, else `~/.margent`) and the user's `theme.css` in it (`margentHome`, `readUserTheme`, `assertThemeSafe`, [0047](decisions/0047-user-theme-and-design-guide-in-margent-home.md)). Only the CLI and `serve` read it; renders take the theme as a value |
 | `src/errors.ts` | `RenderError(file, line, message)`, whose message is `{file}:{line}: {message}` |
 | `runtime/` | plain browser JS and CSS inlined into pages: `kit.js`, `host.js` (the page side of each island), `theme.js`, `island.css`, `comments.js` (the comment rail, only on pages with threads) and `quote.js` (`MargentQuote`: the one place a quoted phrase is stored and found, loaded before `comments.js` and copied into island frames, [0039](decisions/0039-quoted-phrase-must-match.md)) |
 | `runtime/guest.js` | the island guest: inlined as text into every island's sandboxed frame, where it checks and renders the module. Its other end is `host.js` |
@@ -54,7 +55,7 @@ The npm package's `files` is `dist/cli.js` and `dist/pele.cjs`. Each `dist/` fil
 |---|---|---|
 | `{{title}}` | text | page `<title>` |
 | `{{policy}}` | text | the page's policy, in a `<meta http-equiv="Content-Security-Policy">` after the charset meta (see [Script policy](#script-policy)) |
-| `{{head}}` | html | generator meta, then one `<style>` with `shell.css`, then `shell/diagrams.css` when the doc has a `mermaid` fence, then `shell/comments.css` when the doc has threads, then `runtime/island.css`, then `runtime/edit/edit.css` under `serve` |
+| `{{head}}` | html | generator meta, then one `<style>` with `shell.css`, then `shell/diagrams.css` when the doc has a `mermaid` fence, then `shell/comments.css` when the doc has threads, then `runtime/island.css`, then `runtime/edit/edit.css` under `serve`. With a user theme, a second `<style id="margent-user-theme">` follows, holding `theme.css` byte for byte |
 | `{{wordmark}}` | html | header wordmark, named by the parent folder if the docs root is called `docs`, else by the docs root. Under `serve` it is a link to `/`, the doc index; in a static render it is plain text |
 | `{{meta}}` | text | status, version and updated, then `{n} open` when the doc has threads, joined with ` · `, skipping missing ones |
 | `{{hero}}` | html | the `<h1>` plus every block before the first `##` |
@@ -64,6 +65,8 @@ The npm package's `files` is `dist/cli.js` and `dist/pele.cjs`. Each `dist/` fil
 | `{{scripts}}` | html | with islands: each island module (`script.island-module`, as text), then `#margent-guest-kit` and `#margent-guest-runtime` (the kit and guest runtime as text, which each frame copies), then `kit.js` and `host.js` inline. Then `theme.js` (always present) and `runtime/comments.js` when the doc has threads. Under `serve`, then `<script type="application/json" id="margent-state">` (`{path, hash, source, author}`, every `<` escaped) and the edit bundle |
 
 Tokens live on `:root`, with dark values under `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` and under `:root[data-theme="dark"]`. `#theme-toggle` in the header is wired by `theme.js`.
+
+The user theme ([0047](decisions/0047-user-theme-and-design-guide-in-margent-home.md)) is `{margent home}/theme.css`, read once per command by `open`, `export` and `check` (and by `doctor` for its sample), and on every request by `serve`. Placed after the house style, it wins on the house selectors at equal specificity. A theme holding `</style` fails with its line. Without one, pages are byte-identical to a margent without the feature. Every test script sets `MARGENT_HOME` to a folder that doesn't exist.
 
 ### Block HTML
 
@@ -110,7 +113,7 @@ Comments are inline CriticMarkup ([0005](decisions/0005-comments-as-inline-criti
 
 - `data` is the parsed table or YAML. `rowLines[i]` is the source line of table row `i` (empty for YAML). `mismatches` is no longer in the payload; the guest computes it.
 - The module's script text is exact: `loadIsland` (`src/islands/validate.ts`) builds it with the kit's `moduleScript`, and the browser never rewraps it. The kit (`kit.js`) and the guest runtime (`guest.js`) are the texts `#margent-guest-kit` and `#margent-guest-runtime`.
-- `host.js` (`AgentIsland`) builds each frame's `srcdoc` on connect (`srcdocFor`). The document holds the guest's own policy (`GUEST_POLICY`), the page's Google Fonts link, the island as JSON in `#margent-island` (`{name, path, kind, data, rowLines, module}`, every `<` escaped), then the kit and guest runtime. A failure before the frame exists (no data, no module text, no guest runtime) is shown in the page's box, and the state is `error`.
+- `host.js` (`AgentIsland`) builds each frame's `srcdoc` on connect (`srcdocFor`). The document holds the guest's own policy (`GUEST_POLICY`), the page's Google Fonts link, the page's `#margent-user-theme` text when there is one (before the frame's own style, so `@import` and `@font-face` reach islands but a `body` rule can't change the frame), the island as JSON in `#margent-island` (`{name, path, kind, data, rowLines, module}`, every `<` escaped), then the kit and guest runtime. A failure before the frame exists (no data, no module text, no guest runtime) is shown in the page's box, and the state is `error`.
 - The guest (`guest.js`) sits in the frame. Its `render` runs the module (through a `script` element, so a throw at load is caught), checks `contract`, `schema` (`MargentKit.validate`) and column patterns (`MargentKit.checkPatterns`), then calls `render(root, data, kit)` on an open shadow root. A failed check shows `MargentKit.showError` in the frame and posts `state: error`.
 - `island.css` shows the fallback unless `data-state="rendered"` or `data-reserved`, so JS off and errors both show the original table. Print hides the frame and badge and shows the fallback.
 - Each reported height is kept in `sessionStorage` under `margent-island-height:{path}:{index}:{name}:{width}`. On the next load in the tab, `host.js` starts the frame at that height and sets `data-reserved`, so a reload (every save under `serve`) doesn't shift the page ([0028](decisions/0028-islands-start-at-their-remembered-height.md)). The first state clears `data-reserved`; with no state after `STATE_WAIT_MS` (10s) the frame goes back to height 0 and the fallback shows. Blocked storage warns once in the console, and frames start at 0.
@@ -176,6 +179,8 @@ Every page carries a `Content-Security-Policy` ([0025](decisions/0025-islands-ru
 `margent serve {root}` runs one `node:http` server on 127.0.0.1 ([0016](decisions/0016-serve-binds-localhost-with-session-token.md)). Pages render in memory on each request with the edit slot. The note author is resolved once at start (`resolveAuthor` in `src/serve/author.ts`): `--author {name}`, else `git config user.name` in the root, else the OS user name (`USER`, `USERNAME`, `LOGNAME`), which is logged with how to change it; else `null`, which is logged and makes the page refuse notes ([0021](decisions/0021-comment-operations-are-block-saves.md), [0032](decisions/0032-os-user-name-signs-notes-without-git.md)). A name the note grammar can't hold is a startup error. A page's docs root is the nearest `islands/` ancestor, bounded by the served root, else the served root.
 
 At start the server hashes its own script (`self`, the file margent was loaded from) and polls that path with `fs.watchFile` every second. When the bytes differ, the server is outdated: it logs a line, sends each open page an `outdated` event, and the page shows a banner ([0038](decisions/0038-serve-tells-pages-when-margent-changed.md)).
+
+The user theme is read at start (a broken one fails `serve` before anything opens, and a present one is logged as `theme: {path}`), then again for every doc, index and error page. A theme that breaks while serving turns each doc into the error page with its message; the index shows the message and renders without the theme. `theme.css` is polled with `fs.watchFile` every 200 ms, missing or not, and any change sends every open page `changed`.
 
 | Route | Response |
 |---|---|

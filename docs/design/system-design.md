@@ -2,7 +2,7 @@
 title: margent design
 status: draft
 version: v0.2
-updated: 2026-11-03
+updated: 2026-11-09
 ---
 
 # margent design
@@ -191,7 +191,7 @@ A deterministic script: the same markdown gives the same bytes, every time, in w
 
 - **Entry points, one renderer.** `margent serve {docs root}` renders in memory for browsing and editing ([Editing in the page](#editing-in-the-page)). `margent open {file}` renders one doc into a cache folder outside the repo and opens it in the browser. `margent check {path}` renders without writing anything and reports errors. `margent export {path} --out {dir}` writes standalone HTML wherever you ask, for sending to someone.
 - **Parser:** markdown-it. Every top-level block gets `data-src="{start}-{end}"` from its token map, which is what editing and comments anchor to.
-- **Shell:** one house shell in margent, built with `/design-principles`, holds the header, table of contents, typography, tokens (including amber and red for status) and the theme toggle. Changing the look of every doc is a shell edit. A project can't override it yet: project themes are deferred ([decisions/README.md](../decisions/README.md#deferred)).
+- **Shell:** one house shell in margent, built with `/design-principles`, holds the header, table of contents, typography, tokens (including amber and red for status) and the theme toggle. Changing the look of every doc is a shell edit. A reader overrides its tokens for themselves in `~/.margent/theme.css` ([0047](../decisions/0047-user-theme-and-design-guide-in-margent-home.md)). A project can't override it yet: project themes are deferred ([decisions/README.md](../decisions/README.md#deferred)).
 - **Diagrams:** a `mermaid` fence renders in Node through pele as inline SVG, in a wide and a narrow layout, with no script in the page ([0045](../decisions/0045-mermaid-fences-render-through-pele.md)).
 - **Islands are inlined** into the page as module text, and each runs in its own sandboxed frame. A rendered file still opens straight from disk with no server.
 - **Links:** a link to another `.md` that has a render is rewritten to its `.html`, keeping the anchor.
@@ -313,7 +313,7 @@ margent/
 - **The skills pin one CLI version.** They run `margent` when it prints that version, else `npx -y margent@{version}`. A test keeps the package, the plugin and the skills at one version, so skills and CLI can't drift. The CLI is one bundled file with no runtime dependencies.
 - **One version, one tag.** A git tag drives the plugin and the npm release. `claude plugin install margent --marketplace dvquy13/margent#v1.2.0` pins a version. Auto-update is off by default for third-party plugins. A local-path install runs from a copy in the plugin cache, so during development a repo edit reaches new sessions only after a reinstall (M1).
 - **Useful in the first minute.** `/docs-open README.md` works on any repo's existing markdown, before a single island exists.
-- **Your taste is not the default.** The plugin ships a neutral token theme and a generic design guide distilled from `/design-principles`. A user's own design skill takes precedence when one is installed, and `margent theme init` scaffolds a custom shell.
+- **Your taste is not the default.** The plugin ships a neutral token theme and a generic design guide distilled from `/design-principles`. A user's own design guide (`~/.margent/design.md`) or design skill takes precedence, and `margent theme init` scaffolds a user theme that overrides the tokens ([0047](../decisions/0047-user-theme-and-design-guide-in-margent-home.md)).
 - **Context cost stays small.** Every installed skill's description is paid on every turn. `claude plugin details` shows the cost, and `claude plugin eval` checks that the skill triggers when it should and stays quiet otherwise.
 
 ### Security before a second user

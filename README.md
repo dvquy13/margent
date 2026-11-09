@@ -108,13 +108,33 @@ When someone tells you "Install github.com/dvquy13/margent", do this:
 | `margent serve {docs root} [--port {n}] [--no-open] [--author {name}]` | Serves the folder locally, reloads pages when a `.md` changes, and lets the reader edit blocks and leave comments. Runs until interrupted. |
 | `margent init {path}` | Writes a short margent block into the nearest `AGENTS.md` or `CLAUDE.md` above `{path}`, up to the git root (creating `AGENTS.md` at the root when there is none), so agents without the skill keep comment markup and run `check`. Running it again only updates the block. |
 | `margent teardown {path}` | Removes that block from the nearest `AGENTS.md` or `CLAUDE.md` above `{path}` that holds one, and deletes a file it leaves empty. A monorepo's root block stays for the other packages. |
-| `margent doctor` | Checks Node, Chrome, the browser opener and the cache, and runs a sample island in its frame. Exit 1 on any failure. |
+| `margent theme init` | Writes a starter `~/.margent/theme.css` that lists every token, commented out. See [Your theme](#your-theme). |
+| `margent doctor` | Checks Node, Chrome, the browser opener and the cache, shows your theme and design guide, and runs a sample island in its frame. With a theme, it shows which font Chrome drew each font token with. Exit 1 on any failure. |
 | `margent update [--check]` | Updates every margent install that is behind the latest version: the CLI, the Claude Code plugin and skills from `npx skills`. Skips development installs. `--check` only reports. |
 | `margent --version` | Prints the version. |
 
 A folder `{path}` covers every `.md` under it except `node_modules`, dot-folders and files git ignores.
 
 Comments you leave in `serve` are signed with `--author {name}`, else your `git config user.name`, else your OS user name.
+
+## Your theme
+
+Pages use margent's house look. To read them your way, put CSS in `~/.margent/theme.css` (or `$MARGENT_HOME/theme.css`). margent adds it after the house styles on every page it makes for you, islands included, and `serve` reloads open pages when it changes. `margent theme init` writes a starter that lists every token under the house selectors, commented out:
+
+```css
+:root {
+  --font-prose: 'OPPO Sans 4.0', 'DM Sans', sans-serif;
+  --accent: #2f6fde;
+}
+@media screen { :root[data-theme="dark"] { --accent: #7aa7ff; } }
+```
+
+- A font works when it is installed on the machine running the browser and named in a token. When `serve` runs on a remote machine, that is the machine you read on, not the server.
+- A web font can come from Google Fonts only: `@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');` at the top of the file. The page policy blocks other font hosts.
+- `margent doctor` shows which font Chrome drew each font token with, so a misspelled family shows up.
+- `margent check` measures islands with your fonts, and `export` carries your theme into the pages it writes.
+
+`~/.margent/design.md` is your design guide for islands. The `margent` skill reads it before designing one, ahead of any design skill and its own guide. It can hold your rules, or name a file to read, such as a design skill's `SKILL.md`.
 
 ## Skills
 
