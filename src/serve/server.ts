@@ -11,10 +11,11 @@ import { RenderError } from '../errors.js';
 import { renderDoc } from '../render/page.js';
 import { pagePolicy } from '../render/policy.js';
 import { findDocsRoot } from '../render/root.js';
-import { indexPage } from './index-page.js';
+import { indexPage, themeStyle } from './index-page.js';
 import { hash, splice, validate, writeAtomic } from './splice.js';
 import { resolveAuthor } from './author.js';
 import { watchTree } from './watch.js';
+import { readUserTheme, type UserTheme } from '../user/home.js';
 
 // The edit runtime, inlined into every page the server renders. Imported here so the bundle is wired end to end.
 export const EDIT_RUNTIME = { js: editJs, css: editCss };
@@ -27,6 +28,9 @@ export interface ServeOptions {
   // The file the running margent was loaded from. When its bytes change, open pages are told the server is out of
   // date. Absent, nothing is watched.
   self?: string;
+  // The margent home folder (spec U1). Its theme.css styles every page; the file is watched so open pages reload when it
+  // changes (spec U4.1). Absent, there is no theme and nothing is watched.
+  home?: string;
 }
 
 export interface ServeHandle {
@@ -39,6 +43,7 @@ export interface ServeHandle {
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // spec R6.1
 const DEBOUNCE_MS = 50; // spec R7.1
+const THEME_POLL_MS = 200; // spec U4.1: how often theme.css is checked for a change
 
 const TYPES: Record<string, string> = {
   png: 'image/png',
@@ -134,7 +139,12 @@ function errorScript(path: string, mdHash: string): string {
 }
 
 // The page shown in place of a doc that failed to render (spec R1.5), with the policy that sends it as a header.
-function errorPage(path: string, mdHash: string, messages: string[]): { html: string; policy: string } {
+function errorPage(
+  path: string,
+  mdHash: string,
+  messages: string[],
+  theme: UserTheme | null
+): { html: string; policy: string } {
   const items = messages.map((m) => `<li><code>${escapeHtml(m)}</code></li>`).join('');
   const script = errorScript(path, mdHash);
   const html = `<!doctype html>
@@ -148,7 +158,7 @@ ${shellCss}
 .render-errors code { font-family: var(--mono); font-size: var(--font-sm); white-space: pre-wrap; color: var(--red); }
 .render-errors li { margin: var(--gap-sm) 0; }
 </style>
-</head>
+${themeStyle(theme)}</head>
 <body>
 <header class="top"><div class="wrap"><a class="wordmark" href="/">margent</a><span class="top-meta">render error</span></div></header>
 <main class="wrap">
@@ -222,6 +232,11 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   // Read before any watcher starts, so a failure here leaves nothing open.
   const self = opts.self;
   const selfHash = self === undefined ? '' : hashSelf(self);
+  const home = opts.home;
+  // The theme is read before any watcher starts too, so a theme that fails here leaves nothing open (spec U4.2).
+  const startTheme = home === undefined ? null : readUserTheme(home);
+  const themeFile = home === undefined ? undefined : join(home, 'theme.css');
+  const readTheme = (): UserTheme | null => (home === undefined ? null : readUserTheme(home));
 
   // Per page path (posix, relative to the root): the files it depends on, and its open SSE clients, each with the hash
   // of the .md its page was rendered from.
@@ -246,6 +261,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
   } else if (authorSource === 'os') {
     log(`notes are signed "${author}", the OS user name (${authorReason}); to change it: serve --author {name}, or git config user.name {name}`);
   }
+  if (startTheme !== null) log(`theme: ${startTheme.file}`);
   // Every refused request is logged and answered, so a 403 never happens silently.
   const deny = (req: IncomingMessage, res: ServerResponse, reason: string): void => {
     logError(`refused ${req.method} ${req.url}: ${reason}`);
@@ -333,15 +349,40 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     });
   }
 
+  // ---- user theme (spec U4.1): when theme.css is created, changed or deleted, every open page is told to reload. It
+  // is read again per request, so the reload shows the new theme. watchFile works on a missing file (mtime 0).
+
+  if (themeFile !== undefined) {
+    watchFile(themeFile, { interval: THEME_POLL_MS }, (cur, prev) => {
+      if (cur.mtimeMs === prev.mtimeMs) return;
+      for (const page of clients.keys()) schedule(page, true);
+    });
+  }
+
   // ---- pages
 
   // The docs root of a page: the nearest islands/ folder from the page up to the served root, else the served root.
   const docsRootFor = (file: string): string => findDocsRoot(file, root);
 
+  // The 500 error page for a doc whose render or theme failed (spec R1.5, U2.3).
+  const failPage = (res: ServerResponse, mdRel: string, bytes: Buffer, theme: UserTheme | null, message: string): void => {
+    deps.set(mdRel, [join(root, mdRel)]);
+    logError(`render error: ${message}`);
+    const page = errorPage(mdRel, hash(bytes), [message], theme);
+    send(res, 500, 'text/html; charset=utf-8', page.html, { 'Content-Security-Policy': page.policy });
+  };
+
   const servePage = (res: ServerResponse, mdRel: string): void => {
     const file = join(root, mdRel);
     const bytes = readFileSync(file);
     const source = bytes.toString('utf8');
+    let theme: UserTheme | null;
+    try {
+      theme = readTheme();
+    } catch (err) {
+      // An unreadable or unsafe theme fails the doc like a render error, with the theme's message (spec U2.3).
+      return failPage(res, mdRel, bytes, null, (err as Error).message);
+    }
     try {
       const rendered = renderDoc({
         file,
@@ -349,15 +390,13 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
         root: docsRootFor(file),
         outFile: join(root, mdRel.replace(/\.md$/, '.html')),
         edit: { state: { path: mdRel, hash: hash(bytes), source, author }, js: EDIT_RUNTIME.js, css: EDIT_RUNTIME.css },
+        theme,
       });
       deps.set(mdRel, rendered.deps);
       send(res, 200, 'text/html; charset=utf-8', rendered.html, { 'Content-Security-Policy': rendered.policy });
     } catch (err) {
       if (!(err instanceof RenderError)) throw err;
-      deps.set(mdRel, [file]);
-      logError(`render error: ${err.message}`);
-      const page = errorPage(mdRel, hash(bytes), [err.message]);
-      send(res, 500, 'text/html; charset=utf-8', page.html, { 'Content-Security-Policy': page.policy });
+      failPage(res, mdRel, bytes, theme, err.message);
     }
   };
 
@@ -522,7 +561,16 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     if (rawPath === '/') {
       if (req.method !== 'GET') return sendText(res, 405, '405 method not allowed: GET only');
       // The index has no script, so its policy lists none (M5 R4.1).
-      return send(res, 200, 'text/html; charset=utf-8', indexPage(root), {
+      // A theme that cannot be read leaves the index unthemed, and the index shows why (spec U2.3).
+      let theme: UserTheme | null = null;
+      let themeError: string | undefined;
+      try {
+        theme = readTheme();
+      } catch (err) {
+        themeError = (err as Error).message;
+        logError(`theme: ${themeError}`);
+      }
+      return send(res, 200, 'text/html; charset=utf-8', indexPage(root, theme, themeError), {
         'Content-Security-Policy': pagePolicy([], 'serve'),
       });
     }
@@ -573,6 +621,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
     const onError = (err: NodeJS.ErrnoException): void => {
       watcher.close();
       if (self !== undefined) unwatchFile(self);
+      if (themeFile !== undefined) unwatchFile(themeFile);
       fail(err.code === 'EADDRINUSE' ? new Error(`port ${requestedPort} is in use`) : err);
     };
     server.once('error', onError);
@@ -599,6 +648,7 @@ export async function startServer(opts: ServeOptions): Promise<ServeHandle> {
         timers.clear();
         watcher.close();
         if (self !== undefined) unwatchFile(self);
+        if (themeFile !== undefined) unwatchFile(themeFile);
         for (const set of clients.values()) for (const res of set.keys()) res.end();
         clients.clear();
         server.close((err) => (err ? fail(err) : ok()));

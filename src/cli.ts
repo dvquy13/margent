@@ -17,7 +17,7 @@ import {
   type RenderSet,
 } from './cli/collect.js';
 import { openInBrowser } from './cli/opener.js';
-import { readUserTheme, type UserTheme } from './user/home.js';
+import { margentHome, readUserTheme, type UserTheme } from './user/home.js';
 import { runPages, type CheckPage } from './cli/pages-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
@@ -319,7 +319,7 @@ async function commandServe(rest: string[]): Promise<number> {
   const { target, port, open, author } = parseServe(rest);
   const root = resolve(target);
   if (!statOrFail(target).isDirectory()) throw new Error(`not a folder: ${target}`);
-  const handle = await startServer({ root, port, author, self: fileURLToPath(import.meta.url) });
+  const handle = await startServer({ root, port, author, self: fileURLToPath(import.meta.url), home: margentHome() });
   let stop = (): void => {};
   const stopped = new Promise<number>((done) => {
     stop = (): void => {

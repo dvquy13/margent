@@ -13,6 +13,7 @@ import { RenderError } from '../errors.js';
 import { renderBody } from '../render/markdown.js';
 import { parseFrontMatter, type DocMeta } from '../render/frontmatter.js';
 import { displayPath, findDocsRoot, projectName } from '../render/root.js';
+import type { UserTheme } from '../user/home.js';
 
 interface IndexEntry {
   rel: string; // posix path under the root, without .md
@@ -141,8 +142,15 @@ html { scrollbar-gutter: stable; }
 .entry-error code { font-family: var(--mono); white-space: pre-wrap; }
 `;
 
+// The user's theme as the style element that follows the house style, as page.ts writes it (spec U2.1). Empty without
+// a theme, so a page with no theme is byte-identical to one that never had the option.
+export function themeStyle(theme: UserTheme | null): string {
+  return theme ? `<style id="margent-user-theme">\n${theme.css}\n</style>\n` : '';
+}
+
 // The index page for a served root. Throws when the root cannot be read (the server answers 500 with the message).
-export function indexPage(root: string): string {
+// `themeError` is the message of a theme that could not be read: the index is then shown without the theme, with it.
+export function indexPage(root: string, theme: UserTheme | null = null, themeError?: string): string {
   const tree = newFolder('');
   const files = markdownUnder(root);
   for (const file of files) {
@@ -160,6 +168,8 @@ export function indexPage(root: string): string {
     folder.docs.push(entry);
   }
   const sections = files.length > 0 ? `<div class="index-tree">${folderBody(tree)}</div>` : '';
+  const themeErrorLine =
+    themeError === undefined ? '' : `<p class="entry-error"><code>${escapeHtml(themeError)}</code></p>\n`;
   const name = escapeHtml(projectName(root));
   const count = files.length === 1 ? '1 doc' : `${files.length} docs`;
   return `<!doctype html>
@@ -176,7 +186,7 @@ export function indexPage(root: string): string {
 ${shellCss}
 ${INDEX_CSS}
 </style>
-</head>
+${themeStyle(theme)}</head>
 <body>
 <header class="top">
   <div class="wrap">
@@ -185,7 +195,7 @@ ${INDEX_CSS}
   </div>
 </header>
 <main class="wrap">
-${sections || '<p>No .md files under this folder.</p>'}
+${themeErrorLine}${sections || '<p>No .md files under this folder.</p>'}
 </main>
 </body>
 </html>
