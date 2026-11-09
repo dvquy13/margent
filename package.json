@@ -35,8 +35,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
-    "test": "npm run build && node --test 'test/**/*.test.mjs'",
-    "test:full": "npm run build && MARGENT_TIER=full node --test --test-concurrency=3 'test/**/*.test.mjs'",
+    "test": "npm run build && MARGENT_HOME=\"$PWD/test/no-margent-home\" node --test 'test/**/*.test.mjs'",
+    "test:full": "npm run build && MARGENT_HOME=\"$PWD/test/no-margent-home\" MARGENT_TIER=full node --test --test-concurrency=3 'test/**/*.test.mjs'",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

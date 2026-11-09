@@ -17,6 +17,7 @@ import {
   type RenderSet,
 } from './cli/collect.js';
 import { openInBrowser } from './cli/opener.js';
+import { readUserTheme, type UserTheme } from './user/home.js';
 import { runPages, type CheckPage } from './cli/pages-run.js';
 import { commentsReport } from './cli/comments.js';
 import { commandDoctor } from './cli/doctor.js';
@@ -76,7 +77,11 @@ function markdownFile(target: string): string {
 
 // Renders a target. A folder renders every .md under it, each with its own docs root. A file renders itself and its
 // linked closure. outFileFor gets the doc and its base: the folder for a folder, the docs root for a file.
-function renderTarget(target: string, outFileFor: (file: string, base: string) => string): RenderSet {
+function renderTarget(
+  target: string,
+  outFileFor: (file: string, base: string) => string,
+  theme: UserTheme | null
+): RenderSet {
   const path = resolve(target);
   if (statOrFail(target).isDirectory()) {
     const files = markdownUnder(path);
@@ -84,11 +89,11 @@ function renderTarget(target: string, outFileFor: (file: string, base: string) =
       throw new Error(`no .md files under ${target} (node_modules, dot-folders and gitignored files are skipped)`);
     }
     const seeds: DocSeed[] = files.map((file) => ({ file, root: findDocsRoot(file) }));
-    return renderSet(seeds, { follow: false, outFileFor: (file) => outFileFor(file, path) });
+    return renderSet(seeds, { follow: false, outFileFor: (file) => outFileFor(file, path), theme });
   }
   const file = markdownFile(target);
   const root = findDocsRoot(file);
-  return renderSet([{ file, root }], { follow: true, outFileFor });
+  return renderSet([{ file, root }], { follow: true, outFileFor, theme });
 }
 
 // Prints every render error to stderr. Returns false when there were any, so the caller writes nothing.
@@ -112,6 +117,7 @@ function commandOpen(target: string): number {
   const set = renderSet([{ file, root }], {
     follow: true,
     outFileFor: (f, r) => htmlUnder(cacheDir(r), r, f),
+    theme: readUserTheme(),
   });
   if (!reportErrors(set)) return 1;
   writeFiles(set.docs.map((doc) => ({ outFile: doc.outFile, text: doc.rendered.html })));
@@ -135,14 +141,14 @@ interface ExportMode {
 
 // What one doc exports as. A page is rendered from the cleaned source with --clean, so the stripping is the same for
 // both forms. --md without --clean copies the source bytes.
-function exportText(doc: RenderedFile, mode: ExportMode): string | Buffer {
+function exportText(doc: RenderedFile, mode: ExportMode, theme: UserTheme | null): string | Buffer {
   if (mode.md && !mode.clean) return readFileSync(doc.file);
   if (!mode.md && !mode.clean) return doc.rendered.html;
   const cleaned = cleanSource(readFileSync(doc.file, 'utf8'), doc.rendered.comments, doc.rendered.islands, {
     islandMarkup: mode.md,
   });
   if (mode.md) return cleaned;
-  return renderDoc({ file: doc.file, source: cleaned, root: doc.root, outFile: doc.outFile }).html;
+  return renderDoc({ file: doc.file, source: cleaned, root: doc.root, outFile: doc.outFile, theme }).html;
 }
 
 // margent export {path} --out {dir}: as open, without the browser. A folder exports every .md under it.
@@ -152,10 +158,11 @@ function commandExport(target: string, outArg: string, mode: ExportMode): number
   const outFileFor = mode.md
     ? (file: string, base: string): string => join(out, relative(base, file))
     : (file: string, base: string): string => htmlUnder(out, base, file);
-  const set = renderTarget(target, outFileFor);
+  const theme = readUserTheme();
+  const set = renderTarget(target, outFileFor, theme);
   if (!reportErrors(set)) return 1;
   // Every text is made before anything is written, so a failing clean leaves the output folder as it was.
-  const files = set.docs.map((doc) => ({ outFile: doc.outFile, text: exportText(doc, mode) }));
+  const files = set.docs.map((doc) => ({ outFile: doc.outFile, text: exportText(doc, mode, theme) }));
   writeFiles(files);
   for (const file of files) process.stdout.write(`${file.outFile}\n`);
   return 0;
@@ -164,7 +171,7 @@ function commandExport(target: string, outArg: string, mode: ExportMode): number
 // margent comments {path}: the threads of the docs check walks (spec R8). Malformed markup exits 1, with no thread list.
 function commandComments(target: string): number {
   // In memory, as check does: the sibling .html is only named here, and nothing is written.
-  const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'));
+  const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'), null);
   if (!reportErrors(set)) return 1;
   process.stdout.write(commentsReport(set.docs));
   return 0;
@@ -173,12 +180,12 @@ function commandComments(target: string): number {
 // Runs the pages of the given docs in one headless Chrome: the docs with islands or a quoted block comment (decision
 // 0039). Each doc is rendered again into a temp dir, because the pages are only needed for this run. The dir is removed
 // afterwards.
-async function runPagesOf(docs: RenderedFile[]): Promise<string[]> {
+async function runPagesOf(docs: RenderedFile[], theme: UserTheme | null): Promise<string[]> {
   const dir = mkdtempSync(join(tmpdir(), 'margent-check-'));
   try {
     const pages: CheckPage[] = docs.map((doc, i) => {
       const html = join(dir, `${i}.html`);
-      const rendered = renderOne(doc.file, doc.root, html);
+      const rendered = renderOne(doc.file, doc.root, html, theme);
       writeFileSync(html, rendered.html);
       const quotes = rendered.comments.flatMap((t) => {
         if (t.quote === undefined) return [];
@@ -213,7 +220,8 @@ function sortProblems(lines: string[]): string[] {
 // margent check {path}: renders in memory, then runs every island and quoted comment headless. Exit 1 on any problem.
 async function commandCheck(target: string): Promise<number> {
   // In memory: the sibling .html is only named here, for the image paths, and nothing is written there.
-  const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'));
+  const theme = readUserTheme();
+  const set = renderTarget(target, (file) => file.replace(/\.md$/, '.html'), theme);
 
   const problems = set.errors.map((e) => e.message);
   problems.push(...linkProblems(set.docs));
@@ -221,7 +229,7 @@ async function commandCheck(target: string): Promise<number> {
   const withPage = set.docs.filter(
     (d) => d.rendered.islands.length > 0 || d.rendered.comments.some((t) => t.quote !== undefined)
   );
-  if (withPage.length > 0) problems.push(...(await runPagesOf(withPage)));
+  if (withPage.length > 0) problems.push(...(await runPagesOf(withPage, theme)));
 
   if (problems.length > 0) {
     for (const line of sortProblems(problems)) process.stdout.write(`${line}\n`);
