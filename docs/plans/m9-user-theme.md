@@ -10,13 +10,13 @@ Task order for [the M9 spec](../specs/m9-user-theme.md), on branch `m9-user-them
 
 ## Tracker
 
-- [ ] T1 Home folder, theme in rendered pages, test isolation (U1, U2; A1 to A3)
-- [ ] T2 Theme in island frames (U3; A4)
-- [ ] T3 `serve`: index and error pages, reload on theme change (U2.1, U4; A5)
-- [ ] T4 `margent theme init` and `doctor` lines (U5, U6; A6, A7)
-- [ ] T5 Skill reads `design.md`, eval case (U7; A8)
-- [ ] T6 Docs: architecture, system design, README, CLAUDE.md; full tier green
-- [ ] T7 The user reads a doc in OPPO Sans 4.0 (A9)
+- [x] T1 Home folder, theme in rendered pages, test isolation (U1, U2; A1 to A3)
+- [x] T2 Theme in island frames (U3; A4)
+- [x] T3 `serve`: index and error pages, reload on theme change (U2.1, U4; A5)
+- [x] T4 `margent theme init` and `doctor` lines (U5, U6; A6, A7)
+- [x] T5 Skill reads `design.md`, eval case (U7; A8). Font case 3/3; design-guide case 5 of 6 across two runs, 0 without the plugin
+- [x] T6 Docs: architecture, system design, README, CLAUDE.md; full tier green (861/863 on the first run; the one failure, an F3 keyboard test, passed alone under load)
+- [ ] T7 The user reads a doc in OPPO Sans 4.0 (A9). Probed 2026-11-09: page prose and the `milestones` island text both drawn in OPPO Sans 4.0; waiting on the user's look
 
 ## Tasks
 
