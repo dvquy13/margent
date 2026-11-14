@@ -1,0 +1,11 @@
+# Every text file is stored and checked out with LF, whatever core.autocrlf says. A CRLF checkout (Windows with
+# core.autocrlf=true) otherwise builds runtime and shell files into dist/cli.js with CRLF, and goldens and fixtures
+# compared byte for byte stop matching.
+* text=auto eol=lf
+
+# Fixtures that test CRLF input keep their CRLF bytes.
+crlf.md -text
+
+*.png binary
+*.jpg binary
+*.gif binary

@@ -246,7 +246,7 @@ test('pages with islands carry module sources in first-use order, then kit, host
 });
 
 // The policy (M5 R2.4): every executable script, the guest kit and runtime, and each module is listed, by hash, and
-// nothing else is. The scan reads the HTML the way a browser splits it: script elements with their exact text.
+// nothing else is. The scan reads the HTML the way a browser splits it: script elements with their text, CRLF made LF.
 test('the policy lists the sha256 of each script the page or its guests run, and nothing else', () => {
   const html = render('mismatch.md').html;
   const meta = /<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(html);
@@ -255,7 +255,7 @@ test('the policy lists the sha256 of each script the page or its guests run, and
   const listed = [...policy.matchAll(/'sha256-([^']+)'/g)].map((m) => m[1]);
   assert.equal(new Set(listed).size, listed.length, 'no hash is listed twice');
 
-  const hash = (text) => createHash('sha256').update(text, 'utf8').digest('base64');
+  const hash = (text) => createHash('sha256').update(text.replace(/\r\n?/g, '\n'), 'utf8').digest('base64');
   const expected = [];
   const scriptRe = /<script([^>]*)>([\s\S]*?)<\/script>/g;
   let m;
@@ -293,6 +293,21 @@ test('a page without islands keeps only theme.js', () => {
   assert.equal(html.match(/<script/g).length, 1, 'only the theme script');
 });
 
+// The HTML parser turns CRLF into LF before a script runs, so the policy hashes the LF text: a module saved with CRLF
+// line endings (a Windows editor, or core.autocrlf=true) is listed by the hash of the text the browser runs.
+test('a CRLF island module is listed by the hash of its LF text', () => {
+  const root = join(workdir, 'crlf-hash');
+  mkdirSync(join(root, 'islands'), { recursive: true });
+  const crlf = (text) => text.replace(/\r?\n/g, '\r\n');
+  writeFileSync(join(root, 'islands', 'tally.island.js'), crlf(readFileSync(join(DOCS, 'islands', 'tally.island.js'), 'utf8')));
+  writeFileSync(join(root, 'mismatch.md'), crlf(readFileSync(join(DOCS, 'mismatch.md'), 'utf8')));
+  const { html, policy } = render('mismatch.md', root);
+  const module = /<script type="text\/plain" class="island-module"[^>]*>([\s\S]*?)<\/script>/.exec(html)[1];
+  assert.match(module, /\r\n/, 'the page carries the module as written');
+  const lf = createHash('sha256').update(module.replace(/\r\n/g, '\n'), 'utf8').digest('base64');
+  assert.ok(policy.includes(`'sha256-${lf}'`), policy);
+});
+
 // ---- browser: A5, A7
 
 test('A5: in Chrome the mismatched island shows its badge and is rendered', async () => {
@@ -309,6 +324,26 @@ test('A5: in Chrome the mismatched island shows its badge and is rendered', asyn
       assert.equal(await page.locator('agent-island > .island-badge').count(), 1);
       // The page carries its script policy: no inline script, and no guest script, is refused.
       assert.equal(errors.filter((e) => /Content Security Policy|Refused to/.test(e)).length, 0, 'no CSP violation');
+      assert.deepEqual(errors, []);
+    } finally {
+      await close();
+    }
+  });
+});
+
+test('in Chrome a CRLF island module renders with no policy refusal', full, async () => {
+  const root = join(workdir, 'crlf-browser');
+  mkdirSync(join(root, 'islands'), { recursive: true });
+  const crlf = (text) => text.replace(/\r?\n/g, '\r\n');
+  writeFileSync(join(root, 'islands', 'tally.island.js'), crlf(readFileSync(join(DOCS, 'islands', 'tally.island.js'), 'utf8')));
+  writeFileSync(join(root, 'mismatch.md'), crlf(readFileSync(join(DOCS, 'mismatch.md'), 'utf8')));
+  const file = join(root, 'mismatch.html');
+  writeFileSync(file, render('mismatch.md', root).html);
+  await withBrowser(async (browser) => {
+    const { page, errors, close } = await openPage(browser, file);
+    try {
+      const [info] = await islandInfo(page);
+      assert.equal(info.state, 'rendered');
       assert.deepEqual(errors, []);
     } finally {
       await close();
