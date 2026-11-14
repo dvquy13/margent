@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/dvquy13/margent/compare/v0.12.0...v0.12.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **doctor:** find Chrome and the opener on Windows, and pass an opener only when it can be started ([a76d997](https://github.com/dvquy13/margent/commit/a76d997549ad29caf54f771d7ade2caea7b8b8a1), [c7c45bc](https://github.com/dvquy13/margent/commit/c7c45bc1a3695aae33bfa4b4c193cc3ef60d2a3e))
+* islands run on a build from a Windows CRLF checkout, and an island module saved with CRLF runs ([f378824](https://github.com/dvquy13/margent/commit/f378824a9aaeff8c21d9138ce73239d09302dc80), [3934e5a](https://github.com/dvquy13/margent/commit/3934e5a02d3735354206f1fb9d2b325a02e5e821))
+
 ## [0.12.0](https://github.com/dvquy13/margent/compare/v0.11.0...v0.12.0) (2026-11-09)
 
 
