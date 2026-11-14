@@ -15,7 +15,7 @@ export function openerCommand(
 }
 
 // Whether the opener command resolves: a path (a slash, a backslash on win32, or absolute) is checked as given (as
-// spawn does), a bare name is searched on PATH, with PATHEXT on win32 (cmd is cmd.exe).
+// spawn does), a bare name is searched on PATH, with .com and .exe appended on win32 (cmd is cmd.exe).
 export function openerResolves(
   command: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -24,14 +24,37 @@ export function openerResolves(
   return resolveCommand(command, env, platform) !== null;
 }
 
+export interface OpenerSpawn {
+  command: string;
+  args: string[];
+  env: NodeJS.ProcessEnv;
+  windowsVerbatimArguments: boolean;
+}
+
+// How openInBrowser runs the opener for `path`. On Windows with no BROWSER that is `cmd /c start`: `start` is a cmd
+// builtin, and the title argument is "", so the path is the only quoted argument. cmd expands %NAME% even inside
+// quotes, so the path is passed in MARGENT_OPEN_PATH and named once: cmd never expands the text it substitutes.
+export function openerSpawn(
+  path: string,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): OpenerSpawn {
+  const command = openerCommand(env, platform);
+  if (env.BROWSER || platform !== 'win32') return { command, args: [path], env, windowsVerbatimArguments: false };
+  return {
+    command,
+    args: ['/c', 'start "" "%MARGENT_OPEN_PATH%"'],
+    env: { ...env, MARGENT_OPEN_PATH: path },
+    windowsVerbatimArguments: true,
+  };
+}
+
 export function openInBrowser(path: string): void {
-  const command = openerCommand();
-  // `start` is a cmd builtin. The title argument is "", so the path is the only quoted argument.
-  const windowsShell = !process.env.BROWSER && process.platform === 'win32';
-  const args = windowsShell ? ['/c', `start "" "${path}"`] : [path];
+  const { command, args, env, windowsVerbatimArguments } = openerSpawn(path);
   const result = spawnSync(command, args, {
     stdio: ['ignore', 'ignore', 'pipe'],
-    windowsVerbatimArguments: windowsShell,
+    env,
+    windowsVerbatimArguments,
   });
   if (result.error) {
     throw new Error(`could not start the browser opener "${command}": ${result.error.message}`);

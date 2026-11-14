@@ -12,7 +12,8 @@ export const PAGE_TIMEOUT_MS = 10_000;
 
 const MAC_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 // The env vars of the folders the Chrome installer puts chrome.exe under: per machine (64- and 32-bit), then per user.
-const WINDOWS_ROOTS = ['PROGRAMFILES', 'PROGRAMFILES(X86)', 'LOCALAPPDATA'];
+// Under a 32-bit Node on 64-bit Windows, PROGRAMFILES names the x86 folder, and only ProgramW6432 names the 64-bit one.
+const WINDOWS_ROOTS = ['PROGRAMFILES', 'PROGRAMW6432', 'PROGRAMFILES(X86)', 'LOCALAPPDATA'];
 const PATH_NAMES = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
 
 // The install locations findChrome checks before PATH on this platform.
