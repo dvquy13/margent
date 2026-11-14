@@ -18,7 +18,7 @@ const rawPlugin = {
       namespace: 'raw-text',
     }));
     b.onLoad({ filter: /.*/, namespace: 'raw-text' }, async (args) => ({
-      contents: (await readFile(args.path, 'utf8')).replace(/\r\n/g, '\n'),
+      contents: (await readFile(args.path, 'utf8')).replace(/\r\n?/g, '\n'),
       loader: 'text',
     }));
   },

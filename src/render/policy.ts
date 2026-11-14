@@ -5,11 +5,16 @@ import { createHash } from 'node:crypto';
 // `serve` pages may fetch from their own server; pages written to disk may not fetch at all.
 export type PolicyMode = 'serve' | 'file';
 
-// The CSP source for one script text: 'sha256-' plus base64 of the UTF-8 bytes of the text the browser runs. Every
-// listed text reaches the browser through an HTML parser, which turns CRLF and lone CR into LF before a script runs,
-// so the hash is of that normalized text: a CRLF island module or runtime file still matches its script.
+// The CSP source for one script text: 'sha256-' plus base64 of the UTF-8 bytes of the exact text. Every listed text
+// reaches the browser through an HTML parser, which makes CR into LF and NUL into U+FFFD before a script runs, so a
+// text holding either would be blocked. The build and loadIsland give LF text; anything else is a bug, and fails here.
 export function scriptHash(text: string): string {
-  return `'sha256-${createHash('sha256').update(text.replace(/\r\n?/g, '\n'), 'utf8').digest('base64')}'`;
+  const bad = /[\r\0]/.exec(text);
+  if (bad) {
+    const what = bad[0] === '\r' ? 'a CR' : 'a NUL';
+    throw new Error(`a script on the page contains ${what} character, which the browser would change, so its hash would not match`);
+  }
+  return `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
 }
 
 // `texts` are every script text the page lists, in first-seen order; duplicates collapse to one hash.

@@ -255,7 +255,7 @@ test('the policy lists the sha256 of each script the page or its guests run, and
   const listed = [...policy.matchAll(/'sha256-([^']+)'/g)].map((m) => m[1]);
   assert.equal(new Set(listed).size, listed.length, 'no hash is listed twice');
 
-  const hash = (text) => createHash('sha256').update(text.replace(/\r\n?/g, '\n'), 'utf8').digest('base64');
+  const hash = (text) => createHash('sha256').update(text, 'utf8').digest('base64');
   const expected = [];
   const scriptRe = /<script([^>]*)>([\s\S]*?)<\/script>/g;
   let m;
@@ -293,19 +293,42 @@ test('a page without islands keeps only theme.js', () => {
   assert.equal(html.match(/<script/g).length, 1, 'only the theme script');
 });
 
-// The HTML parser turns CRLF into LF before a script runs, so the policy hashes the LF text: a module saved with CRLF
-// line endings (a Windows editor, or core.autocrlf=true) is listed by the hash of the text the browser runs.
-test('a CRLF island module is listed by the hash of its LF text', () => {
-  const root = join(workdir, 'crlf-hash');
+// A copy of mismatch.md and its tally module in workdir/{label}, both saved with CRLF line endings (a Windows editor,
+// or core.autocrlf=true). `module` rewrites the module text first. Returns the copy's root.
+function crlfCopy(label, module = (text) => text) {
+  const root = join(workdir, label);
   mkdirSync(join(root, 'islands'), { recursive: true });
   const crlf = (text) => text.replace(/\r?\n/g, '\r\n');
-  writeFileSync(join(root, 'islands', 'tally.island.js'), crlf(readFileSync(join(DOCS, 'islands', 'tally.island.js'), 'utf8')));
+  const tally = module(readFileSync(join(DOCS, 'islands', 'tally.island.js'), 'utf8'));
+  writeFileSync(join(root, 'islands', 'tally.island.js'), crlf(tally));
   writeFileSync(join(root, 'mismatch.md'), crlf(readFileSync(join(DOCS, 'mismatch.md'), 'utf8')));
-  const { html, policy } = render('mismatch.md', root);
+  return root;
+}
+
+// The HTML parser turns CRLF into LF before a script runs, so the page carries a CRLF module as LF text, and the
+// policy lists the hash of exactly that text.
+test('a CRLF island module is carried with LF line endings and listed by the hash of that text', () => {
+  const { html, policy } = render('mismatch.md', crlfCopy('crlf-hash'));
   const module = /<script type="text\/plain" class="island-module"[^>]*>([\s\S]*?)<\/script>/.exec(html)[1];
-  assert.match(module, /\r\n/, 'the page carries the module as written');
-  const lf = createHash('sha256').update(module.replace(/\r\n/g, '\n'), 'utf8').digest('base64');
-  assert.ok(policy.includes(`'sha256-${lf}'`), policy);
+  assert.doesNotMatch(html, /\r/, 'no CR anywhere on the page');
+  const hash = createHash('sha256').update(module, 'utf8').digest('base64');
+  assert.ok(policy.includes(`'sha256-${hash}'`), policy);
+});
+
+// The HTML parser turns NUL into U+FFFD, so a module holding one could never match its hash: the render fails loudly.
+test('a module with a NUL character fails at the island line with the module line', () => {
+  const root = crlfCopy('nul', (text) => text.replace(/\n/, '\n// \0\n'));
+  assert.throws(
+    () => render('mismatch.md', root),
+    /mismatch\.md:5: island "tally": module .*tally\.island\.js contains a NUL character at line 2$/
+  );
+});
+
+test('scriptHash refuses a text with a CR or a NUL, which the browser would change', async () => {
+  const { scriptHash } = await import('../.build/render/policy.js');
+  assert.throws(() => scriptHash('a\r\nb'), /contains a CR character/);
+  assert.throws(() => scriptHash('a\0b'), /contains a NUL character/);
+  assert.match(scriptHash('a\nb'), /^'sha256-[A-Za-z0-9+/]+=*'$/);
 });
 
 // ---- browser: A5, A7
@@ -332,11 +355,7 @@ test('A5: in Chrome the mismatched island shows its badge and is rendered', asyn
 });
 
 test('in Chrome a CRLF island module renders with no policy refusal', full, async () => {
-  const root = join(workdir, 'crlf-browser');
-  mkdirSync(join(root, 'islands'), { recursive: true });
-  const crlf = (text) => text.replace(/\r?\n/g, '\r\n');
-  writeFileSync(join(root, 'islands', 'tally.island.js'), crlf(readFileSync(join(DOCS, 'islands', 'tally.island.js'), 'utf8')));
-  writeFileSync(join(root, 'mismatch.md'), crlf(readFileSync(join(DOCS, 'mismatch.md'), 'utf8')));
+  const root = crlfCopy('crlf-browser');
   const file = join(root, 'mismatch.html');
   writeFileSync(file, render('mismatch.md', root).html);
   await withBrowser(async (browser) => {

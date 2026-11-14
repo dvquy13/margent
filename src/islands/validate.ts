@@ -51,7 +51,14 @@ export function loadIsland(island: IslandToLoad, docFile: string, root: string):
   const { name, line } = island;
   const file = displayPath(docFile);
   const path = findModule(name, docFile, root, line);
-  const source = readFileSync(path, 'utf8');
+  // The page carries the module as the browser runs it: the HTML parser makes CRLF and lone CR into LF, so the text
+  // is made LF here, and the policy's hash of it matches. A module saved with CRLF (a Windows editor) still runs.
+  const source = readFileSync(path, 'utf8').replace(/\r\n?/g, '\n');
+  if (source.includes('\0')) {
+    // The HTML parser turns NUL into U+FFFD, so the page could never run the text the policy lists.
+    const at = source.slice(0, source.indexOf('\0')).split('\n').length;
+    throw new RenderError(file, line, `island "${name}": module ${displayPath(path)} contains a NUL character at line ${at}`);
+  }
   if (/<\/script/i.test(source) || source.includes('<!--')) {
     throw new RenderError(
       file,
