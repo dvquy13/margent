@@ -148,7 +148,7 @@ The three `docs-*` skills are invoked by the user (`/docs-open` and so on, or `/
 ## Requirements
 
 - Node 22 or later.
-- Google Chrome, for `check`, which runs islands headless. `open` and `serve` use your default browser. margent looks for Chrome at `/Applications/Google Chrome.app` and on `PATH`. Set `MARGENT_CHROME` to the browser binary to use another one. A bad path fails the command; it doesn't fall back to another browser.
+- Google Chrome, for `check`, which runs islands headless. `open` and `serve` use your default browser. margent looks for Chrome at `/Applications/Google Chrome.app` on macOS, at `Google\Chrome\Application\chrome.exe` under Program Files and `%LOCALAPPDATA%` on Windows, and on `PATH`. Set `MARGENT_CHROME` to the browser binary to use another one. A bad path fails the command; it doesn't fall back to another browser.
 
 ## Trust
 

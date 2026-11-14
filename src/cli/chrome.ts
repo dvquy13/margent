@@ -2,49 +2,59 @@
 // Chrome reads commands on fd 3 and writes responses and events on fd 4; each JSON message ends with a NUL byte.
 // No dependencies: this file is the whole browser driver, bundled into dist/cli.js.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { accessSync, constants, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { join } from 'node:path';
 import type { Readable, Writable } from 'node:stream';
+import { envValue, findOnPath, isExecutable } from './command-lookup.js';
 
 export const PAGE_TIMEOUT_MS = 10_000;
 
 const MAC_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+// The env vars of the folders the Chrome installer puts chrome.exe under: per machine (64- and 32-bit), then per user.
+const WINDOWS_ROOTS = ['PROGRAMFILES', 'PROGRAMFILES(X86)', 'LOCALAPPDATA'];
 const PATH_NAMES = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
 
-function isExecutable(path: string): boolean {
-  try {
-    accessSync(path, constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
+// The install locations findChrome checks before PATH on this platform.
+export function chromeLocations(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): string[] {
+  if (platform === 'darwin') return [MAC_CHROME];
+  if (platform !== 'win32') return [];
+  const roots = WINDOWS_ROOTS.map((name) => envValue(env, name, platform)).filter((root): root is string => !!root);
+  return [...new Set(roots)].map((root) => join(root, 'Google', 'Chrome', 'Application', 'chrome.exe'));
 }
 
-function onPath(name: string, env: NodeJS.ProcessEnv): string | null {
-  for (const dir of (env.PATH ?? '').split(delimiter)) {
-    if (dir === '') continue;
-    const candidate = join(dir, name);
-    if (isExecutable(candidate)) return candidate;
-  }
-  return null;
+// The names findChrome looks for on PATH. On Windows the installer's chrome.exe comes first.
+function pathNames(platform: NodeJS.Platform): string[] {
+  return platform === 'win32' ? ['chrome', ...PATH_NAMES] : PATH_NAMES;
 }
 
 // MARGENT_CHROME wins and must exist: a bad override fails instead of silently using another browser.
-export function findChrome(env: NodeJS.ProcessEnv = process.env): string {
+export function findChrome(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): string {
   const override = env.MARGENT_CHROME;
   if (override) {
     if (isExecutable(override)) return override;
     throw new Error(`MARGENT_CHROME is set to "${override}", which is not an executable file`);
   }
-  if (isExecutable(MAC_CHROME)) return MAC_CHROME;
-  for (const name of PATH_NAMES) {
-    const found = onPath(name, env);
+  const locations = chromeLocations(env, platform);
+  const installed = locations.find(isExecutable);
+  if (installed) return installed;
+  const names = pathNames(platform);
+  for (const name of names) {
+    const found = findOnPath(name, env, platform);
     if (found) return found;
   }
+  const looked = locations.length
+    ? `looked at ${locations.map((l) => `"${l}"`).join(', ')} and ${names.join(', ')} on PATH`
+    : `looked for ${names.join(', ')} on PATH`;
   throw new Error(
-    `headless Chrome is needed to check islands, but none was found (looked at "${MAC_CHROME}" and ` +
-      `${PATH_NAMES.join(', ')} on PATH). Install Google Chrome, or set MARGENT_CHROME to the browser binary.`
+    `headless Chrome is needed to check islands, but none was found (${looked}). ` +
+      'Install Google Chrome, or set MARGENT_CHROME to the browser binary.'
   );
 }
 
