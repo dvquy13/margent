@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 
-// `import x from './file.html?raw'` loads the file as a string default export.
+// `import x from './file.html?raw'` loads the file as a string default export, with LF line endings, so the build is
+// the same from a checkout that has CRLF files (Windows with core.autocrlf=true).
 const rawPlugin = {
   name: 'raw-text',
   setup(b) {
@@ -17,7 +18,7 @@ const rawPlugin = {
       namespace: 'raw-text',
     }));
     b.onLoad({ filter: /.*/, namespace: 'raw-text' }, async (args) => ({
-      contents: await readFile(args.path, 'utf8'),
+      contents: (await readFile(args.path, 'utf8')).replace(/\r\n?/g, '\n'),
       loader: 'text',
     }));
   },
