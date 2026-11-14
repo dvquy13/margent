@@ -5,12 +5,8 @@
 
 ### Bug Fixes
 
-* **doctor:** find Chrome and the opener on Windows ([a805983](https://github.com/dvquy13/margent/commit/a8059834ac2f2e69f43bea259675c7e37c1eace4))
-* **doctor:** find Chrome and the opener on Windows ([a76d997](https://github.com/dvquy13/margent/commit/a76d997549ad29caf54f771d7ade2caea7b8b8a1))
-* **doctor:** opener and Chrome lookups match what spawn can start ([c7c45bc](https://github.com/dvquy13/margent/commit/c7c45bc1a3695aae33bfa4b4c193cc3ef60d2a3e))
-* island modules carry LF text, and a NUL in one fails loudly ([3934e5a](https://github.com/dvquy13/margent/commit/3934e5a02d3735354206f1fb9d2b325a02e5e821))
-* islands run on a build from a Windows CRLF checkout ([b4b6d9f](https://github.com/dvquy13/margent/commit/b4b6d9fcd3182106fc6c5a0466e827f27602a042))
-* islands run on a build from a Windows CRLF checkout ([f378824](https://github.com/dvquy13/margent/commit/f378824a9aaeff8c21d9138ce73239d09302dc80))
+* **doctor:** find Chrome and the opener on Windows, and pass an opener only when it can be started ([a76d997](https://github.com/dvquy13/margent/commit/a76d997549ad29caf54f771d7ade2caea7b8b8a1), [c7c45bc](https://github.com/dvquy13/margent/commit/c7c45bc1a3695aae33bfa4b4c193cc3ef60d2a3e))
+* islands run on a build from a Windows CRLF checkout, and an island module saved with CRLF runs ([f378824](https://github.com/dvquy13/margent/commit/f378824a9aaeff8c21d9138ce73239d09302dc80), [3934e5a](https://github.com/dvquy13/margent/commit/3934e5a02d3735354206f1fb9d2b325a02e5e821))
 
 ## [0.12.0](https://github.com/dvquy13/margent/compare/v0.11.0...v0.12.0) (2026-11-09)
 
