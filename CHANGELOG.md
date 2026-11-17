@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.12.2](https://github.com/dvquy13/margent/compare/v0.12.1...v0.12.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* remove the per-block Comment button; comments start from a selection ([8649cec](https://github.com/dvquy13/margent/commit/8649cec7d1de1c2b870aecb4b1eb085adc8984e1))
+
+
+### Documentation
+
+* quick start for people, and the skill says how to reopen docs ([f646ff0](https://github.com/dvquy13/margent/commit/f646ff01b9e3645b97cde7fe4c32b83ee14fcec1))
+* quick start says to tell the agent you commented ([8ff83fd](https://github.com/dvquy13/margent/commit/8ff83fd21753ea66db4216554a720ec5c702117c))
+* quick start says what the docs/ in margent serve docs/ is ([f111cbc](https://github.com/dvquy13/margent/commit/f111cbcb1db849cab2df1f54c67a16e1e3eb5cee))
+* README opens with the demo video ([807fbc2](https://github.com/dvquy13/margent/commit/807fbc2cdb1951675de94d39331f2436761a227c))
+* README says why agents work only in markdown ([66968ae](https://github.com/dvquy13/margent/commit/66968aed4f33f441d5078a982ce3097f97b3ef60))
+* status lists the 0.12.0 release ([56cadc5](https://github.com/dvquy13/margent/commit/56cadc5b09cc2bc683a129bb49f1d5d1ecca5a52))
+
 ## [0.12.1](https://github.com/dvquy13/margent/compare/v0.12.0...v0.12.1) (2026-11-14)
 
 
