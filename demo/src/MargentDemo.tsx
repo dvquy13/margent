@@ -7,6 +7,8 @@ import {Title} from './scenes/Title';
 import {Terminal} from './scenes/Terminal';
 import {BrowserScene} from './scenes/Browser';
 import {Closing} from './scenes/Closing';
+import {Agent} from './scenes/Agent';
+import {Reply} from './scenes/Reply';
 import {SCENE_FRAMES} from './timeline';
 import {TRANSITION_FRAMES} from './timing';
 import {theme} from './theme';
@@ -45,6 +47,14 @@ export const MargentDemo: React.FC = () => (
           caption="Select words and comment. The note is saved into the .md."
           diff={diffs.comment}
         />
+      </TransitionSeries.Sequence>
+      {cut}
+      <TransitionSeries.Sequence name="Agent" durationInFrames={SCENE_FRAMES.agent}>
+        <Agent />
+      </TransitionSeries.Sequence>
+      {cut}
+      <TransitionSeries.Sequence name="Reply" durationInFrames={SCENE_FRAMES.reply}>
+        <Reply />
       </TransitionSeries.Sequence>
       {cut}
       <TransitionSeries.Sequence name="Edit" durationInFrames={SCENE_FRAMES.edit}>

@@ -49,13 +49,14 @@ export const ScreencastClip: React.FC<{
   clip: ClipJson;
   playbackRate?: number;
   holdSeconds?: number;
-}> = ({clip, playbackRate = 1}) => {
+  showCursor?: boolean;
+}> = ({clip, playbackRate = 1, showCursor = true}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = Math.min((frame / fps) * playbackRate, clip.duration);
   const shot = frameAt(clip.frames, t);
   const cursor = cursorAt(clip.mouse, t);
-  const ripple = rippleAt(clip.mouse, t);
+  const ripple = showCursor ? rippleAt(clip.mouse, t) : null;
 
   return (
     <div
@@ -88,7 +89,7 @@ export const ScreencastClip: React.FC<{
           }}
         />
       )}
-      <MouseCursor x={cursor.x} y={cursor.y} />
+      {showCursor && <MouseCursor x={cursor.x} y={cursor.y} />}
     </div>
   );
 };

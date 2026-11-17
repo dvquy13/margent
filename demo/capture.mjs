@@ -47,12 +47,12 @@ function serve(root) {
 }
 
 // One clip: a fresh page, a screencast while `script` runs, and a log of mouse events for the cursor overlay.
-async function clip(browser, name, start, script) {
+async function clip(browser, name, start, script, { now: clockAt = PINNED_NOW } = {}) {
   const dir = join(OUT, name);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: 'light' });
-  await context.clock.setFixedTime(new Date(PINNED_NOW));
+  await context.clock.setFixedTime(new Date(clockAt));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -186,6 +186,32 @@ const CLIPS = {
     s.diffs.comment = { before, after: readFileSync(join(s.root, 'launch-review.md'), 'utf8') };
   },
 
+  // What the agent does when told "I commented": it runs `margent comments` (its real output goes into the terminal
+  // scene), makes the change, and replies under the thread. Here the script writes that edit, as the agent would, and
+  // the open page reloads by itself (serve watches the .md) with the reply in the thread's card.
+  async reply(browser, s) {
+    const project = dirname(s.root);
+    const listed = await run(process.execPath, [join(repo, 'dist', 'cli.js'), 'comments', 'docs/launch-review.md'], project);
+    writeFileSync(join(OUT, 'comments.json'), JSON.stringify({ command: 'margent comments docs/launch-review.md', lines: listed.trimEnd().split('\n') }, null, 1));
+    const file = join(s.root, 'launch-review.md');
+    const before = readFileSync(file, 'utf8');
+    const quy = /(\{>>\[c1 [^\]]+\] Quy: [^<]*<<\})/;
+    if (!quy.test(before)) throw new Error('reply: no c1 note from the comment clip in launch-review.md');
+    const after = before
+      .replace(quy, '$1{>>[c1 2026-11-14T09:32Z] Claude: Week 2 means days 8 to 14 after the invite, so a Monday habit still counts. I defined it in the funnel caption.<<}')
+      .replace('between the first search and the second week,', 'between the first search and the second week (days 8 to 14 after the invite),');
+    if (after === before) throw new Error('reply: the edit changed nothing');
+    await clip(browser, 'reply', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, wait }) => {
+      await wait(1200);
+      await page.evaluate(() => (window.__marker = 'before-reply'));
+      writeFileSync(file, after);
+      await page.waitForFunction(() => window.margent !== undefined && window.__marker === undefined, null, { timeout: 10000 });
+      await page.waitForFunction(() => [...document.querySelectorAll('agent-island')].every((h) => h.hasAttribute('data-state')));
+      await wait(3000);
+    }, { now: '2026-11-14T09:33:00Z' });
+    s.diffs.reply = { before, after };
+  },
+
   // A click into a paragraph, a few words typed, a click away: the block saves into the .md.
   async edit(browser, s) {
     const before = readFileSync(join(s.root, 'launch-review.md'), 'utf8');
@@ -207,6 +233,18 @@ const CLIPS = {
     s.diffs.edit = { before, after: readFileSync(join(s.root, 'launch-review.md'), 'utf8') };
   },
 };
+
+// Runs a command in cwd and resolves with its stdout; a non-zero exit rejects with its stderr.
+function run(command, args, cwd) {
+  return new Promise((ok, fail) => {
+    const child = spawn(command, args, { cwd, env: { ...process.env, MARGENT_HOME: join(here, 'no-margent-home') } });
+    let out = '';
+    let err = '';
+    child.stdout.on('data', (d) => (out += d));
+    child.stderr.on('data', (d) => (err += d));
+    child.once('exit', (code) => (code === 0 ? ok(out) : fail(new Error(`${command} ${args.join(' ')} exited with ${code}: ${err}`))));
+  });
+}
 
 // Signs in through the token URL, then opens a doc page and waits for its edit runtime and islands.
 async function openDoc(page, s, path) {

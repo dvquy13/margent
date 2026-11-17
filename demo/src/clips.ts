@@ -4,6 +4,8 @@ import editJson from '../public/capture/edit/frames.json';
 import commentJson from '../public/capture/comment/frames.json';
 import indexJson from '../public/capture/index/frames.json';
 import pageJson from '../public/capture/page/frames.json';
+import replyJson from '../public/capture/reply/frames.json';
+import commentsJson from '../public/capture/comments.json';
 import serveJson from '../public/capture/serve.json';
 
 export interface ClipFrame {
@@ -33,7 +35,17 @@ export const clips = {
   page: pageJson as ClipJson,
   comment: commentJson as ClipJson,
   edit: editJson as ClipJson,
+  reply: replyJson as ClipJson,
 };
+
+// The output of `margent comments` on the doc, shown in the agent scene.
+export const commentsOutput = commentsJson;
+
+// The reload that shows the agent's reply: the first frame after the page has sat for 1.2s.
+export const replyReload = clips.reply.frames.find((f) => f.t > 1.2);
+if (!replyReload) {
+  throw new Error('capture/reply: no frame after the 1.2s pause, the reload is missing');
+}
 
 const serveMatch = /^margent serving (.+) at (https?:\/\/\S+)$/.exec(serveJson.line);
 if (!serveMatch) {
