@@ -2,6 +2,17 @@
 
 margent renders markdown docs into designed pages. Data-driven visuals ("islands", such as charts and boards) keep their data in the markdown, so the source stays the single copy. A Mermaid fence becomes an inline SVG diagram in the page's theme, with no script. Review comments written in the page are saved back into the `.md`. Agents write the markdown; people read and review the rendered page.
 
+## Quick start
+
+```sh
+npm i -g margent
+margent serve docs
+```
+
+`serve` opens your browser on the folder's docs. Click a doc to read it as a page. Select words and click Comment to leave a review note, or click into a paragraph and type to edit it (it saves when you click away). Both are written into the `.md`, and the page reloads when the file changes. Stop the server with Ctrl-C.
+
+To look at one doc without a server, run `margent open docs/{file}.md`. It renders the page into margent's cache and opens it in your browser. You never need to find or keep the HTML file: run the command again after the `.md` changes.
+
 ## Install
 
 Each skill calls the CLI and falls back to `npx -y margent@{version}` when `margent` isn't installed.

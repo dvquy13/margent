@@ -29,7 +29,7 @@ The user's own look lives outside the repo, in `~/.margent/` (`$MARGENT_HOME` wh
 
 1. Write or edit the `.md`.
 2. Run `margent check {file or folder}`. It renders in memory, runs every island headless at phone (390px) and desktop widths, and prints one `file:line: message` per problem, including a link to a missing file or heading and an island whose content spills outside its box. Fix each one in the source. A clean run prints `ok {n} docs, {m} islands`.
-3. Run `margent open {file}` to show the user the page. It renders the file and every doc it links to, opens the browser, and prints the page path.
+3. Run `margent open {file}` to show the user the page. It renders the file and every doc it links to, opens the browser, and prints the page path. Tell the user the page is open in their browser, and, the first time in a session, that `margent serve {docs root}` (or `/docs-serve`) lets them browse every doc, leave comments and edit in the page. Don't point them at the HTML file: it lives in a cache and is rebuilt on every run.
 
 `margent export {path} --out {dir}` writes standalone pages for sending to someone. Add `--clean` to strip review comments, and `--md` to write markdown files instead of pages (with `--clean`, island markup goes too).
 
