@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.2](https://github.com/dvquy13/margent/compare/v0.12.1...v0.12.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* remove the per-block Comment button; comments start from a selection ([8649cec](https://github.com/dvquy13/margent/commit/8649cec7d1de1c2b870aecb4b1eb085adc8984e1))
+
+
+### Documentation
+
+* README opens with a demo video and a quick start for people: `margent serve docs/`, commenting and editing in the page, and telling your agent you commented ([807fbc2](https://github.com/dvquy13/margent/commit/807fbc2cdb1951675de94d39331f2436761a227c), [f646ff0](https://github.com/dvquy13/margent/commit/f646ff01b9e3645b97cde7fe4c32b83ee14fcec1), [8ff83fd](https://github.com/dvquy13/margent/commit/8ff83fd21753ea66db4216554a720ec5c702117c), [f111cbc](https://github.com/dvquy13/margent/commit/f111cbcb1db849cab2df1f54c67a16e1e3eb5cee))
+* README says why agents work only in markdown: fewer tokens, and edits made in the page come back to the `.md` ([66968ae](https://github.com/dvquy13/margent/commit/66968aed4f33f441d5078a982ce3097f97b3ef60))
+* the margent skill tells the user, after `margent open`, that `margent serve` browses, comments on and edits every doc ([f646ff0](https://github.com/dvquy13/margent/commit/f646ff01b9e3645b97cde7fe4c32b83ee14fcec1))
+
 ## [0.12.1](https://github.com/dvquy13/margent/compare/v0.12.0...v0.12.1) (2026-11-14)
 
 
