@@ -11,6 +11,8 @@ margent serve docs
 
 `serve` opens your browser on the folder's docs. Click a doc to read it as a page. Select words and click Comment to leave a review note, or click into a paragraph and type to edit it (it saves when you click away). Both are written into the `.md`, and the page reloads when the file changes. Stop the server with Ctrl-C.
 
+When you're done commenting, tell your agent ("I commented on the launch review", or `/docs-review docs` with the skills installed). It runs `margent comments`, makes the changes, and replies under each note. The open page reloads with the replies, and you resolve each thread when you're happy with it.
+
 To look at one doc without a server, run `margent open docs/{file}.md`. It renders the page into margent's cache and opens it in your browser. You never need to find or keep the HTML file: run the command again after the `.md` changes.
 
 ## Install
