@@ -4,12 +4,13 @@ import {TransitionSeries, linearTiming} from '@remotion/transitions';
 import {fade} from '@remotion/transitions/fade';
 import {clips, diffs} from './clips';
 import {Title} from './scenes/Title';
+import {HowItWorks} from './scenes/HowItWorks';
 import {Terminal} from './scenes/Terminal';
 import {BrowserScene} from './scenes/Browser';
 import {Closing} from './scenes/Closing';
 import {Agent} from './scenes/Agent';
 import {Reply} from './scenes/Reply';
-import {SCENE_FRAMES} from './timeline';
+import {RATES, SCENE_FRAMES} from './timeline';
 import {TRANSITION_FRAMES} from './timing';
 import {theme} from './theme';
 
@@ -20,6 +21,10 @@ export const MargentDemo: React.FC = () => (
     <TransitionSeries>
       <TransitionSeries.Sequence name="Title" durationInFrames={SCENE_FRAMES.title}>
         <Title />
+      </TransitionSeries.Sequence>
+      {cut}
+      <TransitionSeries.Sequence name="How it works" durationInFrames={SCENE_FRAMES.how}>
+        <HowItWorks />
       </TransitionSeries.Sequence>
       {cut}
       <TransitionSeries.Sequence name="Terminal" durationInFrames={SCENE_FRAMES.terminal}>
@@ -34,7 +39,7 @@ export const MargentDemo: React.FC = () => (
         <BrowserScene
           clip={clips.page}
           path="/launch-review.html"
-          playbackRate={1.3}
+          playbackRate={RATES.page}
           caption="Charts and diagrams render from the markdown."
         />
       </TransitionSeries.Sequence>
@@ -43,6 +48,7 @@ export const MargentDemo: React.FC = () => (
         <BrowserScene
           clip={clips.comment}
           path="/launch-review.html"
+          playbackRate={RATES.comment}
           holdSeconds={3.5}
           caption="Select words and comment. The note is saved into the .md."
           diff={diffs.comment}
@@ -61,6 +67,7 @@ export const MargentDemo: React.FC = () => (
         <BrowserScene
           clip={clips.edit}
           path="/launch-review.html"
+          playbackRate={RATES.edit}
           holdSeconds={3.5}
           caption="Click a paragraph to edit. It saves when you click away."
           diff={diffs.edit}

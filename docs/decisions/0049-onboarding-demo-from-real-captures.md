@@ -21,7 +21,7 @@ updated: 2026-11-17
 
 ## Consequences
 
-- After a UI change, `npm run build`, then `npm run capture` and `npm run render` in `demo/` remake the video from the product itself. Only the terminal scene, captions and cards are drawn.
+- After a UI change, `npm run build`, then `npm run capture` and `npm run render` in `demo/` remake the video from the product itself. Only the "How it works" explainer, the terminal scenes, captions and cards are drawn, and they read their text from the capture: the `.md` source, the `margent comments` output, and the sizes of the `.md` and of the page `export` writes from it.
 - The page is shown 1:1, so the video can't zoom into it without blurring text.
 - The capture needs the network (the page loads Google Fonts) and the installed Chrome, as the browser tests do.
 - npmjs.com strips `<video>`, so the README also carries a plain link to the video.

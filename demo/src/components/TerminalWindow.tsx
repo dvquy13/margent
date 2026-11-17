@@ -13,10 +13,16 @@ export interface TerminalLine {
 }
 
 // qrec's terminal window, dark variant, with the text colour set for it.
-export const TerminalWindow: React.FC<{lines: TerminalLine[]; title?: string; width?: number}> = ({
+export const TerminalWindow: React.FC<{
+  lines: TerminalLine[];
+  title?: string;
+  width?: number;
+  fontSize?: number;
+}> = ({
   lines,
   title = 'zsh',
   width = 820,
+  fontSize = 15,
 }) => {
   const frame = useCurrentFrame();
 
@@ -63,7 +69,7 @@ export const TerminalWindow: React.FC<{lines: TerminalLine[]; title?: string; wi
             text = line.text.slice(0, chars);
           }
           return (
-            <div key={i} style={{color: line.color ?? theme.termText, fontSize: 15, lineHeight: 1.7, whiteSpace: 'pre'}}>
+            <div key={i} style={{color: line.color ?? theme.termText, fontSize, lineHeight: 1.7, whiteSpace: 'pre'}}>
               {text}
             </div>
           );

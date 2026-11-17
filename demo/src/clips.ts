@@ -7,6 +7,7 @@ import pageJson from '../public/capture/page/frames.json';
 import replyJson from '../public/capture/reply/frames.json';
 import commentsJson from '../public/capture/comments.json';
 import serveJson from '../public/capture/serve.json';
+import sizesJson from '../public/capture/sizes.json';
 
 export interface ClipFrame {
   t: number;
@@ -63,3 +64,6 @@ export const serveHost = serveUrl.host;
 export const serveLine = serveJson.line.replace(token, `${token.slice(0, 6)}…`);
 
 export const diffs = diffsJson;
+
+// Bytes of launch-review.md and of the page margent renders from it.
+export const sizes = sizesJson;
