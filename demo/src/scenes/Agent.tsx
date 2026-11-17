@@ -32,6 +32,6 @@ export const Agent: React.FC = () => (
         ]}
       />
     </div>
-    <Caption text="Tell your agent you commented. It reads every note and replies in the doc." start={30} />
+    <Caption text="Tell your agent you commented. It reads the notes in the .md, never the HTML." start={30} />
   </AbsoluteFill>
 );
