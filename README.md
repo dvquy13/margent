@@ -2,6 +2,10 @@
 
 margent renders markdown docs into designed pages. Data-driven visuals ("islands", such as charts and boards) keep their data in the markdown, so the source stays the single copy. A Mermaid fence becomes an inline SVG diagram in the page's theme, with no script. Review comments written in the page are saved back into the `.md`. Agents write the markdown; people read and review the rendered page.
 
+<video src="https://github.com/user-attachments/assets/2dadea3d-ffb0-435f-bc2e-1e8ae6a675f0" controls muted playsinline></video>
+
+[Watch the demo](https://github.com/user-attachments/assets/2dadea3d-ffb0-435f-bc2e-1e8ae6a675f0) (80 seconds): serve a docs folder, comment in the page, let the agent answer, and how it works.
+
 ## Why markdown
 
 - **Fewer tokens for the agent.** The agent reads and writes only the markdown. The theme, layout and scripts come from margent, so the agent never generates them or reads them back. In this repo's demo, a short review with two charts and a diagram is 1.5 KB of markdown and a 106 KB page.
