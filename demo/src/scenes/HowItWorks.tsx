@@ -121,8 +121,9 @@ export const HowItWorks: React.FC = () => {
           duration={0.8}
         />
         <FlowArrow
-          d={`M${browserCx} ${browserBottom + ARROW_PAD} C${browserCx} 472, ${paperCx} 472, ${paperCx} ${paperBottom + ARROW_PAD}`}
-          head={`${paperCx},${paperBottom + ARROW_PAD} ${paperCx - 5},${paperBottom + 14} ${paperCx + 5},${paperBottom + 14}`}
+          // The curve ends in a short straight rise into the head's base, so the head points the way the line arrives.
+          d={`M${browserCx} ${browserBottom + ARROW_PAD} C${browserCx} 476, ${paperCx} 476, ${paperCx} ${paperBottom + ARROW_PAD + 26} L${paperCx} ${paperBottom + ARROW_PAD + 9}`}
+          head={`${paperCx},${paperBottom + ARROW_PAD} ${paperCx - 6},${paperBottom + ARROW_PAD + 10} ${paperCx + 6},${paperBottom + ARROW_PAD + 10}`}
           start={4.8}
           duration={1.2}
         />

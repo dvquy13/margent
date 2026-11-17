@@ -15,8 +15,8 @@ export const Title: React.FC = () => (
       </div>
     </FadeIn>
     <FadeIn start={30} duration={20}>
-      <div style={{fontFamily: theme.sans, fontSize: 36, color: theme.muted}}>
-        Your agent writes markdown. You read it as a page.
+      <div style={{fontFamily: theme.sans, fontSize: 30, color: theme.muted}}>
+        Your agent writes markdown. You read, comment and edit it as a page.
       </div>
     </FadeIn>
   </AbsoluteFill>

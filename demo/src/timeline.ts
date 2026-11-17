@@ -13,7 +13,6 @@ export const RATES = {page: 1.4, comment: 1.25, edit: 1.25} as const;
 // The scenes in order, with their lengths in frames. Browser scenes take their length from the clip.
 export const SCENE_FRAMES = {
   title: Math.round(TITLE_SECONDS * FPS),
-  how: Math.round(HOW_IT_WORKS_SECONDS * FPS),
   terminal: Math.round(TERMINAL_SECONDS * FPS),
   index: browserSceneFrames(clips.index),
   page: browserSceneFrames(clips.page, RATES.page),
@@ -21,6 +20,7 @@ export const SCENE_FRAMES = {
   agent: Math.round(AGENT_SECONDS * FPS),
   reply: browserSceneFrames(clips.reply, 1, REPLY_HOLD_SECONDS),
   edit: browserSceneFrames(clips.edit, RATES.edit, 3.5),
+  how: Math.round(HOW_IT_WORKS_SECONDS * FPS),
   closing: Math.round(CLOSING_SECONDS * FPS),
 };
 

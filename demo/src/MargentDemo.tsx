@@ -23,10 +23,6 @@ export const MargentDemo: React.FC = () => (
         <Title />
       </TransitionSeries.Sequence>
       {cut}
-      <TransitionSeries.Sequence name="How it works" durationInFrames={SCENE_FRAMES.how}>
-        <HowItWorks />
-      </TransitionSeries.Sequence>
-      {cut}
       <TransitionSeries.Sequence name="Terminal" durationInFrames={SCENE_FRAMES.terminal}>
         <Terminal />
       </TransitionSeries.Sequence>
@@ -72,6 +68,10 @@ export const MargentDemo: React.FC = () => (
           caption="Click a paragraph to edit. It saves when you click away."
           diff={diffs.edit}
         />
+      </TransitionSeries.Sequence>
+      {cut}
+      <TransitionSeries.Sequence name="How it works" durationInFrames={SCENE_FRAMES.how}>
+        <HowItWorks />
       </TransitionSeries.Sequence>
       {cut}
       <TransitionSeries.Sequence name="Closing" durationInFrames={SCENE_FRAMES.closing}>
