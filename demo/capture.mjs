@@ -4,7 +4,7 @@
 // Needs `npm run build` in the repo first (it runs dist/cli.js) and the network for the page's Google Fonts.
 // playwright-core comes from the repo's own node_modules (a devDependency there), not from demo/package.json.
 import { spawn } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -154,10 +154,12 @@ const CLIPS = {
     return clip(browser, 'page', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, m, wait }) => {
       await wait(800);
       await m.move(700, 420, 500);
-      await scroll(page, 330, 1400);
-      await wait(1400);
-      await scroll(page, 520, 1600);
-      await wait(1600);
+      // The funnel island, then the Mermaid diagram, then the rollout island, each brought to the top of the view.
+      for (const id of ['funnel', 'how-search-answers-a-query', 'rollout']) {
+        const top = await page.evaluate((id) => document.getElementById(id).getBoundingClientRect().top - 72, id);
+        await scroll(page, top, 1300);
+        await wait(1500);
+      }
     });
   },
 
@@ -288,6 +290,13 @@ try {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'serve.json'), JSON.stringify({ line: served.line.replace(root, '~/search-beta/docs') }, null, 1));
   browser = await chromium.launch({ channel: 'chrome' });
+  // What the agent works with against what the reader gets: the .md, and the page `export` writes from it.
+  const exported = join(tmp, 'export');
+  await run(process.execPath, [join(repo, 'dist', 'cli.js'), 'export', 'docs/launch-review.md', '--out', exported], dirname(root));
+  writeFileSync(join(OUT, 'sizes.json'), JSON.stringify({
+    md: statSync(join(root, 'launch-review.md')).size,
+    html: statSync(join(exported, 'launch-review.html')).size,
+  }, null, 1));
   // Each clip's page signs in through the token URL first, which sets the session cookie and shows the index.
   const s = { url: served.url, root, base: new URL(served.url).origin, diffs: {} };
   for (const [name, run] of Object.entries(CLIPS)) {

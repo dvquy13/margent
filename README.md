@@ -4,7 +4,7 @@ margent renders markdown docs into designed pages. Data-driven visuals ("islands
 
 ## Why markdown
 
-- **Fewer tokens for the agent.** The agent reads and writes only the markdown. The theme, layout and scripts come from margent, so the agent never generates them or reads them back. In this repo's demo, a short review with one chart is 1 KB of markdown and a 98 KB page.
+- **Fewer tokens for the agent.** The agent reads and writes only the markdown. The theme, layout and scripts come from margent, so the agent never generates them or reads them back. In this repo's demo, a short review with two charts and a diagram is 1.5 KB of markdown and a 106 KB page.
 - **Edits come back to the source.** Comments and edits you make in the page are written into the `.md`. The agent picks them up from there and answers in the same file, and the page reloads. Nobody parses or patches HTML, and there is no second copy to drift.
 - **The markdown stays useful on its own.** It diffs in git, reads on GitHub, and a chart's data sits in a table in the doc, where the agent can check it cell by cell.
 

@@ -20,14 +20,26 @@ The search beta reached 4,210 invited users in three weeks. Most of them tried a
 
 *The biggest drop is between the first search and the second week, so onboarding is where the next sprint goes.*
 
-## Rollout
+## How search answers a query
 
 ```mermaid
 flowchart LR
-  beta[Invite-only beta] --> all[Every workspace] --> default[Search on by default]:::accent
+  query[Query] --> parse[Parse and fix spelling] --> index[(Workspace index)] --> rank[Rank by recency and clicks] --> results[Results]:::accent
 ```
 
-*Each step waits for a week of error rates under 0.5%.*
+*Ranking is the only step that learns from clicks, so it is where short queries get better.*
+
+## Rollout
+
+<!-- island rollout -->
+| Stage | Audience | Gate | Date | Status |
+|---|---|---|---|---|
+| Internal dogfood | 120 | No P1 bugs for a week | 2026-10-06 | Done |
+| Invite-only beta | 4,210 | Error rate under 0.5% | 2026-10-20 | Done |
+| Every workspace | 38,000 | Week-2 return above 30% | 2026-12-01 | Next |
+| Search on by default | 52,000 | Saved-search alerts shipped | 2027-01-12 | Planned |
+
+*Each stage opens only when the gate before it holds for a week.*
 
 ## Next steps
 
