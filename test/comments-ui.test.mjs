@@ -183,14 +183,6 @@ async function threadButton(page, id, label) {
   return card.getByRole('button', { name: label, exact: true });
 }
 
-// A top-level block's comment control, found by its kind. Hovering the block shows the control.
-async function blockControl(page, kind) {
-  const control = page.locator(`.comment-control[aria-label^="Comment on ${kind},"]`).first();
-  const range = await control.evaluate((el) => el.closest('[data-src]').getAttribute('data-src'));
-  await page.locator(`[data-src="${range}"]`).first().hover();
-  return control;
-}
-
 // ---- R5.1 the Comment control and the note box -------------------------------------------------------------------
 
 test(
@@ -555,24 +547,20 @@ test(
 );
 
 test(
-  'R5.4: the block control on a table adds a line after it, and a second one goes after the first',full,
+  'R5.4: a second block comment on a table goes after the first',full,
   scenario({ author: 'Ada' }, async ({ page, served }) => {
-    const control = await blockControl(page, 'table');
-    await control.click();
-    await page.locator('.comment-box:not([hidden])').waitFor();
-    await page.keyboard.type('Table first.');
-    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
-    const first = ORIGINAL.replace('| S3 | Proceed |\n', '| S3 | Proceed |\n\n{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n');
-    assert.equal(served.read('ui.md'), first);
-
-    const again = await blockControl(page, 'table');
-    await again.click();
-    await page.locator('.comment-box:not([hidden])').waitFor();
-    await page.keyboard.type('Table second.');
-    assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    for (const [cell, note] of [['Proceed', 'Table first.'], ['S3', 'Table second.']]) {
+      await drag(page, { text: cell, index: 0 }, { text: cell, index: cell.length });
+      await openNote(page);
+      await page.keyboard.type(note);
+      assert.equal(await saveVia(page, () => page.keyboard.press('Enter')), 200);
+    }
     assert.equal(
       served.read('ui.md'),
-      first.replace('{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n', '{>>[c3 2026-11-02T14:31Z] Ada: Table first.<<}\n\n{>>[c4 2026-11-02T14:31Z] Ada: Table second.<<}\n')
+      ORIGINAL.replace(
+        '| S3 | Proceed |\n',
+        '| S3 | Proceed |\n\n{>>[c3 2026-11-02T14:31Z] Ada: "Proceed" → Table first.<<}\n\n{>>[c4 2026-11-02T14:31Z] Ada: "S3" → Table second.<<}\n'
+      )
     );
   })
 );
@@ -931,14 +919,6 @@ for (const [label, viewport] of [
   ['the default viewport', undefined],
   ['1400px wide', { width: 1400, height: 900 }],
 ]) {
-  test(`0023: the empty field of a new comment from a block's Comment control is a line tall, at ${label}`, full, () =>
-    withPage(FIXTURE, 'ui.md', viewport, async (page) => {
-      const control = await blockControl(page, 'table');
-      await control.click();
-      await page.locator('.comment-box:not([hidden])').waitFor();
-      await assertEmptyField(page, 'Add a comment', 'the block comment');
-    }));
-
   test(`0023: the empty field of a new comment from a selection's Comment tool is a line tall, at ${label}`, full, () =>
     withPage(FIXTURE, 'ui.md', viewport, async (page) => {
       await drag(page, { text: 'plain', index: 0 }, { text: 'plain', index: 5 });

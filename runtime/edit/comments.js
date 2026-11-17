@@ -4,7 +4,6 @@
 // replaces its note's text with the field. Every save is one margent.save of one block (decision 0021): the block's new
 // source is built here from its markdown with the syntax module.
 import { IS_MAC, lineKeys } from './keys.js';
-import { kindOf } from './panel.js';
 import {
   appendNote,
   fieldFromNote,
@@ -474,10 +473,11 @@ export function initComments(margent) {
     return last;
   }
 
-  // quote: the selected phrase, or '' for an unquoted block comment. The first note then starts with the quote, and
-  // quotedText refuses a quote it cannot store, which the card shows when the note is sent.
-  // The draft lines up with the selected phrase when there is one, else with the block.
-  function openBlockComment(el, quote = '') {
+  // quote: the selected phrase, or '' when the selection holds only white space, which gives an unquoted block comment.
+  // A block comment always starts from a selection: there is no per-block Comment control (decision 0048). The first
+  // note then starts with the quote, and quotedText refuses a quote it cannot store, which the card shows when the note
+  // is sent. The draft lines up with the selected phrase when there is one, else with the block.
+  function openBlockComment(el, quote) {
     const range = blockCreateRange(el);
     // A quote from an island's selection: its rect is the frame's report, and the phrase is marked in the frame.
     const inFrame = quote && islandSel !== null && islandSel.el === el ? islandSel : null;
@@ -556,31 +556,6 @@ export function initComments(margent) {
         }
       : null;
     showBox({ form: false, error: true, msg: `This selection touches comment ${id}. Reply to that thread instead.`, action, place: { after: id } });
-  }
-
-  // ---- the block comment control on every block (R5.4) -----------------------------------------------------------
-
-  function onBlockButton(el) {
-    const reason = blockedReason();
-    if (reason) return notify(reason);
-    openBlockComment(el);
-  }
-
-  // Every block but a comment line gets the control, placed to the left of its edit control. The edit control stays the
-  // block's last child (the edit corpus reads it there). An editable block has no edit control, so its control goes
-  // first: as a last child it would take a caret placed at the end of the text, and Enter there would miss the text.
-  // The label is empty text (::before in the CSS), so a control inside an editable block is not part of its markdown,
-  // and the gate and the save never read it.
-  for (const [range, el] of blocks) {
-    if (el.classList.contains('c-line')) continue;
-    const slot = slotOf(el);
-    slot.classList.add('edit-block');
-    const commentBtn = make('button', 'comment-control');
-    commentBtn.type = 'button';
-    commentBtn.setAttribute('aria-label', `Comment on ${kindOf(el)}, ${linesOf(range)}`);
-    commentBtn.addEventListener('mousedown', keepPress);
-    commentBtn.addEventListener('click', () => onBlockButton(el));
-    slot.insertBefore(commentBtn, slot.querySelector(':scope > .edit-control'));
   }
 
   // ---- Reply, Resolve and Edit on the thread's card (R6), in the rail (decision 0023) ------------------------------

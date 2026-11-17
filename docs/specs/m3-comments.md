@@ -1,7 +1,7 @@
 ---
 title: M3 spec · Comments
 status: done
-updated: 2026-10-25
+updated: 2026-11-16
 ---
 
 # M3 spec · Comments
@@ -102,7 +102,7 @@ Only in pages that `serve` produces, like the rest of the edit runtime.
 1. **From a selection** inside one gated block (`data-gate="pass"`), a Comment control appears by the selection. It opens a one-line note box. Enter saves, Esc cancels, and an empty note sends nothing. Where the rail sits beside the content, the box is a draft card in it, level with what it is about, or right under its thread's card for a reply; below 1100px it docks at the bottom of the window ([0023](../decisions/0023-comment-rail-and-quoted-block-comments.md)).
 2. **Snapping:** a selection boundary inside an inline element moves outward until both boundaries sit in the same inline parent. A link and a code span are always taken whole, and a heading's number is never highlighted: a boundary in it moves to just after it ([0020](../decisions/0020-selection-maps-through-turndown-sentinels.md)). The snapped range is highlighted while the note is typed, so you see exactly what will be marked.
 3. **Mapping:** the runtime inserts two sentinel characters at the snapped boundaries in a copy of the block and runs house turndown on it. The sentinels are private-use characters that no house rule uses (the mid-line mark is U+E000), and a test asserts it. Only if the output without the sentinels equals the block's source does the runtime write `{==`, `==}` and the note at their positions. Otherwise it offers a block comment. It never guesses an anchor.
-4. **Block comments:** these each create a block comment line after the block: a selection in a block that isn't gated, a selection whose boundaries sit in different blocks or in different block children of one block (two list items, or a nested list inside one item), a boundary inside a code block, and the comment control every block gets beside its edit control. A second block comment on the same block goes on its own line after the first. A block comment made from a selection quotes the selected text (R1.8), shown in the note box before it is saved.
+4. **Block comments:** these each create a block comment line after the block: a selection in a block that isn't gated, a selection whose boundaries sit in different blocks or in different block children of one block (two list items, or a nested list inside one item), and a boundary inside a code block. A second block comment on the same block goes on its own line after the first. A block comment made from a selection quotes the selected text (R1.8), shown in the note box before it is saved. M3 also gave every block a comment control beside its edit control; [0048](../decisions/0048-no-block-comment-control.md) removed it, so a block comment always starts from a selection.
 5. **Overlap:** a selection that touches an existing highlight is refused, and the message points to that thread's Reply.
 6. **Author and ID** follow [0021](../decisions/0021-comment-operations-are-block-saves.md): the author comes from `serve --author {name}`, else `git config user.name`, and with neither the note box says how to set one. A new ID is one above the highest in the file.
 7. **Unsaved notes count as unsaved text:** while a note box holds text, `agentDocs.dirty()` is true, so live reload holds as in [M2 R7.3](m2-serve-edit.md#r7-live-reload).

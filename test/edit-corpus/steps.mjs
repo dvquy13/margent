@@ -182,7 +182,7 @@ async function openPanel(page, spec) {
 }
 
 const CONTROLS = {
-  Comment: '.comment-control',
+  Comment: '.comment-tool',
   Reply: '.comment-reply',
   Resolve: '.comment-resolve',
   Edit: '.comment-edit',
@@ -190,26 +190,21 @@ const CONTROLS = {
   Cancel: '.comment-cancel',
 };
 
-// Clicks a comment control with a real mouse click. Without near or range, `Comment` is the floating control at the
-// selection. With near (a text in the block) or range (the block's lines, e.g. "13-23"), the control is one of the block's:
-// its Comment control, or the Reply, Resolve or Edit of its thread (Save and Cancel are a draft's, in its card). The block is hovered first, as a user would. nth picks
-// among that block's controls with that label (1-based).
+// Clicks a comment control with a real mouse click. `Comment` is the floating control at the selection, and takes no
+// near or range: there is no per-block Comment control (decision 0048). With near (a text in the block) or range (the
+// block's lines, e.g. "13-23"), the control is the Reply, Resolve or Edit of a thread in that block (Save and Cancel are
+// a draft's, in its card). The block is hovered first, as a user would. nth picks among that block's controls with that
+// label (1-based).
 async function clickControl(page, { label, near = null, range = null, nth = null }) {
   if (!Object.hasOwn(CONTROLS, label)) throw new Error(`control.label must be Comment, Reply, Resolve, Edit, Save or Cancel, got ${JSON.stringify(label)}`);
-  if (near === null && range === null) {
-    if (label !== 'Comment') throw new Error(`control ${label} needs near or range, to find the block of its thread`);
-    await page.locator('.comment-tool:not([hidden])').click();
+  if (label === 'Comment') {
+    if (near !== null || range !== null) throw new Error('control Comment takes no near or range: a comment starts from a selection');
+    await page.locator(`${CONTROLS.Comment}:not([hidden])`).click();
     return;
   }
+  if (near === null && range === null) throw new Error(`control ${label} needs near or range, to find the block of its thread`);
   if (near !== null) {
     await locate(page, near, { tagBlock: true });
-    const gated = await page.evaluate(() => document.querySelector('[data-probe="block"]').getAttribute('data-gate') === 'pass');
-    if (gated && label === 'Comment') {
-      // A gated block shows its Comment control only while it holds focus (edit.css), so a real click in its text focuses
-      // it first. The caret moves and nothing is typed, so the block's source stays as it was.
-      await clickAt(page, { text: near, at: 'start' });
-      await locate(page, near, { tagBlock: true });
-    }
   } else {
     await page.evaluate((r) => {
       document.querySelectorAll('[data-probe]').forEach((e) => e.removeAttribute('data-probe'));
@@ -221,21 +216,16 @@ async function clickControl(page, { label, near = null, range = null, nth = null
   }
   // Reply and Resolve are on the card of each thread in the block, in the rail (decision 0023). Below 1100px the rail is
   // a drawer, so it opens first, as a user would open it.
-  if (label !== 'Comment') await openRail(page);
+  await openRail(page);
   await page.evaluate(({ selector, label, nth }) => {
     document.querySelectorAll('[data-probe="control"]').forEach((e) => e.removeAttribute('data-probe'));
     const block = document.querySelector('[data-probe="block"]');
-    let hits;
-    if (label === 'Comment') {
-      hits = [...block.querySelectorAll(selector)].filter((e) => (e.getAttribute('aria-label') ?? '').startsWith('Comment on '));
-    } else {
-      const hook = window.margentComments;
-      if (!hook) throw new Error(`${label} needs the comment rail, and this page has none`);
-      // A card can hold several controls of one label (Edit on each of the owner's notes), so all of them count.
-      hits = [...block.querySelectorAll('span.c-thread[data-c]')].flatMap((thread) => [
-        ...(hook.cards.get(thread.dataset.c)?.querySelectorAll(selector) ?? []),
-      ]);
-    }
+    const hook = window.margentComments;
+    if (!hook) throw new Error(`${label} needs the comment rail, and this page has none`);
+    // A card can hold several controls of one label (Edit on each of the owner's notes), so all of them count.
+    const hits = [...block.querySelectorAll('span.c-thread[data-c]')].flatMap((thread) => [
+      ...(hook.cards.get(thread.dataset.c)?.querySelectorAll(selector) ?? []),
+    ]);
     const want = nth ?? 1;
     if (hits.length < want) throw new Error(`the block has ${hits.length} ${label} control(s), not ${want}`);
     hits[want - 1].setAttribute('data-probe', 'control');

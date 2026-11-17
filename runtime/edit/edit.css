@@ -40,20 +40,16 @@
   outline-offset: 4px;
 }
 
-/* The control sits at a block's top right, out of flow, so showing it moves nothing. Rest is muted; hover and focus
-   take the accent, the one signal for "interactive". It is hidden until its block is hovered, but stays in the tab order,
-   and shows at once when focused by keyboard. Touch screens have no hover, so it stays visible there. */
+/* The edit control sits at a block's top right corner, out of flow, so showing it moves nothing. Rest is muted; hover
+   and focus take the accent, the one signal for "interactive". It is hidden until its block is hovered or holds focus
+   inside, but stays in the tab order, and shows at once when focused by keyboard. Touch screens have no hover, so it
+   stays visible there. */
 .edit-block {
   position: relative;
 }
-/* The block's controls sit at its top right, out of flow, so showing them moves nothing. The edit control is at the
-   corner; the comment control sits to its left, one tool width and a gap away. Both are the same width, so the offset is
-   a token. They show while the block is hovered or holds focus inside, and always on a touch screen. */
-:root { --tool-w: 4.5rem; }
-.edit-control,
-.comment-control {
-  position: absolute; top: 0; z-index: 1;
-  width: var(--tool-w); box-sizing: border-box; text-align: center; white-space: nowrap;
+.edit-control {
+  position: absolute; top: 0; right: 0; z-index: 1;
+  width: 4.5rem; box-sizing: border-box; text-align: center; white-space: nowrap;
   font-family: var(--font-ui); font-size: var(--font-xs); line-height: 1;
   padding: 4px 8px;
   border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -62,43 +58,26 @@
   opacity: 0; pointer-events: none;
   transition: opacity var(--fade), color var(--fade), border-color var(--fade);
 }
-.edit-control { right: 0; }
-.comment-control { right: calc(var(--tool-w) + var(--gap-xs)); }
 .edit-block:hover > .edit-control,
 agent-island.edit-block[data-hover] > .edit-control,
 .edit-block:focus-within > .edit-control,
 .edit-control:focus-visible {
   opacity: 1; pointer-events: auto;
 }
-/* A block that edits in place (data-gate="pass") shows its comment control only once it holds focus, or by keyboard. On
-   hover, the control would sit over the text's top right and take the press meant for the text (a click at the end of a
-   line would open the comment instead of placing the caret). Panel blocks have no text to press, so they show on hover. */
-.edit-block:not([data-gate="pass"]):hover > .comment-control,
-agent-island.edit-block[data-hover] > .comment-control,
-.edit-block:focus-within > .comment-control,
-.comment-control:focus-visible {
-  opacity: 1; pointer-events: auto;
-}
 /* An island is a sandboxed frame, and the page's :hover stops at the frame, so data-hover (set from the frame's messages)
-   shows the controls. Their hit-testing must not wait for it: it is cleared whenever the pointer is over page content,
-   such as after a scroll. So island controls always take the pointer, and only their visibility follows hover. */
-agent-island.edit-block > .edit-control,
-agent-island.edit-block > .comment-control {
+   shows the control. Its hit-testing must not wait for it: it is cleared whenever the pointer is over page content,
+   such as after a scroll. So an island's control always takes the pointer, and only its visibility follows hover. */
+agent-island.edit-block > .edit-control {
   pointer-events: auto;
 }
-.edit-control:hover,
-.comment-control:hover { color: var(--accent); border-color: var(--accent); }
-.edit-control:focus-visible,
-.comment-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* A comment control holds no text of its own: its label is drawn here, so a control inside an editable block adds no
-   words to the block's markdown. */
-.comment-control::before { content: 'Comment'; }
+.edit-control:hover { color: var(--accent); border-color: var(--accent); }
+.edit-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The frontmatter control lives in the header row, beside the meta text, and is always shown. */
 .edit-control--header {
   position: static; flex: none; width: auto; opacity: 1; pointer-events: auto;
 }
 @media (hover: none) {
-  .edit-control, .edit-block:not([data-gate="pass"]) > .comment-control { opacity: 1; pointer-events: auto; }
+  .edit-control { opacity: 1; pointer-events: auto; }
 }
 
 /* The panel: a column on the right of desktop, under the header, full width on a phone. Its text area is the only

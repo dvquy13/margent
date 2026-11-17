@@ -51,6 +51,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0045](0045-mermaid-fences-render-through-pele.md) | Mermaid fences render through pele at render time | accepted | 2026-11-03 |
 | [0046](0046-three-visual-tiers.md) | Three visual tiers, with Mermaid as the default for diagrams | accepted | 2026-11-03 |
 | [0047](0047-user-theme-and-design-guide-in-margent-home.md) | A user theme and design guide in ~/.margent | accepted | 2026-11-09 |
+| [0048](0048-no-block-comment-control.md) | No per-block Comment control | accepted | 2026-11-16 |
 
 ## Deferred
 
