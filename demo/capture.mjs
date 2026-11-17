@@ -18,6 +18,9 @@ const OUT = join(here, 'public', 'capture');
 const VIEWPORT = { width: 1280, height: 680 };
 // Note stamps read the page clock, so the captured `.md` never depends on the day the demo was made.
 const PINNED_NOW = '2026-11-14T09:30:00Z';
+// The page clock once the agent has replied (its note is stamped 09:32). The reply and edit clips share it, so the
+// relative times on the notes ("2m", "just now") match across the cut between them.
+const AGENT_NOW = '2026-11-14T09:32:20Z';
 
 const only = process.argv.slice(2);
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -47,7 +50,9 @@ function serve(root) {
 }
 
 // One clip: a fresh page, a screencast while `script` runs, and a log of mouse events for the cursor overlay.
-async function clip(browser, name, start, script, { now: clockAt = PINNED_NOW } = {}) {
+// The browser clips are one continuous session in the video: each starts at the scroll position and mouse position where
+// the one before it ended (`from`, the `view` a clip returns), so the cut between them joins two matching frames.
+async function clip(browser, name, start, script, { now: clockAt = PINNED_NOW, from } = {}) {
   const dir = join(OUT, name);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
@@ -73,7 +78,7 @@ async function clip(browser, name, start, script, { now: clockAt = PINNED_NOW } 
   while (t0 === null) await wait(20);
   const clockStart = Date.now();
   const now = () => (Date.now() - clockStart) / 1000;
-  let pos = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
+  let pos = from?.mouse ?? { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 };
   // A mouse that logs where it goes. Moves are eased in small steps so the overlay cursor can follow them.
   const m = {
     async move(x, y, ms = 600) {
@@ -94,15 +99,16 @@ async function clip(browser, name, start, script, { now: clockAt = PINNED_NOW } 
   };
   // Mouse and screencast times share one origin: the first frame arrived just before clockStart.
   mouse.push({ t: 0, ...pos, type: 'move' });
-  await script({ page, m, wait, now });
+  const extra = (await script({ page, m, wait, now })) ?? {};
   await wait(400);
+  const view = { scrollY: await page.evaluate(() => window.scrollY), mouse: pos };
   await cdp.send('Page.stopScreencast');
   await Promise.all(pending);
   const duration = now();
-  writeFileSync(join(dir, 'frames.json'), JSON.stringify({ name, width: VIEWPORT.width, height: VIEWPORT.height, duration, frames, mouse, errors }, null, 1));
+  writeFileSync(join(dir, 'frames.json'), JSON.stringify({ name, width: VIEWPORT.width, height: VIEWPORT.height, duration, frames, mouse, errors, ...extra }, null, 1));
   await context.close();
   console.log(`${name}: ${frames.length} frames, ${duration.toFixed(1)}s${errors.length ? `, page errors: ${errors.join('; ')}` : ''}`);
-  return { errors };
+  return { errors, view };
 }
 
 // The center of the first element matching `selector`, in page coordinates.
@@ -151,7 +157,7 @@ const CLIPS = {
 
   // The review page: scroll past the funnel island and the rollout diagram.
   async page(browser, s) {
-    return clip(browser, 'page', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, m, wait }) => {
+    s.view = (await clip(browser, 'page', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, m, wait }) => {
       await wait(800);
       await m.move(700, 420, 500);
       // The funnel island, then the Mermaid diagram, then the rollout island, each brought to the top of the view.
@@ -160,15 +166,15 @@ const CLIPS = {
         await scroll(page, top, 1300);
         await wait(1500);
       }
-    });
+    })).view;
   },
 
   // A phrase dragged with the mouse, Comment, a note and Enter: the note lands in the .md and the page reloads.
   async comment(browser, s) {
     const before = readFileSync(join(s.root, 'launch-review.md'), 'utf8');
-    await clip(browser, 'comment', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, m, wait }) => {
-      await wait(700);
-      const phrase = 'a third came back the next week';
+    s.view = (await clip(browser, 'comment', (page) => openDoc(page, s, 'launch-review.html', s.view), async ({ page, m, wait }) => {
+      await wait(500);
+      const phrase = 'holds for a week';
       const a = await pointAt(page, phrase, 0);
       const b = await pointAt(page, phrase, phrase.length);
       await m.move(a.x - 1, a.y, 800);
@@ -180,11 +186,11 @@ const CLIPS = {
       await m.click(tool.x, tool.y, 600);
       await page.locator('.comment-box:not([hidden]) textarea').waitFor();
       await wait(300);
-      await page.keyboard.type('Is week 2 the right window? Most teams search on Mondays.', { delay: 45 });
+      await page.keyboard.type('Is one week enough before every workspace gets it?', { delay: 45 });
       await wait(500);
       await saveVia(page, () => page.keyboard.press('Enter'));
       await wait(2200);
-    });
+    }, { from: s.view })).view;
     s.diffs.comment = { before, after: readFileSync(join(s.root, 'launch-review.md'), 'utf8') };
   },
 
@@ -194,35 +200,53 @@ const CLIPS = {
   async reply(browser, s) {
     const project = dirname(s.root);
     const listed = await run(process.execPath, [join(repo, 'dist', 'cli.js'), 'comments', 'docs/launch-review.md'], project);
-    writeFileSync(join(OUT, 'comments.json'), JSON.stringify({ command: 'margent comments docs/launch-review.md', lines: listed.trimEnd().split('\n') }, null, 1));
+    writeFileSync(join(OUT, 'comments.json'), JSON.stringify({
+      command: 'margent comments docs/launch-review.md',
+      lines: listed.trimEnd().split('\n'),
+      // What the agent says when it is done, as the last line of the agent scene.
+      summary: 'Moved Every workspace to Dec 8, replied under c1',
+    }, null, 1));
     const file = join(s.root, 'launch-review.md');
     const before = readFileSync(file, 'utf8');
     const quy = /(\{>>\[c1 [^\]]+\] Quy: [^<]*<<\})/;
     if (!quy.test(before)) throw new Error('reply: no c1 note from the comment clip in launch-review.md');
-    const after = before
-      .replace(quy, '$1{>>[c1 2026-11-14T09:32Z] Claude: Week 2 means days 8 to 14 after the invite, so a Monday habit still counts. I defined it in the funnel caption.<<}')
-      .replace('between the first search and the second week,', 'between the first search and the second week (days 8 to 14 after the invite),');
-    if (after === before) throw new Error('reply: the edit changed nothing');
-    await clip(browser, 'reply', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, wait }) => {
+    // Each change must find its text, or the clip would show an agent that did nothing.
+    const edits = [
+      [quy, '$1{>>[c1 2026-11-14T09:32Z] Claude: Two weeks is safer at this size. I moved Every workspace to Dec 8 and made the caption say two weeks.<<}'],
+      ['{==holds for a week==}', '{==holds for two weeks==}'],
+      ['| Every workspace | 38,000 | Week-2 return above 30% | 2026-12-01 | Next |', '| Every workspace | 38,000 | Week-2 return above 30% | 2026-12-08 | Next |'],
+      ['every workspace on December 1.', 'every workspace on December 8.'],
+    ];
+    let after = before;
+    for (const [from, to] of edits) {
+      const next = after.replace(from, to);
+      if (next === after) throw new Error(`reply: the agent's edit found nothing to change: ${from}`);
+      after = next;
+    }
+    s.view = (await clip(browser, 'reply', (page) => openDoc(page, s, 'launch-review.html', s.view), async ({ page, wait, now }) => {
       await wait(1200);
       await page.evaluate(() => (window.__marker = 'before-reply'));
       writeFileSync(file, after);
       await page.waitForFunction(() => window.margent !== undefined && window.__marker === undefined, null, { timeout: 10000 });
       await page.waitForFunction(() => [...document.querySelectorAll('agent-island')].every((h) => h.hasAttribute('data-state')));
-      await wait(3000);
-    }, { now: '2026-11-14T09:33:00Z' });
+      const reloadAt = now();
+      await wait(600);
+      const marks = await replyMarks(page);
+      await wait(2400);
+      return { reloadAt, marks };
+    }, { now: AGENT_NOW, from: s.view })).view;
     s.diffs.reply = { before, after };
   },
 
   // A click into a paragraph, a few words typed, a click away: the block saves into the .md.
   async edit(browser, s) {
     const before = readFileSync(join(s.root, 'launch-review.md'), 'utf8');
-    await clip(browser, 'edit', async (page) => {
-      await openDoc(page, s, 'launch-review.html');
-      await page.evaluate(() => document.querySelector('#next-steps')?.scrollIntoView({ block: 'start' }));
-      await wait(300);
-    }, async ({ page, m, wait }) => {
-      await wait(700);
+    await clip(browser, 'edit', (page) => openDoc(page, s, 'launch-review.html', s.view), async ({ page, m, wait }) => {
+      await wait(500);
+      await m.move(700, 420, 500);
+      const top = await page.evaluate(() => document.getElementById('next-steps').getBoundingClientRect().top - 140);
+      await scroll(page, top, 1100);
+      await wait(500);
       const end = await pointAt(page, 'bring people back in week two', 'bring people back in week two'.length);
       await m.click(end.x, end.y, 900);
       await page.waitForSelector('[data-editing]');
@@ -231,7 +255,7 @@ const CLIPS = {
       await wait(700);
       await saveVia(page, () => m.click(1150, 600, 600));
       await wait(2000);
-    });
+    }, { now: AGENT_NOW, from: s.view });
     s.diffs.edit = { before, after: readFileSync(join(s.root, 'launch-review.md'), 'utf8') };
   },
 };
@@ -249,13 +273,47 @@ function run(command, args, cwd) {
 }
 
 // Signs in through the token URL, then opens a doc page and waits for its edit runtime and islands.
-async function openDoc(page, s, path) {
+// With `view`, the page is scrolled to where the clip before ended, before the new clip starts recording.
+async function openDoc(page, s, path, view) {
   await page.goto(s.url);
   await page.goto(`${s.base}/${path}`);
   await page.waitForFunction(() => window.margent !== undefined);
   await page.waitForFunction(() => [...document.querySelectorAll('agent-island')].every((h) => h.hasAttribute('data-state')));
   await page.evaluate(() => document.fonts.ready);
   await wait(800);
+  if (view) {
+    await page.evaluate((y) => window.scrollTo(0, y), view.scrollY);
+    await page.mouse.move(view.mouse.x, view.mouse.y);
+    await wait(400);
+  }
+}
+
+// What the reply scene outlines, in page pixels of the view: the c1 card with the agent's reply, the rollout stage whose
+// date changed (inside the island's frame), and the caption the agent reworded.
+async function replyMarks(page) {
+  const box = async (locator, what) => {
+    const b = await locator.boundingBox();
+    if (!b) throw new Error(`reply: no box for ${what}`);
+    return { x: b.x, y: b.y, width: b.width, height: b.height };
+  };
+  const card = await box(page.locator('.c-card[data-c="c1"]'), 'the c1 card');
+  const frameEl = page.locator('agent-island iframe').nth(1);
+  const frameBox = await box(frameEl, 'the rollout island');
+  const frame = await (await frameEl.elementHandle()).contentFrame();
+  const stage = await frame.evaluate(() => {
+    const host = [...document.querySelectorAll('*')].find((e) => e.shadowRoot);
+    const el = [...host.shadowRoot.querySelectorAll('.stage')].find((e) => e.textContent.includes('Every workspace'));
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  });
+  if (!stage) throw new Error('reply: no Every workspace stage in the rollout island');
+  const caption = await box(page.locator('p', { hasText: 'Each stage opens only when' }), 'the rollout caption');
+  return {
+    card,
+    stage: { ...stage, x: stage.x + frameBox.x, y: stage.y + frameBox.y },
+    caption,
+  };
 }
 
 // Scrolls by `dy` with real wheel events over `ms`.
