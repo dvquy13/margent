@@ -28,6 +28,7 @@ Renders markdown docs into designed pages with data-driven islands, shipped as a
 - `npm run test:full`: every test, about 6 to 7 minutes, three test files at a time (decision 0030). Run it before merging a branch into `main` and before a release. A test joins it by passing `full` from `test/helpers/tier.mjs`; a new browser test gets `full` unless it is a feature's main path (decision 0027).
 - `UPDATE_GOLDEN=1 npm test`: rewrites `test/golden/`. Review the diff before committing.
 - `npm run typecheck`: esbuild does not type-check, so the build passes on type errors.
+- Demo video (`demo/`, decision 0049): `npm run build`, then in `demo/` run `npm i`, `npm run capture` (real `serve` on `demo/sample-docs/` in installed Chrome; needs the network for Google Fonts) and `npm run render` (`out/margent-demo.mp4`). Recapture after any UI change. Captures and renders are gitignored.
 
 ## Build and test gotchas
 

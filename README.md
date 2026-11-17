@@ -2,6 +2,29 @@
 
 margent renders markdown docs into designed pages. Data-driven visuals ("islands", such as charts and boards) keep their data in the markdown, so the source stays the single copy. A Mermaid fence becomes an inline SVG diagram in the page's theme, with no script. Review comments written in the page are saved back into the `.md`. Agents write the markdown; people read and review the rendered page.
 
+<video src="https://github.com/user-attachments/assets/2dadea3d-ffb0-435f-bc2e-1e8ae6a675f0" controls muted playsinline></video>
+
+[Watch the demo](https://github.com/user-attachments/assets/2dadea3d-ffb0-435f-bc2e-1e8ae6a675f0) (80 seconds): serve a docs folder, comment in the page, let the agent answer, and how it works.
+
+## Why markdown
+
+- **Fewer tokens for the agent.** The agent reads and writes only the markdown. The theme, layout and scripts come from margent, so the agent never generates them or reads them back. In this repo's demo, a short review with two charts and a diagram is 1.5 KB of markdown and a 106 KB page.
+- **Edits come back to the source.** Comments and edits you make in the page are written into the `.md`. The agent picks them up from there and answers in the same file, and the page reloads. Nobody parses or patches HTML, and there is no second copy to drift.
+- **The markdown stays useful on its own.** It diffs in git, reads on GitHub, and a chart's data sits in a table in the doc, where the agent can check it cell by cell.
+
+## Quick start
+
+```sh
+npm i -g margent
+margent serve docs/
+```
+
+`docs/` is the folder that holds your markdown; use `.` for the whole project. `serve` opens your browser on a list of every `.md` in that folder and below it. Click a doc to read it as a page. Select words and click Comment to leave a review note, or click into a paragraph and type to edit it (it saves when you click away). Both are written into the `.md`, and the page reloads when the file changes. Stop the server with Ctrl-C.
+
+When you're done commenting, tell your agent ("I commented on the launch review", or `/docs-review docs/` with the skills installed). It runs `margent comments`, makes the changes, and replies under each note. The open page reloads with the replies, and you resolve each thread when you're happy with it.
+
+To look at one doc without a server, run `margent open docs/{file}.md`. It renders the page into margent's cache and opens it in your browser. You never need to find or keep the HTML file: run the command again after the `.md` changes.
+
 ## Install
 
 Each skill calls the CLI and falls back to `npx -y margent@{version}` when `margent` isn't installed.
