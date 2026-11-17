@@ -11,3 +11,7 @@ dist/
 .claude/worktrees/
 # claude plugin eval runs
 evals/results/
+
+# margent demo video: captured frames and rendered output
+demo/public/capture/
+demo/out/

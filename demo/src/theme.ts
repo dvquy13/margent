@@ -1,0 +1,20 @@
+// margent's house look: white page, accent #0062a8, Google Sans Flex text.
+export const theme = {
+  bg: '#ffffff',
+  text: '#0a0a0a',
+  muted: '#4b5563',
+  accent: '#0062a8',
+  border: '#e5e7eb',
+  chrome: '#eef0f3',
+  termBg: '#1e1e2e',
+  termBar: '#2a2a3e',
+  termText: '#e2e8f0',
+  termAccent: '#7dd3fc',
+  removedBg: '#fde2e2',
+  removedText: '#7f1d1d',
+  addedBg: '#dcfce7',
+  addedText: '#14532d',
+  addedHighlight: '#86efac',
+  sans: "'Google Sans Flex', system-ui, -apple-system, sans-serif",
+  mono: "'Google Sans Code', Menlo, Consolas, monospace",
+};
