@@ -7,7 +7,7 @@ export const CLOSING_SECONDS = 5;
 
 const lines = [
   {text: 'npm i -g margent', color: theme.text, start: 40},
-  {text: 'margent serve docs', color: theme.text, start: 80},
+  {text: 'margent serve docs/', color: theme.text, start: 80},
   {text: 'github.com/dvquy13/margent', color: theme.accent, start: 120},
 ];
 

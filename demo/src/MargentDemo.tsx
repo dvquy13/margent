@@ -28,7 +28,7 @@ export const MargentDemo: React.FC = () => (
       </TransitionSeries.Sequence>
       {cut}
       <TransitionSeries.Sequence name="Index" durationInFrames={SCENE_FRAMES.index}>
-        <BrowserScene clip={clips.index} path="/" caption="Your browser opens on the docs. Click one to read it." />
+        <BrowserScene clip={clips.index} path="/" caption="Every .md in docs/, as a page. Click one to read it." />
       </TransitionSeries.Sequence>
       {cut}
       <TransitionSeries.Sequence name="Page" durationInFrames={SCENE_FRAMES.page}>

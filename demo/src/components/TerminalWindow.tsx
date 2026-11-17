@@ -10,6 +10,8 @@ export interface TerminalLine {
   /** Types the text character by character over `typeFrames` frames. */
   typewriter?: boolean;
   typeFrames?: number;
+  /** Wraps `text` in an accent tint once the typed text reaches it; the tint fades in over 8 frames from startFrame. */
+  highlight?: {text: string; startFrame: number};
 }
 
 // qrec's terminal window, dark variant, with the text colour set for it.
@@ -68,9 +70,33 @@ export const TerminalWindow: React.FC<{
             );
             text = line.text.slice(0, chars);
           }
+          let content: React.ReactNode = text;
+          const hl = line.highlight;
+          if (hl) {
+            const at = line.text.indexOf(hl.text);
+            if (at < 0) throw new Error(`TerminalWindow: highlight "${hl.text}" is not in "${line.text}"`);
+            if (text.length >= at + hl.text.length) {
+              const tint = interpolate(frame, [hl.startFrame, hl.startFrame + 8], [0, 1], CLAMP);
+              content = (
+                <>
+                  {text.slice(0, at)}
+                  <span
+                    style={{
+                      color: '#7cc0f0',
+                      background: `rgba(0,98,168,${0.45 * tint})`,
+                      borderRadius: 4,
+                    }}
+                  >
+                    {text.slice(at, at + hl.text.length)}
+                  </span>
+                  {text.slice(at + hl.text.length)}
+                </>
+              );
+            }
+          }
           return (
             <div key={i} style={{color: line.color ?? theme.termText, fontSize, lineHeight: 1.7, whiteSpace: 'pre'}}>
-              {text}
+              {content}
             </div>
           );
         })}
