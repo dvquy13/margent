@@ -5,21 +5,26 @@ import {theme} from '../theme';
 
 export interface CaptionBox {
   left: number;
-  top: number;
   width: number;
+  /** Anchor the box's top edge, or its bottom edge (video pixels). */
+  top?: number;
+  bottom?: number;
 }
 
 // Lower-third pill, bottom centre, or a wrapping card at `box` when the bottom holds what the scene is about.
-// Fades in over 8 frames from `start`.
-export const Caption: React.FC<{text: string; start?: number; box?: CaptionBox}> = ({text, start = 0, box}) => {
+// Fades in over 8 frames from `start`, and with `end` (the scene's length) out over its last 8 frames, so a hard cut
+// to the next scene never drops it in one frame.
+export const Caption: React.FC<{text: string; start?: number; end?: number; box?: CaptionBox}> = ({text, start = 0, end, box}) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [start, start + 8], [0, 1], CLAMP);
+  const fadeIn = interpolate(frame, [start, start + 8], [0, 1], CLAMP);
+  const opacity = end === undefined ? fadeIn : Math.min(fadeIn, interpolate(frame, [end - 8, end], [1, 0], CLAMP));
   return (
     <div
       style={{
         position: 'absolute',
         left: box?.left ?? 0,
-        top: box?.top ?? HEIGHT - 84,
+        top: box ? box.top : HEIGHT - 84,
+        bottom: box?.bottom,
         width: box?.width ?? WIDTH,
         display: 'flex',
         justifyContent: 'center',

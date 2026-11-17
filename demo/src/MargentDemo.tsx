@@ -10,11 +10,13 @@ import {BrowserScene} from './scenes/Browser';
 import {Closing} from './scenes/Closing';
 import {Agent} from './scenes/Agent';
 import {Reply} from './scenes/Reply';
-import {RATES, SCENE_FRAMES} from './timeline';
+import {HARD_JOINS, RATES, SCENE_FRAMES} from './timeline';
 import {TRANSITION_FRAMES} from './timing';
 import {theme} from './theme';
 
 const cut = <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: TRANSITION_FRAMES})} />;
+// How a scene is entered: a fade, or a hard cut where the clip before ends on the frame this one starts on.
+const enter = (scene: keyof typeof SCENE_FRAMES) => (HARD_JOINS.has(scene) ? null : cut);
 
 export const MargentDemo: React.FC = () => (
   <AbsoluteFill style={{background: theme.bg}}>
@@ -22,15 +24,15 @@ export const MargentDemo: React.FC = () => (
       <TransitionSeries.Sequence name="Title" durationInFrames={SCENE_FRAMES.title}>
         <Title />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('terminal')}
       <TransitionSeries.Sequence name="Terminal" durationInFrames={SCENE_FRAMES.terminal}>
         <Terminal />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('index')}
       <TransitionSeries.Sequence name="Index" durationInFrames={SCENE_FRAMES.index}>
         <BrowserScene clip={clips.index} path="/" caption="Every .md in docs/, as a page. Click one to read it." />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('page')}
       <TransitionSeries.Sequence name="Page" durationInFrames={SCENE_FRAMES.page}>
         <BrowserScene
           clip={clips.page}
@@ -39,7 +41,7 @@ export const MargentDemo: React.FC = () => (
           caption="Charts and diagrams render from the markdown."
         />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('comment')}
       <TransitionSeries.Sequence name="Comment" durationInFrames={SCENE_FRAMES.comment}>
         <BrowserScene
           clip={clips.comment}
@@ -50,15 +52,15 @@ export const MargentDemo: React.FC = () => (
           diff={diffs.comment}
         />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('agent')}
       <TransitionSeries.Sequence name="Agent" durationInFrames={SCENE_FRAMES.agent}>
         <Agent />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('reply')}
       <TransitionSeries.Sequence name="Reply" durationInFrames={SCENE_FRAMES.reply}>
         <Reply />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('edit')}
       <TransitionSeries.Sequence name="Edit" durationInFrames={SCENE_FRAMES.edit}>
         <BrowserScene
           clip={clips.edit}
@@ -69,11 +71,11 @@ export const MargentDemo: React.FC = () => (
           diff={diffs.edit}
         />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('how')}
       <TransitionSeries.Sequence name="How it works" durationInFrames={SCENE_FRAMES.how}>
         <HowItWorks />
       </TransitionSeries.Sequence>
-      {cut}
+      {enter('closing')}
       <TransitionSeries.Sequence name="Closing" durationInFrames={SCENE_FRAMES.closing}>
         <Closing />
       </TransitionSeries.Sequence>

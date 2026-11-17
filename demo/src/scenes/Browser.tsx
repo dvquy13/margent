@@ -5,6 +5,7 @@ import {Caption, type CaptionBox} from '../components/Caption';
 import {DiffCard} from '../components/DiffCard';
 import {ScreencastClip} from '../components/ScreencastClip';
 import type {ClipJson} from '../clips';
+import {browserSceneFrames} from '../timing';
 import {theme} from '../theme';
 
 // A captured clip in the browser bar, with a caption. With `diff`, a card shows the saved line once the clip holds.
@@ -14,21 +15,24 @@ export const BrowserScene: React.FC<{
   path: string;
   caption: string;
   captionBox?: CaptionBox;
+  /** Frame (in this scene) when the caption fades in. */
+  captionStart?: number;
   playbackRate?: number;
   holdSeconds?: number;
   showCursor?: boolean;
   diff?: {before: string; after: string};
   children?: React.ReactNode;
-}> = ({clip, path, caption, captionBox, playbackRate = 1, holdSeconds = 0, showCursor = true, diff, children}) => {
+}> = ({clip, path, caption, captionBox, captionStart = 0, playbackRate = 1, holdSeconds = 0, showCursor = true, diff, children}) => {
   const {fps} = useVideoConfig();
   const holdStart = Math.round((clip.duration / playbackRate) * fps);
+  const endFrame = browserSceneFrames(clip, playbackRate, holdSeconds);
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <ScreencastClip clip={clip} playbackRate={playbackRate} holdSeconds={holdSeconds} showCursor={showCursor} />
       <BrowserBar path={path} />
       {children}
-      <Caption text={caption} box={captionBox} />
-      {diff && <DiffCard before={diff.before} after={diff.after} start={holdStart} />}
+      <Caption text={caption} box={captionBox} start={captionStart} end={endFrame} />
+      {diff && <DiffCard before={diff.before} after={diff.after} start={holdStart} endFrame={endFrame} />}
     </AbsoluteFill>
   );
 };

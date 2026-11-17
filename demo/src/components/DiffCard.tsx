@@ -6,7 +6,13 @@ import {theme} from '../theme';
 
 // Slides up over the lower part of the browser and shows the saved line: the removed line and the added one.
 // The part of the added line that is new is highlighted.
-export const DiffCard: React.FC<{before: string; after: string; start: number}> = ({before, after, start}) => {
+// `endFrame` is the scene's last frame; the card is gone before the cut starts (15 frames before it).
+export const DiffCard: React.FC<{before: string; after: string; start: number; endFrame: number}> = ({
+  before,
+  after,
+  start,
+  endFrame,
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const p = interpolate(frame, [start, start + Math.round(0.5 * fps)], [0, 1], {
@@ -27,7 +33,7 @@ export const DiffCard: React.FC<{before: string; after: string; start: number}> 
         borderRadius: 12,
         boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
         padding: '16px 22px',
-        opacity: p,
+        opacity: p * interpolate(frame, [endFrame - 18, endFrame - 15], [1, 0], CLAMP),
         translate: `0 ${(1 - p) * 40}px`,
         fontFamily: theme.mono,
       }}

@@ -25,6 +25,10 @@ export const SCENE_FRAMES = {
 };
 
 const sceneTotal = Object.values(SCENE_FRAMES).reduce((a, b) => a + b, 0);
-// Each cut is a fade that overlaps both scenes, so every scene after the first shortens the timeline by one fade.
-const cuts = Object.keys(SCENE_FRAMES).length - 1;
-export const DEMO_FRAMES = sceneTotal - cuts * TRANSITION_FRAMES;
+// Scenes entered by a hard cut, not a fade: the browser clips before them end on the very frame they start on (the
+// capture continues one session), so a cut is invisible and the cursor never doubles.
+export const HARD_JOINS: ReadonlySet<keyof typeof SCENE_FRAMES> = new Set(['page', 'comment', 'edit']);
+
+// Each fade overlaps both scenes, so every scene entered by a fade shortens the timeline by one fade.
+const fades = Object.keys(SCENE_FRAMES).length - 1 - HARD_JOINS.size;
+export const DEMO_FRAMES = sceneTotal - fades * TRANSITION_FRAMES;

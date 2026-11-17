@@ -139,7 +139,7 @@ function pointAt(page, text, index) {
 const CLIPS = {
   // The folder tree `serve` opens on, then a click into the review.
   async index(browser, s) {
-    return clip(browser, 'index', async (page) => {
+    s.view = (await clip(browser, 'index', async (page) => {
       await page.goto(s.url);
       await page.waitForLoadState('networkidle');
     }, async ({ page, m, wait }) => {
@@ -152,12 +152,12 @@ const CLIPS = {
       await page.waitForFunction(() => window.margent !== undefined);
       await page.waitForFunction(() => [...document.querySelectorAll('agent-island')].every((h) => h.hasAttribute('data-state')));
       await wait(1500);
-    });
+    })).view;
   },
 
   // The review page: scroll past the funnel island and the rollout diagram.
   async page(browser, s) {
-    s.view = (await clip(browser, 'page', (page) => openDoc(page, s, 'launch-review.html'), async ({ page, m, wait }) => {
+    s.view = (await clip(browser, 'page', (page) => openDoc(page, s, 'launch-review.html', s.view), async ({ page, m, wait }) => {
       await wait(800);
       await m.move(700, 420, 500);
       // The funnel island, then the Mermaid diagram, then the rollout island, each brought to the top of the view.
@@ -166,7 +166,7 @@ const CLIPS = {
         await scroll(page, top, 1300);
         await wait(1500);
       }
-    })).view;
+    }, { from: s.view })).view;
   },
 
   // A phrase dragged with the mouse, Comment, a note and Enter: the note lands in the .md and the page reloads.

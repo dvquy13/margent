@@ -25,7 +25,7 @@ export const Agent: React.FC = () => (
             startFrame: 120 + i * 20,
           })),
           {
-            text: '● Defined week 2 in the funnel caption, replied under c1',
+            text: `● ${commentsOutput.summary}`,
             color: theme.termAccent,
             startFrame: 195,
           },

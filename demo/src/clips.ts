@@ -42,11 +42,10 @@ export const clips = {
 // The output of `margent comments` on the doc, shown in the agent scene.
 export const commentsOutput = commentsJson;
 
-// The reload that shows the agent's reply: the first frame after the page has sat for 1.2s.
-export const replyReload = clips.reply.frames.find((f) => f.t > 1.2);
-if (!replyReload) {
-  throw new Error('capture/reply: no frame after the 1.2s pause, the reload is missing');
-}
+// When the agent's edit lands in the reply clip (clip seconds), and the page boxes the reply outlines sit in
+// (page pixels: add the browser bar for video y).
+export const replyReloadAt: number = replyJson.reloadAt;
+export const replyMarks = replyJson.marks;
 
 const serveMatch = /^margent serving (.+) at (https?:\/\/\S+)$/.exec(serveJson.line);
 if (!serveMatch) {
