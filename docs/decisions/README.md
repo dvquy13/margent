@@ -45,7 +45,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0039](0039-quoted-phrase-must-match.md) | A quoted phrase must be found in its block | accepted, amended by [0041](0041-quote-names-its-occurrence.md) | 2026-10-26 |
 | [0040](0040-init-writes-nearest-agents-file.md) | `init` writes a margent block into the nearest AGENTS.md or CLAUDE.md | accepted, amended by [0043](0043-init-asks-which-file.md) | 2026-10-27 |
 | [0041](0041-quote-names-its-occurrence.md) | A quoted phrase names its occurrence when it repeats (amends 0039) | accepted | 2026-10-27 |
-| [0042](0042-update-command-updates-every-install.md) | `margent update` finds every install and updates it | accepted | 2026-10-27 |
+| [0042](0042-update-command-updates-every-install.md) | `margent update` finds every install and updates it | accepted, amended by [0050](0050-update-proves-each-install-moved.md) | 2026-11-23 |
 | [0043](0043-init-asks-which-file.md) | The skill asks which file gets the margent block, CLAUDE.local.md included (amends 0040) | accepted | 2026-11-02 |
 | [0044](0044-notes-carry-utc-time.md) | A note carries the UTC minute it was written | accepted | 2026-11-02 |
 | [0045](0045-mermaid-fences-render-through-pele.md) | Mermaid fences render through pele at render time | accepted | 2026-11-03 |
@@ -53,6 +53,7 @@ One file per decision. Format and rules: `docs/README.md`.
 | [0047](0047-user-theme-and-design-guide-in-margent-home.md) | A user theme and design guide in ~/.margent | accepted | 2026-11-09 |
 | [0048](0048-no-block-comment-control.md) | No per-block Comment control | accepted | 2026-11-16 |
 | [0049](0049-onboarding-demo-from-real-captures.md) | The onboarding demo is built from real captures | accepted | 2026-11-17 |
+| [0050](0050-update-proves-each-install-moved.md) | `update` reads latest from the version list and proves each install moved (amends 0042) | accepted | 2026-11-23 |
 
 ## Deferred
 

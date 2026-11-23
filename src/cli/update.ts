@@ -1,6 +1,7 @@
 // `margent update` and `margent update --check` (decision 0042): finds every install of margent (the CLI, the Claude Code
 // plugin, and the skills from `npx skills` in the home folder and in the current project), reads the latest version from
-// npm, and updates each install that is behind. --check prints the same report and runs nothing.
+// npm, and updates each install that is behind, then reads each updated install again to prove it moved. --check prints
+// the same report and runs nothing.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -24,7 +25,7 @@ interface Command {
 type Found =
   | { kind: 'ok'; current: string }
   | { kind: 'skipped'; reason: string; folder: string }
-  | { kind: 'behind'; current: string; commands: Command[] };
+  | { kind: 'behind'; current: string; commands: Command[]; note?: string };
 
 // Returns what the channel found at the latest version. Throws an Error when the install can't be read.
 type Detect = (latest: string) => Found | null;
@@ -111,16 +112,26 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-// An install at `current` is behind when `latest` is newer; an install newer than latest is current.
-function judge(current: string, latest: string, commands: Command[]): Found {
-  return compareVersions(current, latest) < 0 ? { kind: 'behind', current, commands } : { kind: 'ok', current };
+// An install at `current` is behind when `latest` is newer; an install newer than latest is current. `note` is something
+// the user should know about the update, shown in the report and again if the update leaves the install behind.
+function judge(current: string, latest: string, commands: Command[], note?: string): Found {
+  if (compareVersions(current, latest) >= 0) return { kind: 'ok', current };
+  return note === undefined ? { kind: 'behind', current, commands } : { kind: 'behind', current, commands, note };
 }
 
+// The highest x.y.z version the registry lists, not its `latest` tag: a company mirror can list a new version while its
+// tag still names an older one, and every install would then look current. Prereleases are left out.
 function latestVersion(): string {
-  const r = capture('npm', ['view', 'margent', 'version']);
+  const r = capture('npm', ['view', 'margent', 'versions', '--json']);
   if (r.missing) throw new Error('npm is not on PATH');
   if (r.status !== 0) throw new Error(r.stderr.trim() || `npm view exited ${r.status}`);
-  return semverOf(r.stdout.trim(), 'npm view margent version');
+  const parsed = jsonFrom(r, 'npm view margent versions --json', true);
+  // npm prints a package with one version as a string, not a list.
+  const all = typeof parsed === 'string' ? [parsed] : parsed;
+  if (!Array.isArray(all)) throw new Error('npm view margent versions --json printed no list');
+  const releases = all.filter((v): v is string => typeof v === 'string' && /^\d+\.\d+\.\d+$/.test(v));
+  if (releases.length === 0) throw new Error(`npm view margent versions lists no x.y.z version: ${JSON.stringify(all)}`);
+  return releases.reduce((a, b) => (compareVersions(a, b) >= 0 ? a : b));
 }
 
 // The CLI: the global npm package. A link to a folder (npm link) is a development install and is not touched.
@@ -155,19 +166,32 @@ function pluginChannel(latest: string): Found | null {
     jsonFrom(capture('claude', ['plugin', 'marketplace', 'list', '--json']), 'claude plugin marketplace list --json', true),
     'claude plugin marketplace list --json'
   );
-  const folderMarket = markets.find((market) => market.name === MARKETPLACE && market.source === 'directory');
-  if (folderMarket !== undefined) {
-    if (typeof folderMarket.path !== 'string') throw new Error('claude plugin marketplace list: margent has no path');
-    return { kind: 'skipped', reason: 'marketplace is a local folder', folder: folderMarket.path };
+  const market = markets.find((m) => m.name === MARKETPLACE);
+  if (market?.source === 'directory') {
+    if (typeof market.path !== 'string') throw new Error('claude plugin marketplace list: margent has no path');
+    return { kind: 'skipped', reason: 'marketplace is a local folder', folder: market.path };
   }
   if (typeof entry.readFromFolder === 'string') {
     return { kind: 'skipped', reason: 'read from a folder', folder: entry.readFromFolder };
   }
   const current = semverOf(entry.version, 'claude plugin list margent@margent');
-  return judge(current, latest, [
-    { file: 'claude', args: ['plugin', 'marketplace', 'update', MARKETPLACE] },
-    { file: 'claude', args: ['plugin', 'update', PLUGIN_ID] },
-  ]);
+  // A marketplace added as dvquy13/margent@{ref} fetches that ref on every update: a tag never moves, so the plugin can't
+  // pass it. A branch does move, so a ref is a note, and the check after the update decides.
+  const note =
+    typeof market?.ref === 'string'
+      ? `marketplace ${MARKETPLACE} is pinned to ${market.ref}; to follow releases, re-add it: ` +
+        `claude plugin marketplace remove ${MARKETPLACE} && claude plugin marketplace add ${SKILL_SOURCE} && ` +
+        `claude plugin install ${PLUGIN_ID}`
+      : undefined;
+  return judge(
+    current,
+    latest,
+    [
+      { file: 'claude', args: ['plugin', 'marketplace', 'update', MARKETPLACE] },
+      { file: 'claude', args: ['plugin', 'update', PLUGIN_ID] },
+    ],
+    note
+  );
 }
 
 // The skills lock file of one scope. The skills CLI reads the global one from $XDG_STATE_HOME/skills when that is set, and
@@ -245,6 +269,23 @@ function run(command: Command): string | null {
   return `exited ${r.status ?? r.signal}`;
 }
 
+// Reads an updated channel again. Prints `updated {channel}: {version}` and returns null when it reached latest; returns
+// the problem otherwise.
+function stillBehind(channel: Channel, latest: string): string | null {
+  let after: Found | null;
+  try {
+    after = channel.detect(latest);
+  } catch (err) {
+    return `cannot read it after the update: ${errorMessage(err)}`;
+  }
+  if (after === null) return 'not found after the update';
+  if (after.kind === 'behind') {
+    return `still ${after.current} after the update${after.note === undefined ? '' : ` (${after.note})`}`;
+  }
+  if (after.kind === 'ok') say(`updated ${channel.name}: ${after.current}`);
+  return null;
+}
+
 // margent update [--check] (decision 0042). Returns the exit code: 1 when any channel failed, else 0.
 export function commandUpdate(check: boolean): number {
   let latest: string;
@@ -273,12 +314,15 @@ export function commandUpdate(check: boolean): number {
     if (found === null) continue;
     installs++;
     if (found.kind === 'ok') {
-      say(`ok ${channel.name}: ${found.current}`);
+      // Newer than latest: the registry hasn't caught up yet, e.g. a mirror that lists versions late.
+      const ahead = compareVersions(found.current, latest) > 0 ? ` (newer than ${latest} on the npm registry)` : '';
+      say(`ok ${channel.name}: ${found.current}${ahead}`);
     } else if (found.kind === 'skipped') {
       say(`skipped ${channel.name}: ${found.reason} (${found.folder})`);
     } else {
       say(`${channel.name}: ${found.current} → ${latest}`);
       for (const command of found.commands) say(`  $ ${show(command)}`);
+      if (found.note !== undefined) say(`  note: ${found.note}`);
       behind.push({ channel, commands: found.commands });
     }
   }
@@ -301,7 +345,16 @@ export function commandUpdate(check: boolean): number {
       // The next command of this channel may depend on this one, so the channel stops here. The next channel still runs.
       break;
     }
-    if (succeeded && channel.reloadsSkills) reload = true;
+    if (!succeeded) continue;
+    // Every command exited 0, which doesn't prove the install moved (a marketplace pinned to an old tag updates to that
+    // same tag), so the channel is read again.
+    const problem = stillBehind(channel, latest);
+    if (problem !== null) {
+      say(`fail ${channel.name}: ${problem}`);
+      code = 1;
+      continue;
+    }
+    if (channel.reloadsSkills) reload = true;
   }
   if (reload) say(NEW_SESSION);
   return code;

@@ -30,16 +30,25 @@ function scratch(label) {
 }
 
 // A fake tool: logs its argv and cwd as one JSON line, then answers from the spec by its name and argv joined with spaces. The
-// answer's stdout, stderr and status are the tool's output. It sets exitCode rather than calling process.exit, so the
-// output of a pipe is flushed.
+// answer's stdout, stderr and status are the tool's output; its `writes` ({path: text}, `~/` for HOME, else from the cwd)
+// are files it writes, as an update would. A list of answers answers the same call in turn, the last one repeating, so an
+// install can read as updated after its update command. It sets exitCode rather than calling process.exit, so the output
+// of a pipe is flushed.
 const FAKE_TOOL = [
   `#!${process.execPath}`,
   "const fs = require('node:fs');",
   "const path = require('node:path');",
   'const argv = process.argv.slice(2);',
-  "fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: path.basename(process.argv[1]), argv, cwd: process.cwd() }) + '\\n');",
+  "const key = [path.basename(process.argv[1]), ...argv].join(' ');",
+  "const line = JSON.stringify({ tool: path.basename(process.argv[1]), argv, cwd: process.cwd() });",
+  "fs.appendFileSync(process.env.FAKE_LOG, line + '\\n');",
+  "const nth = fs.readFileSync(process.env.FAKE_LOG, 'utf8').split('\\n').filter((l) => l === line).length - 1;",
   "const spec = JSON.parse(fs.readFileSync(process.env.FAKE_SPEC, 'utf8'));",
-  "const answer = spec[[path.basename(process.argv[1]), ...argv].join(' ')] ?? { status: 0 };",
+  'const answers = [spec[key] ?? { status: 0 }].flat();',
+  'const answer = answers[Math.min(nth, answers.length - 1)];',
+  "for (const [file, text] of Object.entries(answer.writes ?? {})) {",
+  "  fs.writeFileSync(file.startsWith('~/') ? path.join(process.env.HOME, file.slice(2)) : path.resolve(file), text);",
+  '}',
   'if (answer.stdout) process.stdout.write(answer.stdout);',
   'if (answer.stderr) process.stderr.write(answer.stderr);',
   'process.exitCode = answer.status ?? 0;',
@@ -51,13 +60,30 @@ function fixture(name, version = BEHIND) {
   return readFileSync(join(FIXTURES, name), 'utf8').replaceAll(BEHIND, version);
 }
 
-// The answers of every detection and update call, for the installs at `version`. The latest is LATEST.
-function installs(version) {
+const GLOBAL_SKILLS_UPDATE = 'npx -y skills update docs-open docs-review docs-serve margent -g -y';
+const PROJECT_SKILLS_UPDATE = 'npx -y skills update docs-open docs-review docs-serve margent -p -y';
+
+// The registry's version list, as `npm view margent versions --json` prints it.
+function versions(...list) {
+  return { stdout: `${JSON.stringify(list)}\n` };
+}
+
+// The answers of every detection and update call, for the installs at `version`, which read as `after` once updated. The
+// latest is LATEST.
+function installs(version, after = LATEST) {
   return {
-    'npm view margent version': { stdout: `${LATEST}\n` },
-    'npm ls -g margent --json --depth=0': { stdout: fixture('npm-ls-registry.json', version) },
-    'claude plugin list --json': { stdout: fixture('plugin-list.json', version) },
+    'npm view margent versions --json': versions('0.6.0', BEHIND, LATEST),
+    'npm ls -g margent --json --depth=0': [
+      { stdout: fixture('npm-ls-registry.json', version) },
+      { stdout: fixture('npm-ls-registry.json', after) },
+    ],
+    'claude plugin list --json': [
+      { stdout: fixture('plugin-list.json', version) },
+      { stdout: fixture('plugin-list.json', after) },
+    ],
     'claude plugin marketplace list --json': { stdout: fixture('marketplaces-github.json') },
+    [GLOBAL_SKILLS_UPDATE]: { writes: { '~/.agents/skills/margent/SKILL.md': fixture('SKILL.md', after) } },
+    [PROJECT_SKILLS_UPDATE]: { writes: { '.agents/skills/margent/SKILL.md': fixture('SKILL.md', after) } },
   };
 }
 
@@ -114,7 +140,7 @@ function update(w, args = []) {
 }
 
 const DETECT = [
-  'npm view margent version',
+  'npm view margent versions --json',
   'npm ls -g margent --json --depth=0',
   'claude plugin list --json',
   'claude plugin marketplace list --json',
@@ -136,16 +162,23 @@ test('all three channels behind: the report, the commands in order, then the new
       `global skills: ${BEHIND} → ${LATEST}`,
       '  $ npx -y skills update docs-open docs-review docs-serve margent -g -y',
       'added margent',
+      `updated cli: ${LATEST}`,
+      `updated plugin: ${LATEST}`,
+      `updated global skills: ${LATEST}`,
       NEW_SESSION,
       '',
     ].join('\n')
   );
+  // Each channel is read again after its commands; the skills from their SKILL.md, with no tool call.
   assert.deepEqual(r.calls, [
     ...DETECT,
     `npm i -g margent@${LATEST}`,
+    'npm ls -g margent --json --depth=0',
     'claude plugin marketplace update margent',
     'claude plugin update margent@margent',
-    'npx -y skills update docs-open docs-review docs-serve margent -g -y',
+    'claude plugin list --json',
+    'claude plugin marketplace list --json',
+    GLOBAL_SKILLS_UPDATE,
   ]);
 });
 
@@ -192,12 +225,13 @@ test('a linked CLI and a folder-read plugin are skipped with their folders, and 
       `skipped plugin: marketplace is a local folder (/Users/dvq/frostmourne/margent)`,
       `global skills: ${BEHIND} → ${LATEST}`,
       '  $ npx -y skills update docs-open docs-review docs-serve margent -g -y',
+      `updated global skills: ${LATEST}`,
       NEW_SESSION,
       '',
     ].join('\n')
   );
   assert.deepEqual(r.calls, [
-    'npm view margent version',
+    'npm view margent versions --json',
     'npm ls -g margent --json --depth=0',
     'npm root -g',
     'claude plugin list --json',
@@ -213,10 +247,11 @@ test('claude not on PATH: no plugin line, and the other channels update', full, 
   assert.doesNotMatch(r.stdout, /plugin/);
   assert.match(r.stdout, /^latest: 0\.8\.0\ncli: 0\.7\.0 → 0\.8\.0\n {2}\$ npm i -g margent@0\.8\.0\nglobal skills: 0\.7\.0 → 0\.8\.0\n/);
   assert.deepEqual(r.calls, [
-    'npm view margent version',
+    'npm view margent versions --json',
     'npm ls -g margent --json --depth=0',
     'npm i -g margent@0.8.0',
-    'npx -y skills update docs-open docs-review docs-serve margent -g -y',
+    'npm ls -g margent --json --depth=0',
+    GLOBAL_SKILLS_UPDATE,
   ]);
 });
 
@@ -235,7 +270,9 @@ test('a failing update command prints fail, exits 1, and the next channel still 
     'npm i -g margent@0.8.0',
     'claude plugin marketplace update margent',
     'claude plugin update margent@margent',
-    'npx -y skills update docs-open docs-review docs-serve margent -g -y',
+    'claude plugin list --json',
+    'claude plugin marketplace list --json',
+    GLOBAL_SKILLS_UPDATE,
   ]);
   // The plugin and the skills updated, so the new-session line still says what to do.
   assert.match(r.stdout, /Start a new agent session/);
@@ -253,18 +290,19 @@ test('a failing claude step stops that channel and leaves the others', full, () 
   assert.deepEqual(r.calls, [
     ...DETECT,
     `npm i -g margent@${LATEST}`,
+    'npm ls -g margent --json --depth=0',
     'claude plugin marketplace update margent',
-    'npx -y skills update docs-open docs-review docs-serve margent -g -y',
+    GLOBAL_SKILLS_UPDATE,
   ]);
   assert.match(r.stdout, /Start a new agent session/);
 });
 
 test('npm view failing: fail latest with its stderr, exit 1, and nothing else runs', full, () => {
-  const w = world({ answers: { 'npm view margent version': { status: 1, stderr: 'E404 Not Found - margent\n' } } });
+  const w = world({ answers: { 'npm view margent versions --json': { status: 1, stderr: 'E404 Not Found - margent\n' } } });
   const r = update(w);
   assert.equal(r.status, 1);
   assert.equal(r.stdout, 'fail latest: E404 Not Found - margent\n');
-  assert.deepEqual(r.calls, ['npm view margent version']);
+  assert.deepEqual(r.calls, ['npm view margent versions --json']);
 });
 
 test('unreadable claude plugin list output: fail plugin, exit 1, the other channels still report', full, () => {
@@ -287,7 +325,7 @@ test('a lock entry whose skill folder is missing: fail global skills, exit 1', f
 
 test('nothing installed: the no-install line, exit 0', full, () => {
   const answers = {
-    'npm view margent version': { stdout: `${LATEST}\n` },
+    'npm view margent versions --json': versions(LATEST),
     'npm ls -g margent --json --depth=0': { stdout: '{"name":"lib"}\n', status: 1 },
     'claude plugin list --json': { stdout: '[]\n' },
     'claude plugin marketplace list --json': { stdout: '[]\n' },
@@ -302,7 +340,7 @@ test('nothing installed: the no-install line, exit 0', full, () => {
 
 test('project skills are updated with -p in the project folder', full, () => {
   const w = world({
-    answers: { ...installs(LATEST), 'npx -y skills update docs-open docs-review docs-serve margent -p -y': {} },
+    answers: installs(LATEST),
     skillVersion: LATEST,
     project: { skillVersion: BEHIND },
   });
@@ -311,6 +349,7 @@ test('project skills are updated with -p in the project folder', full, () => {
   assert.match(r.stdout, /^project skills: 0\.7\.0 → 0\.8\.0\n {2}\$ npx -y skills update docs-open docs-review docs-serve margent -p -y\n/m);
   const npx = w.calls().find((c) => c.tool === 'npx');
   assert.equal(npx.cwd, realpathSync(w.cwd));
+  assert.match(r.stdout, /^updated project skills: 0\.8\.0$/m);
   assert.match(r.stdout, /Start a new agent session/);
 });
 
@@ -323,4 +362,67 @@ test('an extra argument to update is a usage error, exit 2, and no tool runs', f
     assert.match(r.stderr, /margent update \[--check\]/);
     assert.deepEqual(r.calls, []);
   }
+});
+
+test('a command that exits 0 but leaves its install behind fails that channel, with no new-session line', full, () => {
+  // The marketplace was added as dvquy13/margent@v0.7.0, so its update fetches that tag again and the plugin stays.
+  const pinned = JSON.parse(fixture('marketplaces-github.json'));
+  pinned.find((m) => m.name === 'margent').ref = `v${BEHIND}`;
+  const answers = {
+    ...installs(LATEST),
+    'claude plugin list --json': { stdout: fixture('plugin-list.json', BEHIND) },
+    'claude plugin marketplace list --json': { stdout: JSON.stringify(pinned) },
+  };
+  const w = world({ answers, tools: ['npm', 'claude'], lock: false, skillVersion: null });
+  const note =
+    `marketplace margent is pinned to v${BEHIND}; to follow releases, re-add it: claude plugin marketplace remove margent` +
+    ' && claude plugin marketplace add dvquy13/margent && claude plugin install margent@margent';
+  const r = update(w);
+  assert.equal(r.status, 1);
+  assert.equal(
+    r.stdout,
+    [
+      `latest: ${LATEST}`,
+      `ok cli: ${LATEST}`,
+      `plugin: ${BEHIND} → ${LATEST}`,
+      '  $ claude plugin marketplace update margent',
+      '  $ claude plugin update margent@margent',
+      `  note: ${note}`,
+      `fail plugin: still ${BEHIND} after the update (${note})`,
+      '',
+    ].join('\n')
+  );
+  assert.deepEqual(r.calls, [
+    ...DETECT,
+    'claude plugin marketplace update margent',
+    'claude plugin update margent@margent',
+    'claude plugin list --json',
+    'claude plugin marketplace list --json',
+  ]);
+});
+
+test('latest is the highest x.y.z the registry lists, whatever its order, and prereleases are left out', full, () => {
+  // A company mirror can list 0.10.0 while its latest tag still names 0.9.0; the list decides.
+  for (const [answer, latest] of [
+    [versions('0.9.0', '0.10.0', '0.11.0-rc.1', '0.2.0'), '0.10.0'],
+    [{ stdout: '"0.8.0"\n' }, '0.8.0'],
+  ]) {
+    const w = world({ answers: { ...installs(BEHIND), 'npm view margent versions --json': answer } });
+    const r = update(w, ['--check']);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, new RegExp(`^latest: ${latest}\ncli: ${BEHIND} → ${latest}\n  \\$ npm i -g margent@${latest}\n`));
+  }
+  const w = world({ answers: { ...installs(BEHIND), 'npm view margent versions --json': versions('0.9.0-rc.1') } });
+  const r = update(w, ['--check']);
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, 'fail latest: npm view margent versions lists no x.y.z version: ["0.9.0-rc.1"]\n');
+});
+
+test('an install newer than the registry lists is ok and says so', full, () => {
+  const answers = { ...installs(LATEST), 'claude plugin list --json': { stdout: fixture('plugin-list.json', '0.9.0') } };
+  const w = world({ answers, skillVersion: LATEST });
+  const r = update(w);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^ok plugin: 0\.9\.0 \(newer than 0\.8\.0 on the npm registry\)$/m);
+  assert.deepEqual(r.calls, DETECT);
 });
