@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.3](https://github.com/dvquy13/margent/compare/v0.12.2...v0.12.3) (2026-11-23)
+
+
+### Bug Fixes
+
+* update reads latest from the version list and checks each install moved ([08d5c76](https://github.com/dvquy13/margent/commit/08d5c7618b6477db3c72e1350b4e3f29bbfd1712))
+
+
+### Documentation
+
+* README video points at an attachment that is public ([c70ef2f](https://github.com/dvquy13/margent/commit/c70ef2f2c915d416b4b2ab5038706c6de1a0442a))
+
 ## [0.12.2](https://github.com/dvquy13/margent/compare/v0.12.1...v0.12.2) (2026-11-17)
 
 
