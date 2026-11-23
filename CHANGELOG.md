@@ -5,12 +5,13 @@
 
 ### Bug Fixes
 
-* update reads latest from the version list and checks each install moved ([08d5c76](https://github.com/dvquy13/margent/commit/08d5c7618b6477db3c72e1350b4e3f29bbfd1712))
+* **update:** reads the newest version from npm's version list instead of the `latest` tag, so a company npm mirror with a stale tag no longer leaves the CLI behind while reporting it current ([08d5c76](https://github.com/dvquy13/margent/commit/08d5c7618b6477db3c72e1350b4e3f29bbfd1712))
+* **update:** checks each install again after updating it and fails when it didn't move, such as a plugin whose marketplace is pinned to an old tag (it prints the commands that unpin it), instead of telling you to start a new session ([08d5c76](https://github.com/dvquy13/margent/commit/08d5c7618b6477db3c72e1350b4e3f29bbfd1712))
 
 
 ### Documentation
 
-* README video points at an attachment that is public ([c70ef2f](https://github.com/dvquy13/margent/commit/c70ef2f2c915d416b4b2ab5038706c6de1a0442a))
+* the README demo video plays for readers who aren't signed in to GitHub ([c70ef2f](https://github.com/dvquy13/margent/commit/c70ef2f2c915d416b4b2ab5038706c6de1a0442a))
 
 ## [0.12.2](https://github.com/dvquy13/margent/compare/v0.12.1...v0.12.2) (2026-11-17)
 
