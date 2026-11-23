@@ -1,7 +1,8 @@
 ---
 title: "`margent update` finds every install and updates it"
 status: accepted
-updated: 2026-10-27
+updated: 2026-11-23
+amended_by: 0050
 ---
 
 # 0042 `margent update` finds every install and updates it
@@ -13,7 +14,7 @@ updated: 2026-10-27
 
 ## Decision
 
-- `margent update` finds each install, reads the latest version from npm (`npm view margent version`), and updates every install that is behind, at once, without asking: typing `update` is the consent. Each step prints `{channel}: {current} → {latest}` and the command it runs.
+- `margent update` finds each install, reads the latest version from npm (`npm view margent version`; the highest listed version since [0050](0050-update-proves-each-install-moved.md)), and updates every install that is behind, at once, without asking: typing `update` is the consent. Each step prints `{channel}: {current} → {latest}` and the command it runs.
 - `margent update --check` prints the same report and changes nothing.
 - The installs it finds:
   - **CLI:** `npm ls -g margent --json`. Updated with `npm i -g margent@{latest}`.
@@ -21,7 +22,7 @@ updated: 2026-10-27
   - **Skills from `npx skills`:** entries whose source is `dvquy13/margent` in the skills lock file, global and in the current project. Their version is the CLI version the installed `margent` skill names. Updated with `npx -y skills update {margent's skills} -y`, global or project.
 - A development install is never touched: a CLI that is a link to a folder (`npm link`), or a plugin whose marketplace is a local folder. It prints `skipped {channel}: …` with the folder.
 - A tool that isn't on PATH (`claude`, `npx`) means that channel isn't installed. A command that fails, or a tool whose output can't be read, prints the command and the error and makes the exit code 1. The other channels still run.
-- After a plugin or skills update, it says to start a new agent session, since agents read skills at session start.
+- After a plugin or skills update, it says to start a new agent session (only for a channel that was read again and moved, since [0050](0050-update-proves-each-install-moved.md)), since agents read skills at session start.
 - The CLI is updated to the exact version `npm view` printed, so every channel lands on one version.
 
 ## Consequences
